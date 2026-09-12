@@ -21,6 +21,22 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 [ -f "$GAME_SRC/cossacks.exe" ] || { echo "не вижу cossacks.exe в: $GAME_SRC"; exit 1; }
 
+# Поставка должна быть GOG, а не Steam. Причина не во вкусах: стимовская копия
+# завязана на клиент Steam, а в контейнере его нет и не будет. GOG-версия
+# (Digital Deluxe) свободна от DRM — именно поэтому вся затея с образом и
+# возможна. Признак: есть galaxy.dll, нет steam_api.dll.
+if ls "$GAME_SRC"/steam_api*.dll >/dev/null 2>&1; then
+    echo "СТОП: это копия из Steam (найден steam_api.dll)."
+    echo "  В контейнере она не заработает: ей нужен клиент Steam."
+    echo "  Нужна поставка GOG (Digital Deluxe), она без DRM."
+    echo "  Путь задаётся переменной COSS3_GAME_SRC."
+    exit 1
+fi
+if [ ! -f "$GAME_SRC/galaxy.dll" ]; then
+    echo "ВНИМАНИЕ: нет galaxy.dll — не похоже на поставку GOG."
+    echo "  Собираю дальше, но если игра в контейнере не стартует — смотреть сюда первым."
+fi
+
 build_image() {
     echo "собираю $TAG под linux/amd64 из «${GAME_SRC}»"
     docker buildx build --platform linux/amd64 \
