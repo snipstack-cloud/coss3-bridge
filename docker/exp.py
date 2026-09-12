@@ -87,6 +87,15 @@ def команда_run(a) -> int:
     флаги = (s.get("флаги", "") or "").split()
 
     репо = os.environ.get("COSS3_BRIDGE_GIT", "")
+    ключ = os.path.expanduser(os.environ.get(
+        "COSS3_DEPLOY_KEY", "~/.ssh/coss3_deploy"))
+    по_ssh = репо.startswith(("git@", "ssh://"))
+    if по_ssh and not os.path.isfile(ключ):
+        sys.exit(f"адрес по ssh ({репо}), а deploy key не найден: {ключ}\n"
+                 f"  Где искать — COSS3_DEPLOY_KEY. Ключ создаётся так:\n"
+                 f"    ssh-keygen -t ed25519 -f ~/.ssh/coss3_deploy -N ''\n"
+                 f"  и добавляется на GitHub как deploy key ТОЛЬКО НА ЧТЕНИЕ:\n"
+                 f"    gh repo deploy-key add ~/.ssh/coss3_deploy.pub")
     if not репо:
         print("ВНИМАНИЕ: COSS3_BRIDGE_GIT не задан — мост возьмётся из образа.")
         print("  Для опыта это негодно: версия моста ничем не подтверждена, и")
@@ -106,6 +115,8 @@ def команда_run(a) -> int:
     есть_gpu = os.path.exists("/dev/dri")
     print(f"опыт {a.ид}: {s.get('что', '')}")
     print(f"  мост {ref} из {репо or 'образа'}, флаги: {' '.join(флаги) or '—'}")
+    if по_ssh:
+        print(f"  deploy key: {ключ} (монтируется только на чтение)")
     print(f"  копий {копий}, видеокарта: {'есть' if есть_gpu else 'НЕТ (рендер на CPU)'}")
 
     начало = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -126,6 +137,10 @@ def команда_run(a) -> int:
                 "-p", f"{5900 + n}:5900"]
         if репо:
             аргс += ["-e", f"COSS3_BRIDGE_GIT={репо}"]
+        if по_ssh:
+            # Ключ МОНТИРУЕТСЯ и только на чтение. В образ он не попадает
+            # никогда: слой с ключом остаётся в истории образа навсегда.
+            аргс += ["-v", f"{ключ}:/ssh/deploy_key:ro"]
         if есть_gpu:
             аргс += ["--device", "/dev/dri:/dev/dri"]
         for пер in ("COSS3_MODEL", "COSS3_EVERY", "COSS3_WAVE_MIN", "COSS3_D3D",

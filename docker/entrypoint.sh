@@ -58,9 +58,28 @@ fi
 : "${COSS3_BRIDGE_REF:=master}"
 if [ -n "$COSS3_BRIDGE_GIT" ]; then
     log "мост из git: ${COSS3_BRIDGE_GIT} @ ${COSS3_BRIDGE_REF}"
+    # Приватный репозиторий берём по deploy key. Ключ ТОЛЬКО монтируется
+    # (-v ...:/ssh/deploy_key:ro) и никогда не попадает в образ: слой с ключом
+    # остаётся в истории образа навсегда, и его достанет любой, у кого образ
+    # есть. Токен в переменной окружения тоже плох — он виден в
+    # `docker inspect` и в списке процессов.
+    if [ -f /ssh/deploy_key ]; then
+        # ssh откажется от ключа с открытыми правами, а на смонтированном
+        # томе права приходят с хоста. Копируем к себе и сужаем.
+        install -m 700 -d /root/.ssh
+        install -m 600 /ssh/deploy_key /root/.ssh/deploy_key
+        sed -i 's#-i /ssh/deploy_key#-i /root/.ssh/deploy_key#' /opt/bridge/ssh_wrapper.sh
+        export GIT_SSH_COMMAND=/opt/bridge/ssh_wrapper.sh
+        log "  доступ по deploy key ($(ssh-keygen -lf /root/.ssh/deploy_key | awk '{print $2}'))"
+    elif [ "${COSS3_BRIDGE_GIT#git@}" != "$COSS3_BRIDGE_GIT" ] \
+      || [ "${COSS3_BRIDGE_GIT#ssh://}" != "$COSS3_BRIDGE_GIT" ]; then
+        die "адрес по ssh (${COSS3_BRIDGE_GIT}), а ключа в /ssh/deploy_key нет.
+     Смонтируйте его: docker run -v ~/.ssh/coss3_deploy:/ssh/deploy_key:ro ...
+     exp.py делает это сам, если ключ лежит в COSS3_DEPLOY_KEY."
+    fi
     rm -rf /opt/bridge-git
-    if git clone --quiet --no-single-branch "$COSS3_BRIDGE_GIT" /opt/bridge-git 2>/dev/null \
-       && git -C /opt/bridge-git checkout --quiet "$COSS3_BRIDGE_REF" 2>/dev/null; then
+    if git clone --quiet --no-single-branch "$COSS3_BRIDGE_GIT" /opt/bridge-git 2>&1 \
+       && git -C /opt/bridge-git checkout --quiet "$COSS3_BRIDGE_REF" 2>&1; then
         SHA=$(git -C /opt/bridge-git rev-parse HEAD)
         # Файлы моста, но НЕ docker/: скрипты контейнера остаются от образа,
         # иначе правка entrypoint в ветке может сломать сам запуск и отладить

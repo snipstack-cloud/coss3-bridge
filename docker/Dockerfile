@@ -48,7 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libvulkan1 libvulkan1:i386 vulkan-tools \
       libgl1-mesa-dri libgl1-mesa-dri:i386 \
       python3 python3-venv python3-pip \
-      git \
+      git openssh-client \
       cabextract p7zip-full procps net-tools tini \
  && rm -rf /var/lib/apt/lists/*
 
@@ -110,6 +110,22 @@ RUN chmod +x /opt/bridge/entrypoint.sh /opt/bridge/firstrun.sh
 RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir openai \
  && ln -s /opt/venv/bin/python /usr/local/bin/coss3-python
+
+# Ключи хоста github.com и обёртка ssh для deploy key. Проверка при сборке
+# сверяет отпечатки с опубликованными GitHub — если GitHub их сменит (такое
+# было в 2023 с RSA), сборка упадёт, и это правильно: молча взять новый ключ
+# хоста значит согласиться на подмену.
+COPY docker/github_known_hosts /etc/ssh/ssh_known_hosts
+COPY docker/ssh_wrapper.sh /opt/bridge/ssh_wrapper.sh
+RUN chmod +x /opt/bridge/ssh_wrapper.sh \
+ && ssh-keygen -lf /etc/ssh/ssh_known_hosts \
+ && for fp in "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU" \
+              "SHA256:uNiVztksCsDhcc0u9e8BujQXVUpKZIDTMczCvj3tD2s" \
+              "SHA256:p2QAMXNIC1TJYWeIOttrVc98/R1BUFWu3/LiyKgUfQM"; do \
+      ssh-keygen -lf /etc/ssh/ssh_known_hosts | grep -qF "$fp" \
+        || { echo "СТОП: отпечаток ключа github.com не совпал: $fp"; exit 1; }; \
+    done \
+ && echo "ключи хоста github.com сверены с опубликованными"
 
 ENV COSS3_BRIDGE_GIT="" \
     COSS3_BRIDGE_REF=master \
