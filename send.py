@@ -125,6 +125,26 @@ def main() -> int:
                     help="1 — билд-ордер ведёт модель (нативный выключен), 0 — как в оригинале")
     ap.add_argument("--end", action="store_true",
                     help="сдаться: выставить поражение интерфейсному игроку")
+    # Настройки партии для --new. Без них DoNewGame берёт то, что осталось в
+    # меню, и партии выходят разными — сравнивать идеи на таких нельзя.
+    ap.add_argument("--res", type=int, default=-1,
+                    help="стартовые ресурсы: 0=1000, 1=4000, 2=5000 "
+                         "(из initmapgen.inc). По умолчанию не трогать")
+    ap.add_argument("--peace", type=int, default=-1,
+                    help="время мира, индекс настройки; 0 = БЕЗ мира "
+                         "(_misc_GetPeaceTime даёт 0 минут). По умолчанию не трогать")
+    ap.add_argument("--ai", type=int, default=-1,
+                    help="сложность противника: 0 Normal, 1 Hard, 2 Very Hard, "
+                         "3 IMPOSSIBLE. Осторожно: в списке интерфейса уровни "
+                         "нумеруются с 1 (0 там значит «слот пуст»), а в поле "
+                         "aidifficulty пишется на единицу меньше — "
+                         "showcustomgame.inc:647 ставит индекс aidifficulty+1. "
+                         "Поэтому «Невозможный» это 3, а не 4. "
+                         "Задание включает и расстановку слотов: наш человек, "
+                         "один компьютер, остальные закрыты")
+    ap.add_argument("--nation", default="",
+                    help="страна строкой sid, например net (Нидерланды). "
+                         "Номер не зашит: блок зовёт _country_GetIDBySID")
     ap.add_argument("--new", nargs="?", type=int, const=0, default=None,
                     metavar="SEED", help="переиграть игру, можно с сидом")
     a = ap.parse_args()
@@ -155,7 +175,8 @@ def main() -> int:
         br.clear_ack()
         cmd = "END" if a.end else "NEW"
         seed = a.new or 0
-        if not br.control(cmd, seed, seed // 7 + 1 if seed else 0):
+        if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
+                          res=a.res, peace=a.peace, ai=a.ai, nation=a.nation):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

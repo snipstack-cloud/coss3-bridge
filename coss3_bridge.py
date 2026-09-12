@@ -272,13 +272,27 @@ class Bridge:
             raise
         return True
 
-    def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0) -> bool:
+    def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0,
+                res: int = -1, peace: int = -1, ai: int = -1,
+                nation: str = "") -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
             PING — только квитанция: жив ли блок и заполнен ли шаблон матча
             END  — сдача интерфейсного игрока: движок показывает конец партии
-            NEW  — новый бой на настройках последнего custom game, сид можно задать
+            NEW  — новый бой; настройки можно задать прямо здесь
+
+        Настройки партии для NEW (все по умолчанию -1 = «не трогать»):
+            res    0 -> 1000 ресурсов, 1 -> 4000, 2 -> 5000 (initmapgen.inc:167)
+            peace  индекс времени мира; 0 (default) означает 0 минут
+                   (_misc_GetPeaceTime, misc.script:4264)
+            ai     сложность противника, gc_player_difficulty_* по номеру
+            nation строковый sid страны, 'net' = Нидерланды
+
+        Зачем это вообще. Без настроек DoNewGame берёт то, что осталось в меню,
+        и партии выходят разными: 12.09 так получились 5000 ресурсов вместо
+        1000 и враг, у которого уже восемь зданий. Сравнивать идеи на таких
+        партиях нельзя — разница между ними утонет в разнице условий.
 
         Файл один на игру, не на слот. False, если предыдущая команда не забрана."""
         if cmd not in ("END", "NEW", "PING"):
@@ -286,8 +300,19 @@ class Bridge:
         path = os.path.join(self.save_dir, "coss3_ctl.dat")
         if os.path.exists(path):
             return False
-        text = dump_parser_file("br_ctl", {"cmd": cmd, "seed0": int(seed0),
-                                           "seed1": int(seed1), "speed": int(speed)})
+        поля = {"cmd": cmd, "seed0": int(seed0),
+                "seed1": int(seed1), "speed": int(speed)}
+        # Пишем только заданные: блок отличает «не задано» по пустому значению,
+        # поэтому старый клиент, не знающий про настройки, ничего не меняет.
+        if int(res) >= 0:
+            поля["res"] = int(res)
+        if int(peace) >= 0:
+            поля["peace"] = int(peace)
+        if int(ai) >= 0:
+            поля["ai"] = int(ai)
+        if nation:
+            поля["nation"] = str(nation)
+        text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="latin-1") as f:

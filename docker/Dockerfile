@@ -40,13 +40,32 @@ RUN dpkg --add-architecture i386 \
 #   lavapipe    — Vulkan на процессоре (пакет mesa-vulkan-drivers), нужен,
 #                 когда на сервере нет видеокарты. С картой контейнер возьмёт
 #                 драйвер хоста через /dev/dri, менять ничего не надо;
+#   libGL/libEGL — САМ ЗАГРУЗЧИК OpenGL, а не драйверы. Ловушка debian-slim:
+#                 libgl1-mesa-dri даёт драйверы, но libGL.so.1 и libEGL.so.1
+#                 приходят отдельными пакетами, и без них Wine пишет
+#                 "Failed to load libGL", а игра падает с page fault ДО всякой
+#                 графики. cossacks.exe импортирует opengl32.dll и GLU32.dll,
+#                 то есть работает с OpenGL напрямую, помимо Direct3D — поэтому
+#                 падение было одинаковым и с DXVK, и с WineD3D. Версии :i386
+#                 обязательны: игра 32-битная;
 #   x11vnc      — подсмотреть, что на экране: первый бой всё равно заводить руками;
+#   mesa-utils  — glxinfo. 12.09 именно он показал, что OpenGL исправен
+#                 (llvmpipe 4.5), и снял подозрение с графики;
+#   imagemagick — import, снимок экрана. На ферме из десяти копий это
+#                 единственный способ понять, что видит зависшая копия: лезть
+#                 в каждую VNC-клиентом никто не станет. И именно вес снимка
+#                 (212 байт против 99 килобайт) отличал чёрный экран от живого;
 #   xdotool     — клики по меню, когда дойдёт до автоматизации старта партии.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      xvfb x11vnc xdotool \
+      xvfb x11vnc xdotool x11-utils \
+      mesa-utils imagemagick \
       mesa-vulkan-drivers mesa-vulkan-drivers:i386 \
       libvulkan1 libvulkan1:i386 vulkan-tools \
       libgl1-mesa-dri libgl1-mesa-dri:i386 \
+      libgl1 libgl1:i386 \
+      libglx-mesa0 libglx-mesa0:i386 \
+      libegl1 libegl1:i386 \
+      libglu1-mesa libglu1-mesa:i386 \
       python3 python3-venv python3-pip \
       git openssh-client \
       cabextract p7zip-full procps net-tools tini \
