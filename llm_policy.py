@@ -651,6 +651,14 @@ def diagnose(d: str, human: bool = False) -> None:
 ИСХОД_СЛОВОМ = {"win": "ПОБЕДА", "lose": "ПОРАЖЕНИЕ"}
 
 
+def _число(v):
+    """Строка игры -> int, если это число. Иначе как есть."""
+    try:
+        return int(str(v).strip())
+    except (TypeError, ValueError):
+        return v
+
+
 def конец_партии(a, br, исход: str, gt: int) -> str:
     """Партия кончилась, и мы знаем чем. Сказать вслух и дописать в трассу.
 
@@ -670,7 +678,10 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
             with open(a.botlog, "a", encoding="utf-8") as f:
                 f.write(json.dumps({
                     "gt": int(gt), "finish": исход,
-                    "state": {k: br.raw.get(k) for k in (
+                    # br.raw — это СТРОКИ, как их пишет игра. В записях тактов
+                    # снимок уже приведён к числам, и разнотипица в одной трассе
+                    # молча ломает счёт: '0' + '0' даёт '00', а не 0.
+                    "state": {k: _число(br.raw.get(k)) for k in (
                         "gametime", "peasants", "mil_inf", "mil_shooters",
                         "food", "wood", "stone", "gold", "iron", "my_farmused")
                         if br.raw.get(k) is not None},

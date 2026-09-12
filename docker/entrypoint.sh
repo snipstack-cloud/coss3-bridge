@@ -393,20 +393,29 @@ fi
 postmortem() {
     local rc="$1"
     log "модель вышла, код $rc (0 = цель взята, 2 = партия прошла без цели)"
+    # Документ по прогону пишется ВСЕГДА, даже когда трассы нет: «модель не
+    # сделала ни одного хода» — это тоже результат, и он должен лежать в том же
+    # месте, что и удачный, а не теряться в логе контейнера.
+    log "пишу документ прогона: ${COSS3_IO}/отчёт.md"
+    python3 /opt/bridge/run_report.py "$COSS3_IO" --out "$COSS3_IO/отчёт.md" \
+        >/dev/null 2>&1 || log "  не получилось — смотрите трассу руками"
     if [ -s "$COSS3_IO/coss3_bot.jsonl" ]; then
-        log "пишу разбор: ${COSS3_IO}/report.txt"
+        log "пишу разбор по тактам: ${COSS3_IO}/report.txt"
         python3 /opt/bridge/log_review.py --trace "$COSS3_IO/coss3_bot.jsonl" \
             >"$COSS3_IO/report.txt" 2>&1 || true
-        tail -n 25 "$COSS3_IO/report.txt" | sed 's/^/    /'
     else
         log "трассы нет или она пуста: ${COSS3_IO}/coss3_bot.jsonl"
     fi
+    # В лог контейнера — сам документ: он короткий, и это первое, что видно
+    # в `docker logs` после конца прогона.
+    [ -s "$COSS3_IO/отчёт.md" ] && sed 's/^/    /' "$COSS3_IO/отчёт.md"
     # Квитанция последней команды и хвост лога игры — то, за чем чаще всего
     # лезут после неудачного прогона.
     cp -f "$COSS3_GAME/coss3_ack.dat" "$COSS3_IO/ack_last.dat" 2>/dev/null || true
     echo "$rc" >"$COSS3_IO/policy.rc"
     if [ "${COSS3_KEEP_ALIVE:-1}" = "1" ]; then
         log "держу контейнер живым (COSS3_KEEP_ALIVE=0 — выключить). Смотреть так:"
+        log "  docker exec <имя> cat ${COSS3_IO}/отчёт.md      <- итог прогона"
         log "  docker exec <имя> cat ${COSS3_IO}/report.txt"
         log "  docker exec <имя> python3 /opt/bridge/log_review.py --trace ${COSS3_IO}/coss3_bot.jsonl --ideas"
         # Ждём именно игру, а не sleep: пока она жива, живо и всё остальное,
