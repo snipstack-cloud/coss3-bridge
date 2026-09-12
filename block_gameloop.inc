@@ -83,20 +83,20 @@
       [*] = ;            gMap.settings.additional.peacetime := brctlpeace;
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
-      [*] = ;               // Our slot: human, no adviser. Nation is set by string sid
-      [*] = ;               // through _country_GetIDBySID so no id is hardcoded.
-      [*] = ;               gMap.players[0].bexists := True;
-      [*] = ;               gMap.players[0].bhuman := True;
-      [*] = ;               gMap.players[0].bai := False;
-      [*] = ;               gMap.players[0].bclosed := False;
-      [*] = ;               gMap.players[0].team := 1;
+      [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
+      [*] = ;               // set bexists/bhuman/bai/team on it and wiped what the game
+      [*] = ;               // puts there from the profile: the name and identity. The slot
+      [*] = ;               // became nameless and the nation showed as 'unknown'. The menu
+      [*] = ;               // has already set that slot up, so touch only the nation.
       [*] = ;               if (brctlnat <> '') then
       [*] = ;               gMap.players[0].cid := _country_GetIDBySID(brctlnat);
-      [*] = ;               // The opponent: computer of the requested difficulty.
+      [*] = ;               gMap.players[0].team := 1;
+      [*] = ;               // The opponent slot has to be created in full.
       [*] = ;               gMap.players[1].bexists := True;
       [*] = ;               gMap.players[1].bhuman := False;
       [*] = ;               gMap.players[1].bai := True;
       [*] = ;               gMap.players[1].bclosed := False;
+      [*] = ;               gMap.players[1].bready := True;
       [*] = ;               gMap.players[1].team := 2;
       [*] = ;               gMap.players[1].aidifficulty := brctlai;
       [*] = ;               if (brctlnat <> '') then
@@ -109,6 +109,11 @@
       [*] = ;                  gMap.players[brpl].bclosed := True;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // Report what actually happened: without it there is no way to
+      [*] = ;            // tell 'was not applied' from 'applied, then overridden'.
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'nat0', gMap.players[0].cid);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'nat1', gMap.players[1].cid);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'ai1', gMap.players[1].aidifficulty);
       [*] = ;            ParserSetValueByKeyByHandle(back, 'done', 'newgame_called');
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'res', gMap.settings.gen.resourcestart);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'peace', gMap.settings.additional.peacetime);
