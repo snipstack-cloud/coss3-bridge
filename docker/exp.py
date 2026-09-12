@@ -42,7 +42,13 @@ def идеи() -> configparser.ConfigParser:
     if not os.path.isfile(ИНИ):
         sys.exit(f"нет файла идей: {ИНИ}")
     c = configparser.ConfigParser()
-    c.read(ИНИ, encoding="utf-8")
+    # utf-8-sig, а не utf-8: Блокнот на Windows сохраняет файл с BOM, и тогда
+    # первая секция читается как "\ufeff[baseline]" — то есть пропадает молча.
+    # Ключи здесь кириллические, так что редактировать файл будут именно
+    # Блокнотом, а не чем-то умнее.
+    c.read(ИНИ, encoding="utf-8-sig")
+    if not c.sections():
+        sys.exit(f"в {ИНИ} нет ни одной идеи — файл пуст или испорчен")
     return c
 
 
@@ -77,7 +83,49 @@ def команда_list(_) -> int:
         print(f"{имя:<12} {s.get('ref', 'master'):<16} "
               f"{s.get('копий', '10'):>5}  {s.get('что', '')}{помета}")
     print()
+    print(f"Файл идей:  {ИНИ}")
+    print("Завести:    ./docker/exp.py new <id> --что \"...\" --флаги \"--wave-min 40\"")
     print("Запустить:  ./docker/exp.py run <id>")
+    return 0
+
+
+# ---------------------------------------------------------------------------- new
+def команда_new(a) -> int:
+    """Завести идею, не открывая файл руками.
+
+    Руками тоже можно — это обычный текст. Но ключи здесь кириллические, файл
+    в UTF-8, а на Windows его открывают Блокнотом, который норовит дописать
+    BOM. Дешевле дать команду, чем объяснять про кодировки.
+    """
+    c = идеи()
+    if a.ид in c.sections():
+        sys.exit(f"идея {a.ид} уже есть:\n"
+                 f"  что = {c[a.ид].get('что', '')}\n"
+                 f"Возьмите другое имя или правьте {ИНИ} руками.")
+    if a.ид.lower() in ("default", "defaults"):
+        sys.exit("такое имя занято разбором ini")
+    раздел = [
+        "",
+        f"[{a.ид}]",
+        f"что = {a.что}",
+        f"ref = {a.ref}",
+        f"флаги = {a.флаги}",
+        f"копий = {a.копий}",
+    ]
+    if a.база:
+        раздел.append(f"база = {a.база}")
+    with open(ИНИ, "a", encoding="utf-8") as f:
+        f.write("\n".join(раздел) + "\n")
+    print(f"записано в {ИНИ}:")
+    print("\n".join(раздел[1:]))
+    # Перечитываем с диска: единственное доказательство, что написанное
+    # читается обратно. Молчаливая порча файла здесь стоила бы прогона.
+    проверка = configparser.ConfigParser()
+    проверка.read(ИНИ, encoding="utf-8-sig")
+    if a.ид not in проверка.sections():
+        sys.exit("НО ОБРАТНО НЕ ЧИТАЕТСЯ — файл испорчен, посмотрите его руками")
+    print(f"\nперечитано с диска: идея {a.ид} на месте")
+    print(f"Запустить:  ./docker/exp.py run {a.ид}")
     return 0
 
 
@@ -401,6 +449,14 @@ def main() -> int:
     р.add_argument("--force", action="store_true",
                    help="запустить без git-версии моста (для опыта негодно)")
     р.set_defaults(_=команда_run)
+    р = под.add_parser("new", help="завести идею, не открывая файл руками")
+    р.add_argument("ид", help="короткое имя: им называются контейнеры и папка с трассами")
+    р.add_argument("--что", required=True, help="описание словами, попадёт в отчёт")
+    р.add_argument("--флаги", default="", help="что дописать к llm_policy.py")
+    р.add_argument("--ref", default="master", help="ветка или SHA моста")
+    р.add_argument("--копий", type=int, default=3)
+    р.add_argument("--база", default="baseline", help="с чем сравнивать в отчёте")
+    р.set_defaults(_=команда_new)
     под.add_parser("status", help="что идёт").set_defaults(_=команда_status)
     р = под.add_parser("report", help="свести результат")
     р.add_argument("ид")
