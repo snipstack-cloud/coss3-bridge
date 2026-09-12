@@ -62,6 +62,23 @@ class Мир:
         self.волны = []                                 # (время, сколько, цель)
         self.отказ = ""            # ПОЧЕМУ последняя команда не прошла: модель
                                    # видит это в состоянии, иначе выдумает причину
+        self.принудительно = ""    # исход, назначенный ключом --lose-at: проверять
+                                   # конец партии, не доводя мок до разорения
+
+    def исход(self) -> str:
+        """'lose', 'win' или 'none' — по тем же признакам, что у движка.
+
+        progress.inc считает игрока несуществующим, когда у него нет ни занятых
+        жилых мест (farmused), ни достроенной ратуши; тогда victorystate
+        становится lose. Победа — когда не осталось врага.
+        """
+        if self.принудительно:
+            return self.принудительно
+        if self.peasants + self.армия <= 0 and self.здания.get("center", 0) <= 0:
+            return "lose"
+        if self.враг_крестьян <= 0:
+            return "win"
+        return "none"
 
     # --- бухгалтерия ---
     def занято(self):
@@ -272,7 +289,11 @@ class Мир:
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],
              "cost_ok": "true",
              "p0_enemy": "true", "p0_peasants": self.враг_крестьян, "p0_bldgs": 9,
-             "en_near_dist": 210}
+             "en_near_dist": 210,
+             # Исход — теми же словами, что пишет block_hstate. Без него конец
+             # партии на моке воспроизвести нельзя, а это единственное место,
+             # где его можно проверить без Windows.
+             "victory": self.исход()}
         if self.отказ:
             d["last_fail"] = self.отказ
         for р in РЕСУРСЫ:
@@ -287,23 +308,87 @@ class Мир:
         os.replace(врем, os.path.join(self.d, f"coss3_eco_P{self.plind}.dat"))
 
 
+def пульс_интерфейса(d: str, gt: int, исход: str) -> None:
+    """То, что в игре пишет block_endgame из DoProgress. Он живёт, когда
+    состояние уже замерло: конец партии движок встречает паузой симуляции."""
+    тело = (f"   realtime = {int(time.time())}\n   gametime = {gt}\n"
+            f"   victory = {исход}\n"
+            f"   paused = {'yes' if исход != 'none' else 'no'}\n")
+    врем = os.path.join(d, ".tmp_gui")
+    with open(врем, "wb") as f:
+        f.write(f"br_gui : section.begin\n{тело}section.end\n".encode("latin-1", "replace"))
+    os.replace(врем, os.path.join(d, "coss3_gui.dat"))
+
+
+def новая_партия(d: str, gt: int, исход: str) -> bool:
+    """Ждёт NEW на замершей партии и отвечает так же, как block_endgame.
+
+    Смысл: в игре после поражения блок в Progress уже не работает, и команду
+    берёт интерфейс. Мок обязан вести себя так же, иначе петля эпизодов
+    проверяется только на Windows — то есть не проверяется.
+    """
+    ctl = os.path.join(d, "coss3_ctl.dat")
+    if not os.path.exists(ctl):
+        return False
+    текст = open(ctl, encoding="latin-1", errors="replace").read()
+    os.unlink(ctl)
+    cmd = ""
+    for строка in текст.splitlines():
+        если = строка.split("=", 1)
+        if len(если) == 2 and если[0].strip() == "cmd":
+            cmd = если[1].strip()
+    готово = "restarted_after_end" if cmd == "NEW" else "ping"
+    тело = (f"   cmd = {cmd}\n   from = endgame\n   victory = {исход}\n"
+            f"   gametime = {gt}\n   done = {готово}\n")
+    врем = os.path.join(d, ".tmp_ack")
+    with open(врем, "wb") as f:
+        f.write(f"br_ack : section.begin\n{тело}section.end\n".encode("latin-1", "replace"))
+    os.replace(врем, os.path.join(d, "coss3_ack.dat"))
+    return cmd == "NEW"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="мок человеческого слота")
     ap.add_argument("dir")
     ap.add_argument("--plind", type=int, default=1)
     ap.add_argument("--tick", type=float, default=0.5, help="реальных секунд на тик")
     ap.add_argument("--speed", type=float, default=5.0, help="игровых секунд в реальной")
+    ap.add_argument("--lose-at", type=float, default=0.0,
+                    help="назначить поражение на такой игровой секунде: проверять "
+                         "конец партии, не доводя мок до разорения")
+    ap.add_argument("--win-at", type=float, default=0.0,
+                    help="то же, но победу")
     a = ap.parse_args()
     os.makedirs(a.dir, exist_ok=True)
     м = Мир(a.dir, a.plind)
     print(f"мок человеческого слота: {a.dir}, скорость {a.speed}x", flush=True)
     print("нативного ИИ нет: не посланный крестьянин не работает, ничего не строится само",
           flush=True)
+    партия = 1
     while True:
         м.тик(a.tick * a.speed)
         м.команды()
         м.атака()
+        if a.lose_at and м.t >= a.lose_at:
+            м.принудительно = "lose"
+        if a.win_at and м.t >= a.win_at:
+            м.принудительно = "win"
         м.состояние()
+        исход = м.исход()
+        пульс_интерфейса(a.dir, int(м.t), исход)
+        if исход != "none":
+            # Игра здесь встаёт: victorystate<>none -> SetProgressingPauseMode.
+            # Мок замирает так же — состояние БОЛЬШЕ НЕ ПИШЕТСЯ. Если бы он
+            # продолжал его обновлять, петля выглядела бы исправной там, где в
+            # игре она слепнет.
+            print(f"\nпартия {партия} кончилась: {исход} на {int(м.t)} игровой секунде. "
+                  f"Состояние заморожено, жду NEW", flush=True)
+            while not новая_партия(a.dir, int(м.t), исход):
+                пульс_интерфейса(a.dir, int(м.t), исход)
+                time.sleep(a.tick)
+            партия += 1
+            м = Мир(a.dir, a.plind)
+            print(f"партия {партия}: начал заново", flush=True)
         time.sleep(a.tick)
 
 

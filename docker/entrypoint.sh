@@ -34,6 +34,9 @@ die() { log "ОСТАНОВКА: $*"; exit 1; }
 : "${COSS3_EVERY:=20}"
 : "${COSS3_WAVE_MIN:=20}"
 : "${COSS3_HB_TIMEOUT:=180}"  # сколько ждать пульса, прежде чем признать провал
+: "${COSS3_EPISODES:=1}"      # сколько партий подряд сыграть в этом контейнере
+: "${COSS3_KEEP_ALIVE:=1}"    # держать контейнер живым после конца партии,
+                              # чтобы можно было зайти за логами боя
 
 mkdir -p "$COSS3_IO"
 
@@ -240,7 +243,8 @@ if [ "$COSS3_INSTALL" = "1" ]; then
 
     log "ставлю человеческий слот"
     python3 install_bridge.py "$COSS3_GAME" --reinstall \
-            --human-only --human-state --human-cmd 2>&1 | tee "$COSS3_IO/install.log"
+            --human-only --human-state --human-cmd --endgame \
+            2>&1 | tee "$COSS3_IO/install.log"
 
     grep -q "проверка после записи: все блоки на месте" "$COSS3_IO/install.log" \
         || die "установщик не подтвердил, что блоки на месте (см. $COSS3_IO/install.log)"
@@ -264,15 +268,29 @@ import os, sys
 нет = [и for и, м in метки.items() if м not in д]
 print(f"progress.inc: {len(д.splitlines())} строк, "
       f"блоки: {', '.join(и for и in метки if и not in нет) or 'НИ ОДНОГО'}")
+# Блок конца партии стоит в ДРУГОМ файле — в интерфейсном акторе. Проверять
+# только progress.inc значит не заметить его отсутствия: партия кончится, мост
+# смолчит, контейнер встанет. Ровно так 12.09 установщик отрапортовал успех,
+# не поставив блок.
+гуй = os.path.join(sys.argv[1], "data", "gui", "menu.inc", "doprogress.inc")
+try:
+    if b"// === BRIDGE ENDGAME" not in open(гуй, "rb").read():
+        нет.append("конец партии (doprogress.inc)")
+    else:
+        print("doprogress.inc: блок конца партии на месте")
+except OSError as e:
+    нет.append(f"конец партии — файл не прочитан: {e}")
 if нет:
-    print(f"СТОП: в progress.inc нет блоков: {', '.join(нет)}")
+    print(f"СТОП: не хватает блоков: {', '.join(нет)}")
     sys.exit(1)
 PY
 fi
 
 # --- игра --------------------------------------------------------------------
 cd "$COSS3_GAME"
-rm -f coss3_hb.dat coss3_eco_P*.dat
+# Чистим и пульс интерфейса: без этого файл от ПРОШЛОГО запуска сказал бы
+# «партия кончилась поражением» про партию, которой ещё нет.
+rm -f coss3_hb.dat coss3_gui.dat coss3_eco_P*.dat
 log "запускаю cossacks.exe"
 wine cossacks.exe >"$COSS3_IO/game.log" 2>&1 &
 GAME_PID=$!
@@ -363,10 +381,47 @@ else
        docker exec <имя> cat ${COSS3_GAME}/coss3_ack.dat"
 fi
 
+# --- посмертное -------------------------------------------------------------
+# Контейнер НЕ должен умирать вместе с политикой. До 13.09 последней строкой
+# стоял `exec python3 llm_policy.py`: политика становилась PID 1, и как только
+# партия кончалась, контейнер останавливался. Логи боя после этого не прочитать
+# ничем — `docker exec` на остановленном контейнере отвечает
+# «container ... is not running», а log_review.py лежит внутри образа.
+#
+# Поэтому теперь: политика запускается ОБЫЧНЫМ процессом, после неё пишется
+# разбор рядом с трассой, и контейнер держится живым.
+postmortem() {
+    local rc="$1"
+    log "модель вышла, код $rc (0 = цель взята, 2 = партия прошла без цели)"
+    if [ -s "$COSS3_IO/coss3_bot.jsonl" ]; then
+        log "пишу разбор: ${COSS3_IO}/report.txt"
+        python3 /opt/bridge/log_review.py --trace "$COSS3_IO/coss3_bot.jsonl" \
+            >"$COSS3_IO/report.txt" 2>&1 || true
+        tail -n 25 "$COSS3_IO/report.txt" | sed 's/^/    /'
+    else
+        log "трассы нет или она пуста: ${COSS3_IO}/coss3_bot.jsonl"
+    fi
+    # Квитанция последней команды и хвост лога игры — то, за чем чаще всего
+    # лезут после неудачного прогона.
+    cp -f "$COSS3_GAME/coss3_ack.dat" "$COSS3_IO/ack_last.dat" 2>/dev/null || true
+    echo "$rc" >"$COSS3_IO/policy.rc"
+    if [ "${COSS3_KEEP_ALIVE:-1}" = "1" ]; then
+        log "держу контейнер живым (COSS3_KEEP_ALIVE=0 — выключить). Смотреть так:"
+        log "  docker exec <имя> cat ${COSS3_IO}/report.txt"
+        log "  docker exec <имя> python3 /opt/bridge/log_review.py --trace ${COSS3_IO}/coss3_bot.jsonl --ideas"
+        # Ждём именно игру, а не sleep: пока она жива, живо и всё остальное,
+        # и в контейнер можно зайти за состоянием, квитанцией, логом Wine.
+        wait "$GAME_PID" 2>/dev/null || true
+        log "игра закрылась — дальше просто стою"
+        while true; do sleep 3600; done
+    fi
+    exit "$rc"
+}
+
 # --- политика ----------------------------------------------------------------
 if [ "$COSS3_RUN_POLICY" = "1" ]; then
     cd /opt/bridge
-    log "запускаю модель: $COSS3_MODEL, такт $COSS3_EVERY, порог волны $COSS3_WAVE_MIN"
+    log "запускаю модель: $COSS3_MODEL, такт $COSS3_EVERY, порог волны $COSS3_WAVE_MIN, партий $COSS3_EPISODES"
     # COSS3_EXTRA_FLAGS — то, чем идея отличается от базы (его ставит exp.py).
     # Дописывается В КОНЕЦ, поэтому перебивает одноимённые ключи выше: argparse
     # берёт последнее вхождение. Так идея «--wave-min 40» работает, не требуя
@@ -374,17 +429,24 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
     if [ -n "${COSS3_EXTRA_FLAGS:-}" ]; then
         log "  флаги идеи: ${COSS3_EXTRA_FLAGS}"
     fi
+    # set +e на время вызова: политика возвращает 2, когда партия прошла без
+    # цели, и это НЕ ошибка. С `set -e` такой код обрывал бы скрипт до разбора.
+    set +e
     # shellcheck disable=SC2086
-    exec python3 llm_policy.py --human \
+    python3 llm_policy.py --human \
         --dir "$COSS3_GAME" \
         --hints "$COSS3_HINTS" \
         --model "$COSS3_MODEL" \
         --every "$COSS3_EVERY" \
         --wave-min "$COSS3_WAVE_MIN" \
+        --episodes "$COSS3_EPISODES" \
         --ban market,academi \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
         --log "$COSS3_IO/coss3_llm.log" \
         ${COSS3_EXTRA_FLAGS:-}
+    rc=$?
+    set -e
+    postmortem "$rc"
 else
     log "политика выключена (COSS3_RUN_POLICY=0) — держу игру"
     wait "$GAME_PID"

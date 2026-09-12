@@ -12,6 +12,7 @@
     python install_bridge.py "<путь к игре>" --reinstall --outdir D --human-state --human-cmd
     python install_bridge.py "<путь к игре>" --reinstall --outdir D --human-state --human-cmd --cmd-level 1
     python install_bridge.py "<путь к игре>" --reinstall --outdir D --human-only --human-state --human-cmd
+    python install_bridge.py "<путь к игре>" --reinstall --human-only --human-state --human-cmd --endgame
 
 --outdir задаёт КАТАЛОГ, куда игра пишет файлы моста. Важно: папка игры в
 Program Files недоступна для записи, поэтому указывайте заведомо доступную
@@ -32,7 +33,7 @@ import os, sys, shutil, datetime
 
 REL_ECO = os.path.join("data", "scripts", "units", "global.inc", "progresseconomicai.inc")
 REL_WAR = os.path.join("data", "scripts", "units", "global.inc", "progresswarai.inc")
-REL_GUI = os.path.join("data", "gui", "menu.inc", "doprogress.inc")   # только для бисекции
+REL_GUI = os.path.join("data", "gui", "menu.inc", "doprogress.inc")   # бисекция и конец партии
 REL_PRG = os.path.join("data", "scripts", "units", "global.inc", "progress.inc")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -88,11 +89,21 @@ GUI_BLOCK = (REL_GUI, "block_loop.inc",
              "ExecuteStateByFlag(gbool_gui_debug, 'ShowEditorInfo', False);", True,
              "// === BRIDGE LOOP", "// === END BRIDGE LOOP ===")
 
+# Конец партии, флаг --endgame. Ставится в ИНТЕРФЕЙСНЫЙ актор, и это не вкусовщина:
+# когда партия кончается, движок зовёт SetProgressingPauseMode(True) (doprogress.inc,
+# ветка victorystate<>none) и симуляция встаёт. Всё, что живёт в Progress, замирает
+# вместе с ней — поэтому мост не видел поражения и не мог начать следующую партию.
+# DoProgress интерфейса идёт сквозь эту паузу и сквозь главное меню.
+ENDGAME_BLOCK = (REL_GUI, "block_endgame.inc",
+                 "ExecuteStateByFlag(gbool_gui_debug, 'ShowEditorInfo', False);", True,
+                 "// === BRIDGE ENDGAME", "// === END BRIDGE ENDGAME ===")
+
 # BLOCKS меняется по флагам (--human-*, --human-only, бисекция), поэтому снимать
 # и обнаруживать установленное по нему нельзя: `--uninstall` без флагов не знал
 # про человеческие блоки и молча оставлял их в игре. Снятие обязано видеть ВСЁ,
 # что этот установщик умеет ставить.
-ALL_BLOCKS = tuple(BLOCKS) + (HUMAN_BLOCK, HSTATE_BLOCK, HCMD_BLOCK, GUI_BLOCK)
+ALL_BLOCKS = tuple(BLOCKS) + (HUMAN_BLOCK, HSTATE_BLOCK, HCMD_BLOCK, GUI_BLOCK,
+               ENDGAME_BLOCK)
 # Уровни бисекции блока команд носят те же маркеры, что и полный блок, поэтому
 # снятие и обнаружение работают для них без отдельных записей.
 
@@ -219,6 +230,10 @@ def main() -> int:
         print("только человеческий слот: блоки компьютерного моста не ставятся "
               "(петля эпизодов остаётся)")
 
+    if "--endgame" in argv:
+        BLOCKS.append(ENDGAME_BLOCK)
+        print("конец партии: интерфейс пишет coss3_gui.dat и принимает NEW "
+              "после победы или поражения")
     if "--human-probe" in argv:
         BLOCKS.append(HUMAN_BLOCK)
         print("зонд человеческого слота: пишет coss3_probe_P<n>.dat каждый тик")

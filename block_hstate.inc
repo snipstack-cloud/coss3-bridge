@@ -293,6 +293,18 @@
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
+      [*] = ;         // How the match ended, in the same file the policy already reads every
+      [*] = ;         // tick. The engine pauses the simulation the moment it sets victorystate,
+      [*] = ;         // so this block is about to freeze - and this is the last line it writes.
+      [*] = ;         // Without it the trace simply stopped and the policy had to guess between
+      [*] = ;         // 'window minimized', 'match over' and 'MODE 1 broke it'.
+      [*] = ;         var hsvic : String = 'none';
+      [*] = ;         if (gPlayer[plind].victorystate = gc_player_victorystate_win) then
+      [*] = ;         hsvic := 'win'
+      [*] = ;         else
+      [*] = ;         if (gPlayer[plind].victorystate = gc_player_victorystate_lose) then
+      [*] = ;         hsvic := 'lose';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'victory', hsvic);
       [*] = ;         ParserSaveToFileByHandle(hsp, '@@OUT@@coss3_eco_P' + IntToStr(plind) + '.dat');
       [*] = ;      end;
       [*] = ;   end;

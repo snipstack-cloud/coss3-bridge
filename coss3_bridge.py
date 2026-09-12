@@ -199,6 +199,10 @@ class Bridge:
         self.map_path = os.path.join(save_dir, f"coss3_map_P{plind}.dat")
         self.cmd_path = os.path.join(save_dir, f"coss3_cmd_P{plind}.dat")
         self.atk_path = os.path.join(save_dir, f"coss3_atk_P{plind}.dat")
+        # Пульс интерфейса. Пишется блоком block_endgame из DoProgress и живёт
+        # тогда, когда состояние уже мертво: конец партии движок встречает
+        # паузой симуляции, и всё, что стоит в Progress, замирает вместе с ней.
+        self.gui_path = os.path.join(save_dir, "coss3_gui.dat")
         self._last_mtime = 0.0
         self.raw: dict[str, str] = {}     # последнее состояние без приведения типов
 
@@ -238,6 +242,44 @@ class Bridge:
             n = _to_int(v)
             out[k] = v if n is None else n
         return out
+
+    def read_gui(self) -> dict[str, str]:
+        """Пульс интерфейса: victory, gamemode, paused, gametime. Пустой dict,
+        если блока конца партии в игре нет — тогда исход придётся брать из
+        состояния, а его последняя строка может и не успеть его назвать."""
+        try:
+            with open(self.gui_path, "r", encoding="latin-1") as f:
+                return parse_parser_file(f.read())
+        except OSError:
+            return {}
+
+    def _свежий(self, path: str, окно: float) -> bool:
+        if окно <= 0:
+            return True
+        try:
+            return time.time() - os.path.getmtime(path) <= окно
+        except OSError:
+            return False
+
+    def outcome(self, свежесть: float = 0.0) -> str:
+        """'win', 'lose' или '' — чем кончилась партия, по мнению самой игры.
+
+        Два источника, и оба нужны. Пульс интерфейса переживает паузу конца
+        партии, но его может не быть вовсе (блок не установлен); в состоянии
+        исход появляется последней строкой перед заморозкой, но эта строка
+        может и не успеть записаться. Верим любому, кто назвал исход.
+
+        `свежесть` — сколько секунд назад файл мог быть записан, чтобы ему ещё
+        верили. Нужна на ВХОДЕ в партию: замороженный файл прошлой партии лежит
+        на диске и назовёт её исход, а спрашивают про новую. Внутри партии
+        свежесть не нужна: этот же файл мы читали весь бой.
+        """
+        источники = ((self.gui_path, self.read_gui().get("victory", "")),
+                     (self.state_path, self.raw.get("victory", "")))
+        for путь, где in источники:
+            if где in ("win", "lose") and self._свежий(путь, свежесть):
+                return где
+        return ""
 
     def wait_state(self, timeout: float = 30.0, poll: float = 0.2):
         deadline = time.monotonic() + timeout

@@ -172,20 +172,29 @@ def дом_функций(игра):
     что имя-то в data/scripts есть.
     """
     дом = {}
-    корень = os.path.join(игра, "data", "scripts")
-    for путь, _, файлы in os.walk(корень):
-        for имя in файлы:
-            if not имя.endswith((".script", ".inc")) or ".bak" in имя:
-                continue
-            п = os.path.join(путь, имя)
-            try:
-                d = open(п, "rb").read().decode("latin-1", "replace")
-            except OSError:
-                continue
-            d = re.sub(r"//.*$", "", d, flags=re.M)
-            отн = os.path.relpath(п, корень).replace("\\", "/")
-            for m in re.finditer(r"\b(?:procedure|function)\s+([A-Za-z_]\w*)\s*\(", d):
-                дом.setdefault(m.group(1), set()).add(отн)
+    # Интерфейсные .inc лежат в data/gui и в этот обход раньше не попадали
+    # вовсе: функция, объявленная внутри doprogress.inc, была для проверки
+    # несуществующей. Кладём их под тем же относительным именем, каким их
+    # называет ЦЕЛЬ, — '../gui/...'.
+    корни = [(os.path.join(игра, "data", "scripts"), ""),
+             (os.path.join(игра, "data", "gui"), "../gui")]
+    for корень, префикс in корни:
+        for путь, _, файлы in os.walk(корень):
+            for имя in файлы:
+                if not имя.endswith((".script", ".inc")) or ".bak" in имя:
+                    continue
+                п = os.path.join(путь, имя)
+                try:
+                    d = open(п, "rb").read().decode("latin-1", "replace")
+                except OSError:
+                    continue
+                d = re.sub(r"//.*$", "", d, flags=re.M)
+                отн = os.path.relpath(п, корень).replace("\\", "/")
+                if префикс:
+                    отн = префикс + "/" + отн
+                for m in re.finditer(
+                        r"\b(?:procedure|function)\s+([A-Za-z_]\w*)\s*\(", d):
+                    дом.setdefault(m.group(1), set()).add(отн)
     return дом
 
 
@@ -199,6 +208,11 @@ def дом_функций(игра):
     "block_import.inc": "units/global.inc/progresseconomicai.inc",
     "block_state.inc":  "units/global.inc/progresseconomicai.inc",
     "block_war.inc":    "units/global.inc/progresswarai.inc",
+    # Блок конца партии живёт в ИНТЕРФЕЙСНОМ акторе, а не в Progress. Без этой
+    # строки он молча проверялся бы в чужой области видимости: правило внизу
+    # относит к progress.inc всё, что не опознано, и такая проверка сказала бы
+    # ОК там, где вызов не скомпилируется.
+    "block_endgame.inc": "../gui/menu.inc/doprogress.inc",
 }
 
 

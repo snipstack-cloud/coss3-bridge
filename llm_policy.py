@@ -648,6 +648,38 @@ def diagnose(d: str, human: bool = False) -> None:
                   "  а не вашу базу. Либо укажите слот прямо: --plind N")
 
 
+ИСХОД_СЛОВОМ = {"win": "ПОБЕДА", "lose": "ПОРАЖЕНИЕ"}
+
+
+def конец_партии(a, br, исход: str, gt: int) -> str:
+    """Партия кончилась, и мы знаем чем. Сказать вслух и дописать в трассу.
+
+    До 13.09 мост этого не умел вовсе: движок ставит victorystate и тут же
+    паузу симуляции, блок состояния замирает вместе с ней, а политика видела
+    только «состояние не обновлялось 30 с» и печатала три догадки. Исход при
+    этом лежал в двух файлах, которые никто не читал.
+    """
+    mm, ss = divmod(int(gt), 60)
+    слово = ИСХОД_СЛОВОМ.get(исход, исход)
+    print(f"\n{'=' * 60}\n{слово} на {mm}:{ss:02d} игрового времени\n{'=' * 60}")
+    if исход == "lose":
+        print("Базы и населения не осталось: движок засчитывает поражение, когда\n"
+              "у игрока нет ни занятых жилых мест, ни ратуши (progress.inc).")
+    if a.botlog:
+        try:
+            with open(a.botlog, "a", encoding="utf-8") as f:
+                f.write(json.dumps({
+                    "gt": int(gt), "finish": исход,
+                    "state": {k: br.raw.get(k) for k in (
+                        "gametime", "peasants", "mil_inf", "mil_shooters",
+                        "food", "wood", "stone", "gold", "iron", "my_farmused")
+                        if br.raw.get(k) is not None},
+                }, ensure_ascii=False) + "\n")
+        except OSError:
+            pass                            # трасса не должна ронять партию
+    return "победа" if исход == "win" else "поражение"
+
+
 def stalled(d: str, plind: int, no_mode: bool) -> None:
     """Состояние встало. Причин три, и они различимы."""
     path = os.path.join(d, f"coss3_eco_P{plind}.dat")
@@ -1793,6 +1825,13 @@ def одна_партия(a, client, br: Bridge, plind: int,
     try:
         st = br.wait_state(timeout=30)
     except TimeoutError:
+        # Партия могла кончиться ДО того, как мы к ней подключились: так бывает
+        # в контейнере, где политика встаёт после игры. Спрашиваем игру, но
+        # только про свежие файлы — замороженное состояние прошлой партии лежит
+        # рядом и назвало бы её исход вместо нынешнего.
+        исход = br.outcome(свежесть=30)
+        if исход:
+            return конец_партии(a, br, исход, br.raw.get("gametime", 0))
         stalled(br.save_dir, plind, no_mode=a.no_mode)
         return "обрыв"
     первый = not globals().get("_ШАПКА")
@@ -1899,6 +1938,12 @@ def одна_партия(a, client, br: Bridge, plind: int,
         try:
             st = br.wait_state(timeout=30)
         except TimeoutError:
+            # Состояние встало. Это НЕ повод гадать: у игры надо спросить.
+            # Пульс интерфейса переживает паузу конца партии, а последняя
+            # строка состояния успевает назвать исход в большинстве случаев.
+            исход = br.outcome()
+            if исход:
+                return конец_партии(a, br, исход, br.raw.get("gametime", 0))
             # d здесь не существует: каталог знает только мост. Из-за этого
             # диагностика конца партии падала NameError поверх TimeoutError.
             stalled(br.save_dir, plind, no_mode=a.no_mode)
@@ -1907,6 +1952,10 @@ def одна_партия(a, client, br: Bridge, plind: int,
         паузы.append(_т - прошлое_чтение)
         прошлое_чтение = _т
         gt = int(st.get("gametime", 0))
+        # Исход приходит той же строкой состояния, что и всё остальное. Ждать
+        # тридцатисекундного обрыва, чтобы узнать о поражении, незачем.
+        if st.get("victory") in ("win", "lose"):
+            return конец_партии(a, br, str(st["victory"]), gt)
         mp = br.read_map()
         if int(st.get("my_agressors", 0) or 0) > 0:
             волна_была = True
@@ -2448,6 +2497,9 @@ def main() -> int:
                          "съедала её приказы: за эпизод 11.09.2026 так пропало пять волн")
     ap.add_argument("--wave", type=int, default=5,
                     help="размер волны у подстраховки")
+    ap.add_argument("--new-timeout", type=float, default=240.0,
+                    help="сколько секунд ждать, пока поднимется новая партия "
+                         "(DoNewGame генерирует карту; в контейнере это долго)")
     ap.add_argument("--wave-min", type=int, default=20,
                     help="минимальный размер волны. Мост НЕ держит волну, когда "
                          "бойцов меньше порога: сколько есть, столько и уйдёт. "
@@ -2555,9 +2607,22 @@ def main() -> int:
             if not ep.start(0, 0):
                 print("новую партию начать не удалось")
                 return 1
-            time.sleep(3.0)                  # дать бою подняться
-            n = find_ai_plind(d, fresh=30, human=a.human)
+            # Три секунды хватало на компьютерном слоте при готовой карте. У
+            # новой партии их не хватает вовсе: DoNewGame ГЕНЕРИРУЕТ карту, а в
+            # контейнере это делает программный растеризатор. Ждём столько,
+            # сколько нужно, и говорим, чего ждём, — молчащее ожидание
+            # неотличимо от зависания.
+            n, ждём_до = None, time.time() + a.new_timeout
+            while time.time() < ждём_до:
+                n = find_ai_plind(d, fresh=30, human=a.human)
+                if n is not None:
+                    break
+                time.sleep(2.0)
+                if int(ждём_до - time.time()) % 30 < 2:
+                    print(f"     жду новую партию, осталось "
+                          f"{int(ждём_до - time.time())} с", flush=True)
             if n is None:
+                print(f"новая партия не поднялась за {a.new_timeout} с")
                 diagnose(d, human=a.human)
                 return 1
             if n != plind:
@@ -2577,6 +2642,12 @@ def main() -> int:
         цели = sum(1 for x in итоги if x == "цель")
         print(f"\nитого: цель взята в {цели} из {len(итоги)} эпизодов — "
               f"{', '.join(итоги)}")
+        # Поражения считаем отдельно от обрывов. До 13.09 они были неразличимы:
+        # и то и другое выглядело как «состояние встало», и серия из десяти
+        # проигранных партий читалась как десять сломанных прогонов.
+        разбор = [(и, sum(1 for x in итоги if x == и))
+                  for и in ("цель", "победа", "поражение", "обрыв", "рестарт")]
+        print("          " + ", ".join(f"{и}: {n}" for и, n in разбор if n))
     return 0 if "цель" in итоги else 2
 
 

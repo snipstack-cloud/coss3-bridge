@@ -117,9 +117,19 @@ class Episode:
             print("блок эпизодов не ответил. Он не установлен, не скомпилировался "
                   "или пишет в другой каталог — проверьте: python run_episodes.py --check")
             return False
-        if ack.get("done") != "newgame_called":
-            print(f"блок ответил '{ack.get('done')}' вместо newgame_called")
+        # Ответить может ЛЮБОЙ из двух блоков, и по какому именно — видно, где
+        # игра была в этот момент. 'newgame_called' — партия шла или игра стояла
+        # в меню, команду взял блок в Progress. 'restarted_after_end' — партия
+        # уже кончилась, симуляция на паузе, и команду взял блок конца партии в
+        # интерфейсе; в Progress она бы не дошла никогда.
+        ЗНАЧИТ = {"newgame_called": "из живой игры",
+                  "restarted_after_end": "с экрана конца партии"}
+        готово = str(ack.get("done") or "")
+        if готово not in ЗНАЧИТ:
+            print(f"блок ответил '{готово}' вместо newgame_called "
+                  f"или restarted_after_end")
             return False
+        print(f"     новая партия заказана {ЗНАЧИТ[готово]}", flush=True)
         return True
 
     def rebind(self, why: str) -> bool:
