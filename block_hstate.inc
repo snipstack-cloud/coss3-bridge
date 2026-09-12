@@ -269,6 +269,30 @@
       [*] = ;            if (StrLength(hswhy) > 0) then
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'last_fail', hswhy);
       [*] = ;         end;
+      [*] = ;         // Upgrades THIS NATION actually has. The list in SYSTEM was the same
+      [*] = ;         // for every nation, and that is a lie: the sets differ. On 13.09 the
+      [*] = ;         // model ordered 'reaper' with a mill standing and got back
+      [*] = ;         // 'no upgrade with this name for our nation' - a tick spent on
+      [*] = ;         // something that does not exist.
+      [*] = ;         //
+      [*] = ;         // We export SUFFIXES because that is what the UPGRADE command takes:
+      [*] = ;         // an upgrade sid is nation prefix plus base name ('engmilfood140'),
+      [*] = ;         // and the command block matches by suffix. The first three letters
+      [*] = ;         // are the nation, so they are cut off. Comma separated, ready to be
+      [*] = ;         // shown to the model as is.
+      [*] = ;         var hsupg : String;
+      [*] = ;         var hsui : Integer;
+      [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
+      [*] = ;         begin
+      [*] = ;            var hsus : String = gCountry[hscid].upgrade[hsui].id;
+      [*] = ;            if (StrLength(hsus) > 3) then
+      [*] = ;            begin
+      [*] = ;               if (StrLength(hsupg) > 0) then
+      [*] = ;               hsupg := hsupg + ',';
+      [*] = ;               hsupg := hsupg + SubStr(hsus, 4, StrLength(hsus)-3);
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
       [*] = ;         ParserSaveToFileByHandle(hsp, '@@OUT@@coss3_eco_P' + IntToStr(plind) + '.dat');
       [*] = ;      end;
       [*] = ;   end;
