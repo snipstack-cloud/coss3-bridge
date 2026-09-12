@@ -1,0 +1,39 @@
+# Десять копий игры. Поднимать на СЕРВЕРЕ x86_64 Linux:
+#
+#   cp docker/coss3.env.example docker/coss3.env   # вписать ключ модели
+#   docker compose -f docker/compose.yaml up -d
+#   docker compose -f docker/compose.yaml logs -f coss3-0
+#
+# ГРАБЛЯ, на которой я уже споткнулся при написании этого файла: ключ слияния
+# YAML (<<:) НЕ сливает вложенные карты, а заменяет их целиком. Стоит службе
+# завести свой environment — и всё, что было в environment якоря (модель, ключ,
+# такт), исчезает молча. Поэтому номер копии сюда не пишется вовсе: контейнер
+# берёт его из своего имени хоста (coss3-7 -> 7), а environment живёт ровно в
+# одном месте. Проверять правки этого файла так:
+#     docker compose -f docker/compose.yaml config | grep -A8 'coss3-3:'
+x-coss3: &coss3
+  image: ${COSS3_TAG:-coss3:1}
+  # Видеокарта, если она на сервере есть: десять процессов Wine делят одну
+  # карту свободно — в отличие от десяти виртуальных машин, между которыми
+  # потребительскую карту не поделить. Нет карты — строку убрать, контейнер
+  # честно скажет в логе, что перешёл на программный растеризатор.
+  devices:
+    - /dev/dri:/dev/dri
+  env_file:
+    - coss3.env
+  restart: unless-stopped
+  stop_grace_period: 20s
+  # Ограничений по памяти здесь нет НАРОЧНО: их надо ставить по замеру на
+  # вашем сервере, а не по моей догадке. См. README, «Сколько копий влезет».
+
+services:
+  coss3-0: {<<: *coss3, volumes: ["./io/0:/io"], ports: ["5900:5900"]}
+  coss3-1: {<<: *coss3, volumes: ["./io/1:/io"], ports: ["5901:5900"]}
+  coss3-2: {<<: *coss3, volumes: ["./io/2:/io"], ports: ["5902:5900"]}
+  coss3-3: {<<: *coss3, volumes: ["./io/3:/io"], ports: ["5903:5900"]}
+  coss3-4: {<<: *coss3, volumes: ["./io/4:/io"], ports: ["5904:5900"]}
+  coss3-5: {<<: *coss3, volumes: ["./io/5:/io"], ports: ["5905:5900"]}
+  coss3-6: {<<: *coss3, volumes: ["./io/6:/io"], ports: ["5906:5900"]}
+  coss3-7: {<<: *coss3, volumes: ["./io/7:/io"], ports: ["5907:5900"]}
+  coss3-8: {<<: *coss3, volumes: ["./io/8:/io"], ports: ["5908:5900"]}
+  coss3-9: {<<: *coss3, volumes: ["./io/9:/io"], ports: ["5909:5900"]}

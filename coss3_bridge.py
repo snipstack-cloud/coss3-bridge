@@ -1,0 +1,381 @@
+"""Python-сторона моста к экономическому ИИ Cossacks 3.
+
+Протокол задан вставкой в data/scripts/units/global.inc/progresseconomicai.inc:
+  игра  ->  <save_dir>/coss3_eco_P<n>.dat   (перезаписывается каждый тик ИИ)
+  игра  ->  <save_dir>/coss3_map_P<n>.dat   (местность, не чаще раза в 20 игровых секунд)
+  игра  <-  <save_dir>/coss3_cmd_P<n>.dat   (читается и УДАЛЯЕТСЯ игрой)
+  игра  <-  <save_dir>/coss3_atk_P<n>.dat   (приказ атаки, блок военного ИИ)
+  игра  <-  <save_dir>/coss3_ctl.dat        (END/NEW, блок в интерфейсе)
+
+Формат файлов — текстовый парсер движка, ср. data/game/var/random.cfg:
+    br_state : section.begin
+       food = 1234
+    section.end
+"""
+from __future__ import annotations
+import sys as _sys
+for _s in (_sys.stdout, _sys.stderr):
+    try: _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
+
+import os
+import re
+import tempfile
+import time
+from dataclasses import dataclass, field
+
+# --- роли юнитов: из комментариев data/game/var/startingsettings.cfg ---------
+ROLE = {
+    "peasant": 1, "boat": 2, "center": 3, "mill": 4, "ba17": 5, "ba18": 6,
+    "store": 7, "academi": 8, "stable": 9, "dipcenter": 10, "artdepo": 11,
+    "market": 12, "tower": 13, "smith": 14, "temple": 15, "port": 16,
+    "house": 17, "minegold": 18, "mineiron": 19, "minecoal": 20,
+    "officer17": 21, "drummer17": 22, "infantry17": 23, "grendip": 24,
+    "musk17": 25, "reitar": 26, "cuirassier": 27, "grenadier": 28,
+    "musk18": 29, "cannon": 30, "howitzer": 31, "mortar": 32,
+    "cossackdip": 33, "archer": 34, "dragundip": 35, "priest": 36,
+    "mbarrel": 37, "dragun18": 38, "fregate": 39, "galley": 40, "yacht": 41,
+    "lineship": 42, "ferry": 43, "uniq_inf17": 44, "uniq_inf18": 45,
+    "uniq_cav17": 46, "uniq_cav18": 47, "hussar": 48, "dragoon17": 49,
+    "officer18": 50, "drummer18": 51, "light_dip": 52, "round_dip": 53,
+}
+
+# BUILD во вставке принимает только эти роли (жёсткий список в .inc)
+BUILDABLE = {"center", "mill", "ba17", "ba18", "stable", "smith", "academi",
+             "market", "house", "minegold", "mineiron", "minecoal",
+             "store", "tower"}
+
+# UPGRADE во вставке принимает только эти имена (жёсткий список в .inc)
+UPGRADES = {"century", "food140", "horse", "fort", "reaper", "stone200",
+            "stone100", "builders", "wood", "feelds", "bricks1", "bricks2",
+            "horseswords", "armor1", "newsteel"}
+
+_KV = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$")
+
+
+def parse_parser_file(text: str) -> dict[str, str]:
+    """Разбирает плоский parser-файл движка. Терпим к наличию/отсутствию
+    обёртки '<name> : section.begin ... section.end'."""
+    out: dict[str, str] = {}
+    for line in text.splitlines():
+        s = line.strip()
+        if not s or s.startswith("//"):
+            continue
+        if s.endswith("section.begin") or s in ("section.end", "struct.end"):
+            continue
+        m = _KV.match(line)
+        if m:
+            out[m.group(1)] = m.group(2)
+    return out
+
+
+def dump_parser_file(name: str, values: dict[str, object]) -> str:
+    body = "".join(f"   {k} = {v}\n" for k, v in values.items())
+    return f"{name} : section.begin\n{body}section.end\n"
+
+
+_BOOLS = {"true": 1, "false": 0, "yes": 1, "no": 0, "on": 1, "off": 0}
+
+
+def _to_int(v: str):
+    """Движок пишет Boolean как true/false, числа как есть. Всё -> int."""
+    t = v.strip().lower()
+    if t in _BOOLS:
+        return _BOOLS[t]
+    try:
+        return int(t)
+    except ValueError:
+        return None
+
+
+@dataclass
+class Command:
+    cmd: str                      # BUILD | TRAIN | UPGRADE | SET_RES
+    a1: int = 0
+    a2: int = 0
+    upg: str = ""
+
+
+def build(role: str, total_count: int) -> Command:
+    """BUILD декларативен: total_count — желаемое ИТОГО зданий этой роли.
+    Идемпотентен, можно слать каждый тик.
+
+    Исключение: для house движок игнорирует count и ограничивает стройку
+    правилом «не более 3 идей в работе» (см. _ai_TryUnit)."""
+    if role not in BUILDABLE:
+        raise ValueError(f"BUILD не поддерживает роль {role!r}; см. BUILDABLE")
+    return Command("BUILD", ROLE[role], total_count)
+
+
+INFINITE = -1     # TRAIN с отрицательным числом = бесконечное производство
+
+
+def train(role: str, total_count: int) -> Command:
+    """TRAIN декларативен: a2 — желаемое ИТОГО, а не «ещё столько».
+
+    ОТРИЦАТЕЛЬНОЕ число включает БЕСКОНЕЧНОЕ производство. Это не наша выдумка,
+    а механика движка: `_ai_ProduceUnits` считает `binfinite := count < 0`, и
+    здания на бесконечном заказе НЕ выбрасываются из списка производителей —
+    в отличие от занятых конечным заказом (progresseconomicai.inc:3242).
+    Значит снимается и потолок «один юнит в очереди за раз»."""
+    return Command("TRAIN", ROLE[role], total_count)
+
+
+def upgrade(name: str) -> Command:
+    if name not in UPGRADES:
+        raise ValueError(f"UPGRADE не поддерживает {name!r}; см. UPGRADES")
+    return Command("UPGRADE", upg=name)
+
+
+# Доля крестьян на ресурс: код ресурса для команды BALANCE.
+RESOURCE = {"food": 0, "wood": 1, "stone": 2, "gold": 3, "iron": 4, "coal": 5}
+
+
+def balance(res: str, value: int) -> Command:
+    """BALANCE — сколько крестьян игра держит на этом ресурсе.
+
+    ВНИМАНИЕ, единицы РАЗНЫЕ, это видно в _ai_GainResourcesByPeasants:
+      food          — ЧИСЛО крестьян: requiredFood := resbalance[food][0],
+                      и если на еде меньше, свободных досылают на еду;
+      wood, stone   — ПРОЦЕНТ от общего числа на дереве, камне и свободных:
+                      newWood := (onWood+onStone+free)*resbalance[wood][0] div 100.
+                      Задавать парой, чтобы сумма была 100.
+      gold, iron, coal — нативный ИИ ставит там 1, то есть по человеку на шахту.
+
+    Работает поверх нативного распределения: блок моста вставлен сразу после
+    его вызова, поэтому наше значение перебивает. Команда декларативная и её
+    надо переотправлять, иначе на следующем тике вернётся нативное."""
+    if res not in RESOURCE:
+        raise ValueError(f"BALANCE: неизвестный ресурс {res}")
+    предел = 200 if res == "food" else 100
+    if not 0 <= value <= предел:
+        raise ValueError(f"BALANCE {res}: значение вне 0..{предел}")
+    return Command("BALANCE", RESOURCE[res], value)
+
+
+def builders(cap: int) -> Command:
+    """BUILDERS — потолок крестьян на ОДНУ стройку.
+
+    Движок зовёт на закладку `buildprojects[i].maxpeasants` человек (число от
+    геометрии здания, `gCustomObjPoints.builderCount`), и если свободных не
+    хватает — доносит недостающих спиральным поиском, срывая людей с добычи
+    (`_ai_CallPeasantsToBuildProject`). Именно так в ранних эпизодах первая же
+    стройка опустошала шахты: «все крестьяне с добычи забраны стройками».
+
+    Команду надо повторять каждый такт: новые проекты появляются с движковым
+    значением. Ноль и меньше — не трогать, пусть решает игра."""
+    return Command("BUILDERS", int(cap))
+
+
+def mode(model_controls: bool, own_war: bool = False) -> Command:
+    """MODE — кто ведёт: a1 экономику, a2 войну.
+
+    model_controls=True — билд-ордер решает модель: нативный экономический мозг
+            выключен, игра только исполняет команды (стройка, найм, апгрейды).
+    own_war=True — волны водит модель: гасится `_ai_SendAgressors`, и ни одна
+            волна не уходит без нашей команды ATTACK.
+
+    Что остаётся работать в обоих случаях: крестьяне добывают, идеи
+    обрабатываются, `_ai_ExecuteArmies` двигает уже созданные армии (без него
+    не пойдут и наши собственные волны), `_ai_ProgressDefenders` держит оборону.
+
+    Второй аргумент добавлен 11.09.2026: нативный военный ИИ держал волну
+    постоянно, и все 15 команд ATTACK за серию были отвергнуты — модель не
+    управляла атакой вовсе."""
+    return Command("MODE", 1 if model_controls else 0, 1 if own_war else 0)
+
+
+def set_res(res_id: int, percent: int) -> Command:
+    """res_id — движковая константа gc_resource_type_*; в скриптах не объявлена,
+    снимите значения логом в игре прежде чем полагаться на них."""
+    return Command("SET_RES", res_id, percent)
+
+
+class Bridge:
+    def __init__(self, save_dir: str, plind: int = 1):
+        self.save_dir = save_dir
+        self.plind = plind
+        self.state_path = os.path.join(save_dir, f"coss3_eco_P{plind}.dat")
+        self.map_path = os.path.join(save_dir, f"coss3_map_P{plind}.dat")
+        self.cmd_path = os.path.join(save_dir, f"coss3_cmd_P{plind}.dat")
+        self.atk_path = os.path.join(save_dir, f"coss3_atk_P{plind}.dat")
+        self._last_mtime = 0.0
+        self.raw: dict[str, str] = {}     # последнее состояние без приведения типов
+
+    # --- чтение состояния ---------------------------------------------------
+    def read_state(self) -> dict[str, int | str] | None:
+        """Возвращает состояние, только если файл обновился с прошлого раза."""
+        try:
+            st = os.stat(self.state_path)
+        except FileNotFoundError:
+            return None
+        if st.st_mtime <= self._last_mtime:
+            return None
+        try:
+            with open(self.state_path, "r", encoding="latin-1") as f:
+                raw = parse_parser_file(f.read())
+        except OSError:
+            return None            # игра пишет прямо сейчас — придём на след. тике
+        self._last_mtime = st.st_mtime
+        self.raw = raw
+        # числа -> int, всё остальное (строки мини-карты brow*/frow*) оставляем как есть
+        out: dict[str, int | str] = {}
+        for k, v in raw.items():
+            n = _to_int(v)
+            out[k] = v if n is None else n
+        return out
+
+    def read_map(self) -> dict[str, int | str]:
+        """Слой местности. Игра пересобирает его не чаще раза в 20 игровых секунд,
+        файл живёт между обновлениями. Пустой dict, если файла ещё нет."""
+        try:
+            with open(self.map_path, "r", encoding="latin-1") as f:
+                raw = parse_parser_file(f.read())
+        except OSError:
+            return {}
+        out: dict[str, int | str] = {}
+        for k, v in raw.items():
+            n = _to_int(v)
+            out[k] = v if n is None else n
+        return out
+
+    def wait_state(self, timeout: float = 30.0, poll: float = 0.2):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            s = self.read_state()
+            if s is not None:
+                return s
+            time.sleep(poll)
+        raise TimeoutError(f"нет обновлений {self.state_path} за {timeout}s")
+
+    # --- отправка команд ----------------------------------------------------
+    def send(self, commands: list[Command]) -> bool:
+        """False, если предыдущая пачка ещё не съедена игрой."""
+        if os.path.exists(self.cmd_path):
+            return False
+        values: dict[str, object] = {"count": len(commands)}
+        for i, c in enumerate(commands):
+            values[f"{i}_cmd"] = c.cmd
+            values[f"{i}_a1"] = c.a1
+            values[f"{i}_a2"] = c.a2
+            if c.upg:
+                values[f"{i}_upg"] = c.upg
+        text = dump_parser_file("br_cmd", values)
+        # атомарно: игра делает IsFileExists -> Load -> Delete, частичный файл её сломает
+        fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="latin-1") as f:
+                f.write(text)
+            os.replace(tmp, self.cmd_path)
+        except BaseException:
+            os.path.exists(tmp) and os.unlink(tmp)
+            raise
+        return True
+
+    def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0) -> bool:
+        """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
+        и бой, и меню.
+
+            PING — только квитанция: жив ли блок и заполнен ли шаблон матча
+            END  — сдача интерфейсного игрока: движок показывает конец партии
+            NEW  — новый бой на настройках последнего custom game, сид можно задать
+
+        Файл один на игру, не на слот. False, если предыдущая команда не забрана."""
+        if cmd not in ("END", "NEW", "PING"):
+            raise ValueError("control: только PING, END или NEW")
+        path = os.path.join(self.save_dir, "coss3_ctl.dat")
+        if os.path.exists(path):
+            return False
+        text = dump_parser_file("br_ctl", {"cmd": cmd, "seed0": int(seed0),
+                                           "seed1": int(seed1), "speed": int(speed)})
+        fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="latin-1") as f:
+                f.write(text)
+            os.replace(tmp, path)
+        except BaseException:
+            os.path.exists(tmp) and os.unlink(tmp)
+            raise
+        return True
+
+    def read_ack(self) -> dict[str, int | str]:
+        """Квитанция блока эпизодов: что он сделал в ответ на последнюю команду."""
+        try:
+            with open(os.path.join(self.save_dir, "coss3_ack.dat"),
+                      "r", encoding="latin-1") as f:
+                raw = parse_parser_file(f.read())
+        except OSError:
+            return {}
+        out: dict[str, int | str] = {}
+        for k, v in raw.items():
+            n = _to_int(v)
+            out[k] = v if n is None else n
+        return out
+
+    def wait_ack(self, timeout: float = 20.0, poll: float = 0.3) -> dict:
+        """Ждёт СВЕЖУЮ квитанцию (старую удаляем перед отправкой команды)."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            ack = self.read_ack()
+            if ack:
+                return ack
+            time.sleep(poll)
+        return {}
+
+    def clear_ack(self) -> None:
+        try:
+            os.unlink(os.path.join(self.save_dir, "coss3_ack.dat"))
+        except OSError:
+            pass
+
+    ЦЕЛИ_АТАКИ = ("peasants", "base", "army")
+
+    def attack(self, count: int, target: str = "base") -> bool:
+        """Собрать count бойцов в армию-агрессора и отправить в атаку.
+
+        target — КУДА идти, выбирает модель:
+          peasants — к ближайшему к нашей базе вражескому крестьянину. Это и есть
+                     цель проекта, а движок сам на крестьян не наводит;
+          base     — к первому зданию первого врага;
+          army     — отдать выбор движку (ближайшая вражеская армия).
+
+        Отдельный файл: команду читает блок в ВОЕННОМ ИИ — _ai_CreateAgressorArmy
+        не виден из экономического состояния. Работает только вне перемирия.
+        False, если предыдущий приказ ещё не забран."""
+        if os.path.exists(self.atk_path):
+            return False
+        цель = str(target or "base").strip().lower()
+        if цель not in self.ЦЕЛИ_АТАКИ:
+            цель = "base"
+        text = dump_parser_file("br_atk", {"count": int(count), "target": цель})
+        fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="latin-1") as f:
+                f.write(text)
+            os.replace(tmp, self.atk_path)
+        except BaseException:
+            os.path.exists(tmp) and os.unlink(tmp)
+            raise
+        return True
+
+    def wait_consumed(self, timeout: float = 10.0, poll: float = 0.1) -> bool:
+        """Игра удаляет файл после применения — это наш ack."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if not os.path.exists(self.cmd_path):
+                return True
+            time.sleep(poll)
+        return False
+
+
+if __name__ == "__main__":
+    import sys
+    br = Bridge(sys.argv[1] if len(sys.argv) > 1 else ".", plind=1)
+    while True:
+        s = br.wait_state()
+        print(f"t={s.get('gametime')}s food={s.get('food')} peasants={s.get('peasants')} "
+              f"centers={s.get('centers')} ba17={s.get('ba17')} slots="
+              f"{s.get('build_slots_used')}/{s.get('build_slots_total')}")
+        if s.get("centers", 0) < 2:
+            br.send([build("center", 2)])
+            br.wait_consumed()

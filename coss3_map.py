@@ -1,0 +1,310 @@
+"""Рендер обстановки на карте из состояния моста (блок STATE v2 + coss3_map_P<n>.dat).
+
+Мини-карта: мир режется на grid_n x grid_n клеток, колонка 0 — запад, строка 0 — север.
+Слои:
+    rrow{y}  местность   # густой лес, + редкий, S камень,
+                         G/I/C свободная залежь золота/железа/угля, x залежь занята
+    brow{y}  базы        H мой центр, b моё здание, a союзник, e враг
+    frow{y}  войска      1..9 сила вражеской армии в клетке
+
+Всё, кроме rrow*, лежит в файле состояния и обновляется каждый тик ИИ.
+Местность пересобирается не чаще раза в 20 игровых секунд — это полный обход
+ресурсной сетки.
+
+    from coss3_bridge import Bridge
+    from coss3_map import render, rates
+
+    br = Bridge(save_dir, plind=1)
+    s = br.wait_state()
+    print(render(s, br.read_map()))
+"""
+from __future__ import annotations
+
+RES_NAMES = {1: "food", 2: "wood", 3: "stone", 4: "gold", 5: "iron", 6: "coal"}
+
+
+def _i(d: dict, key: str, default: int = 0) -> int:
+    try:
+        return int(float(d.get(key, default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _s(d: dict, key: str, default: str = "") -> str:
+    v = d.get(key, default)
+    return v if isinstance(v, str) else str(v)
+
+
+def compass(dx: int, dy: int) -> str:
+    """Направление от моей базы к клетке, в координатах мини-карты."""
+    if dx == 0 and dy == 0:
+        return "in my own cell"
+    ns = "N" if dy < 0 else ("S" if dy > 0 else "")
+    ew = "W" if dx < 0 else ("E" if dx > 0 else "")
+    if abs(dx) > 2 * abs(dy):
+        return ew
+    if abs(dy) > 2 * abs(dx):
+        return ns
+    return ns + ew
+
+
+RESOURCES = ("food", "wood", "stone", "gold", "iron", "coal")
+
+
+def _per_minute(state: dict, prev: dict | None, prefix: str) -> dict[str, int]:
+    if not prev:
+        return {}
+    dt = _i(state, "gametime") - _i(prev, "gametime")
+    if dt <= 0:
+        return {}
+    return {r: round((_i(state, prefix + r) - _i(prev, prefix + r)) * 60.0 / dt)
+            for r in RESOURCES}
+
+
+def _where(dx: int, dy: int) -> str:
+    c = compass(dx, dy)
+    return c if c == "in my own cell" else c + " of my base"
+
+
+def rates(state: dict, prev: dict | None) -> dict[str, int]:
+    """Добыча в минуту по дельтам накопительных счётчиков tot_*.
+
+    on_wood и соседи — это число выданных приказов, а не выработка,
+    поэтому скорость считается только так."""
+    return _per_minute(state, prev, "tot_")
+
+
+def net_change(state: dict, prev: dict | None) -> dict[str, int]:
+    """Изменение запаса в минуту: добыча минус траты. Запасной вариант,
+    если tot_* стоят на нуле."""
+    return _per_minute(state, prev, "")
+
+
+def _grid(rows: list[str], title: str, my_cx: int, my_cy: int) -> list[str]:
+    n = max((len(r) for r in rows), default=0)
+    if n == 0:
+        return []
+    out = [title, "     " + "".join(str(c % 10) for c in range(n))]
+    for y, row in enumerate(rows):
+        out.append(f"  {y:2d} {row}" + (" <" if y == my_cy else ""))
+    out.append("     " + "".join("^" if c == my_cx else " " for c in range(n)))
+    return out
+
+
+def _dist(state: dict, key: str) -> str:
+    d = _i(state, key, -1)
+    return "none on this map" if d < 0 else str(d)
+
+
+def render(state: dict, mapstate: dict | None = None, prev: dict | None = None) -> str:
+    """Текстовая сводка обстановки. Пустая строка, если блок STATE без карты
+    (старая версия моста) или база ещё не найдена."""
+    return "\n".join(lines(state, mapstate, prev))
+
+
+def lines(state: dict, mapstate: dict | None = None, prev: dict | None = None) -> list[str]:
+    mapstate = mapstate or {}
+    n = _i(state, "grid_n")
+    if n <= 0:
+        return []
+
+    my_cx, my_cy = _i(state, "my_cx"), _i(state, "my_cy")
+    map_w, map_h = _i(state, "map_w"), _i(state, "map_h")
+    cell_w, cell_h = (map_w // n, map_h // n) if n else (0, 0)
+
+    out = [
+        "# MAP",
+        f"The map is {map_w}x{map_h} world units, split into a {n}x{n} grid; one cell is "
+        f"{cell_w}x{cell_h} units. Column 0 is west, row 0 is north.",
+        f"My town center sits in cell ({my_cx},{my_cy}), world position "
+        f"({_i(state,'my_x')},{_i(state,'my_z')}).",
+    ]
+
+    brows = [_s(state, f"brow{y}") for y in range(n) if f"brow{y}" in state]
+    frows = [_s(state, f"frow{y}") for y in range(n) if f"frow{y}" in state]
+    rrows = [_s(mapstate, f"rrow{y}") for y in range(n) if f"rrow{y}" in mapstate]
+
+    if rrows:
+        out.append("")
+        out += _grid(rrows, "## Terrain and deposits    "
+                            "(# dense forest, + light forest, S stone, "
+                            "G/I/C free gold/iron/coal deposit, x deposit already mined, . empty)",
+                     my_cx, my_cy)
+    if brows:
+        out.append("")
+        out += _grid(brows, "## Bases    "
+                            "(H my town center, b my building, a ally building, "
+                            "e enemy building, . empty)",
+                     my_cx, my_cy)
+    if frows and any(c != "." for row in frows for c in row):
+        out.append("")
+        out += _grid(frows, "## Enemy forces    "
+                            "(digit = army strength in that cell, 1 = weak ... 9 = very strong)",
+                     my_cx, my_cy)
+
+    # --- добыча ---
+    dt = _i(state, "gametime") - _i(prev or {}, "gametime")
+    r = rates(state, prev)
+    if r and any(r.values()):
+        out += ["", f"## Measured income per minute (gathered, over the last {dt} s)",
+                "  " + "  ".join(f"{k}={v:+d}" for k, v in r.items())]
+    else:
+        n = net_change(state, prev)
+        if n and any(n.values()):
+            out += ["", f"## Net stock change per minute (income minus spending, "
+                        f"over the last {dt} s)",
+                    "  " + "  ".join(f"{k}={v:+d}" for k, v in n.items())]
+
+    # --- залежи ---
+    out += [
+        "",
+        "## Ore deposits",
+        f"  nearest deposit from my center: gold={_dist(state,'ore_gold_dist')}, "
+        f"iron={_dist(state,'ore_iron_dist')}, coal={_dist(state,'ore_coal_dist')}",
+        f"  deposits inside normal expansion range: gold={_i(state,'ore_gold_near')}, "
+        f"iron={_i(state,'ore_iron_near')}, coal={_i(state,'ore_coal_near')}",
+    ]
+    if mapstate:
+        out.append(f"  unclaimed (no mine built yet): gold={_i(mapstate,'ore_free_gold')}, "
+                   f"iron={_i(mapstate,'ore_free_iron')}, coal={_i(mapstate,'ore_free_coal')}")
+        for k in range(_i(mapstate, "ore_listed")):
+            res = RES_NAMES.get(_i(mapstate, f"o{k}_res"), "?")
+            cx, cy = _i(mapstate, f"o{k}_cx"), _i(mapstate, f"o{k}_cy")
+            out.append(f"    free {res} deposit at cell ({cx},{cy}), distance "
+                       f"{_i(mapstate, f'o{k}_dist')}, {_where(cx-my_cx, cy-my_cy)}")
+
+    if "wood_slots_near" in mapstate:
+        out += [
+            "",
+            "## Wood and stone around the base (10 resource-grid cells around my center)",
+            f"  wood gathering slots: {_i(mapstate,'wood_slots_near')} total, "
+            f"{_i(mapstate,'wood_slots_free')} free",
+            f"  stone gathering slots: {_i(mapstate,'stone_slots_near')} total, "
+            f"{_i(mapstate,'stone_slots_free')} free",
+            f"  nearest forest is {_i(mapstate,'wood_dist_cells',-1)} resource-grid cells away",
+        ]
+
+    # --- угроза ---
+    out += ["", "## Threat"]
+    if _i(state, "en_armies"):
+        out.append(f"  enemy armies detected: {_i(state,'en_armies')}, total force "
+                   f"{_i(state,'en_force_total')}, strongest {_i(state,'en_force_max')}")
+        nd = _i(state, "en_near_dist", -1)
+        if nd >= 0:
+            out.append(f"  closest enemy army: distance {nd}, force {_i(state,'en_near_force')} "
+                       f"({_i(state,'en_near_inf')} infantry, {_i(state,'en_near_sh')} shooters, "
+                       f"{_i(state,'en_near_cav')} cavalry, {_i(state,'en_near_guns')} guns)")
+        for k in range(4):
+            if f"a{k}_force" not in state:
+                continue
+            cx, cy = _i(state, f"a{k}_cx"), _i(state, f"a{k}_cy")
+            out.append(f"    army #{k+1}: force {_i(state,f'a{k}_force')} at cell ({cx},{cy}), "
+                       f"distance {_i(state,f'a{k}_dist')}, {compass(cx-my_cx, cy-my_cy)} of my base "
+                       f"({_i(state,f'a{k}_inf')} inf / {_i(state,f'a{k}_sh')} shooters / "
+                       f"{_i(state,f'a{k}_cav')} cav / {_i(state,f'a{k}_guns')} guns)")
+    else:
+        out.append("  no enemy armies detected yet")
+    out.append(f"  enemy towers known: {_i(state,'en_towers')}")
+    out.append(f"  home zone danger={_i(state,'danger_home')}, "
+               f"attractiveness={_i(state,'attract_home')}")
+    la = _i(state, "last_attack_ago", -1)
+    out.append("  my base has not been attacked yet" if la < 0
+               else f"  last attack on me: {la} s ago")
+
+    # --- свои войска ---
+    out += [
+        "",
+        "## My forces",
+        f"  objects (units+buildings)={_i(state,'my_objects')}  "
+        f"armies={_i(state,'my_armies')}  "
+        f"defenders={_i(state,'my_defenders')}  guards={_i(state,'my_guards')}  "
+        f"attackers={_i(state,'my_agressors')}  unassigned={_i(state,'my_freewar')}",
+        f"  infantry={_i(state,'mil_inf')}  shooters={_i(state,'mil_shooters')}  "
+        f"cavalry={_i(state,'mil_cav')}  artillery={_i(state,'mil_art')}",
+        f"  buildings={_i(state,'my_buildings')} (storehouses={_i(state,'my_stores')}, "
+        f"towers={_i(state,'my_towers')}, damaged={_i(state,'my_damaged')})",
+    ]
+
+    # --- игроки ---
+    rows = []
+    me = _i(state, "plind")
+    for p in range(8):
+        if f"p{p}_objects" not in state:
+            continue
+        who = "me" if p == me else ("enemy" if _i(state, f"p{p}_enemy") else "ally")
+        kind = "AI" if _i(state, f"p{p}_ai") else "human"
+        rows.append(f"  P{p} [{who}, {kind}, team {_i(state,f'p{p}_team')}]: "
+                    f"{_i(state,f'p{p}_objects')} objects, "
+                    f"{_i(state,f'p{p}_bldgs')} buildings")
+    if rows:
+        out += ["", f"## Players ({_i(state,'players')} in game, I am P{me} "
+                    f"on team {_i(state,'my_team')})"] + rows
+
+    return out
+
+
+if __name__ == "__main__":
+    import os
+    import sys
+    import glob
+    from coss3_bridge import Bridge
+
+    d = os.path.expandvars(sys.argv[1] if len(sys.argv) > 1 else ".")
+    pl = int(sys.argv[2]) if len(sys.argv) > 2 else 1
+    br = Bridge(d, plind=pl)
+
+    # файл живёт между запусками игры, поэтому читаем как есть, а не ждём обновления
+    s = br.read_state()
+    if s is None:
+        found = sorted(glob.glob(os.path.join(d, "coss3_eco_P*.dat")))
+        if not found:
+            print(f"нет файлов состояния в {d}")
+            print("  * каталог совпадает с --outdir установки?")
+            print("  * в PowerShell путь пишется как \"$env:USERPROFILE\\coss3-io\", "
+                  "%USERPROFILE% там не раскрывается")
+            print("  * бой с КОМПЬЮТЕРНЫМ противником уже запускался?")
+            sys.exit(1)
+        slots = ", ".join(f.rsplit("_P", 1)[1].split(".")[0] for f in found)
+        print(f"для plind={pl} файла нет; есть слоты: {slots}")
+        sys.exit(1)
+
+    # Скорость добычи считается по двум снимкам. Между запусками предыдущий
+    # лежит в кэше, поэтому идущая игра не обязательна: если кэш пригоден,
+    # тик не ждём вовсе.
+    import json
+    cache = os.path.join(d, f".coss3_prev_P{pl}.json")
+    prev = None
+    try:
+        with open(cache, encoding="utf-8") as f:
+            c = json.load(f)
+        if _i(c, "gametime") < _i(s, "gametime"):
+            prev = c
+    except (OSError, ValueError):
+        pass
+    if prev is None:
+        try:                                  # кэша нет — ждём следующий тик игры
+            prev, s = s, br.wait_state(timeout=15)
+        except TimeoutError:
+            prev = None
+    # Короткое окно шумит: одна доставка в 100 единиц на 7 секундах даёт +857/мин.
+    # Поэтому кэш не обновляем, пока окно не наберёт 30 игровых секунд.
+    if prev is None or (_i(s, "gametime") - _i(prev, "gametime")) >= 30:
+        try:
+            with open(cache, "w", encoding="utf-8") as f:
+                json.dump(s, f)
+        except OSError:
+            pass
+
+    def head(st: dict) -> str:
+        tot = " ".join(f"tot_{r}={_i(st, 'tot_' + r)}" for r in ("food", "wood", "stone"))
+        return (f"gametime={st.get('gametime')}  plind={st.get('plind')}  "
+                f"bai={st.get('bai')}  centerfound={st.get('centerfound')}  "
+                f"peasants={st.get('peasants')}  {tot}")
+
+    print(head(s))
+    if prev is None:
+        print("первый запуск на этом бое: скорость добычи появится при следующем "
+              "(снимок сохранён)")
+    text = render(s, br.read_map(), prev)
+    print(text or "в состоянии нет полей карты: либо на игре стоит старый блок STATE, "
+                  "либо это не ИИ-слот, либо база ещё не найдена (centerfound)")

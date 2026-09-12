@@ -1,0 +1,95 @@
+      [*] = ;// === BRIDGE STATE: written every AI tick, unconditional ===
+      [*] = ;// Placed before the centerfound check on purpose: this spot is proven safe.
+      [*] = ;if (not _net_IsClient) and (not _net_IsReplay) then
+      [*] = ;begin
+      [*] = ;   var hbp : Integer = ParserSelectByKey('br_state');
+      [*] = ;   if (hbp = 0) then
+      [*] = ;   hbp := ParserCreate('br_state');
+      [*] = ;   ParserClearByHandle(hbp);
+      [*] = ;   var brcid : Integer = gPlayer[plind].cid;
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'plind',       plind);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'cid',         brcid);
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'bai',         bai);
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'centerfound', gPlayer[plind].aidata.centerfound);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'gametime',    Round(GetGameTime));
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'peacemode',   gbool_peacemode);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'peacetime_end',Round(gfloat_peacetime));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'food',        not gPlayer[plind].res[gc_resource_type_food]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'wood',        not gPlayer[plind].res[gc_resource_type_wood]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'stone',       not gPlayer[plind].res[gc_resource_type_stone]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'gold',        not gPlayer[plind].res[gc_resource_type_gold]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'iron',        not gPlayer[plind].res[gc_resource_type_iron]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'coal',        not gPlayer[plind].res[gc_resource_type_coal]);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'peasants',    _ai_GetUnitCount(plind, brcid, gc_ai_unit_peasant));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'centers',     _ai_GetUnitCount(plind, brcid, gc_ai_unit_center));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'mills',       _ai_GetUnitCount(plind, brcid, gc_ai_unit_mill));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'ba17',        _ai_GetUnitCount(plind, brcid, gc_ai_unit_ba17));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'ba18',        _ai_GetUnitCount(plind, brcid, gc_ai_unit_ba18));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'stables',     _ai_GetUnitCount(plind, brcid, gc_ai_unit_stable));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'smiths',      _ai_GetUnitCount(plind, brcid, gc_ai_unit_smith));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'academies',   _ai_GetUnitCount(plind, brcid, gc_ai_unit_academi));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'markets',     _ai_GetUnitCount(plind, brcid, gc_ai_unit_market));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'houses',      _ai_GetUnitCount(plind, brcid, gc_ai_unit_house));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'mines_gold',  _ai_GetUnitCount(plind, brcid, gc_ai_unit_minegold));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'mines_iron',  _ai_GetUnitCount(plind, brcid, gc_ai_unit_mineiron));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'mines_coal',  _ai_GetUnitCount(plind, brcid, gc_ai_unit_minecoal));
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'on_food',  gPlayer[plind].aidata.onFood);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'on_wood',  gPlayer[plind].aidata.onWood);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'on_stone', gPlayer[plind].aidata.onStone);
+      [*] = ;   // upgradeid[] is -1 when the nation lacks the upgrade -> upgstate[cid][-1] crashes
+      [*] = ;   var brupgid : Integer;
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_century];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_century', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_century', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_food140];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_food140', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_food140', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_horse];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_horse', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_horse', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_fort];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_fort', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_fort', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_reaper];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_reaper', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_reaper', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_stone200];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_stone200', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_stone200', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_builders];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_builders', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_builders', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_wood];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_wood', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_wood', False);
+      [*] = ;   brupgid := gPlayer[plind].aidata.upgradeid[brcid][gc_ai_upg_feelds];
+      [*] = ;   if (brupgid >= 0) then
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_feelds', gPlayer[plind].upgstate[brcid][brupgid].done)
+      [*] = ;   else
+      [*] = ;   ParserSetBoolValueByKeyByHandle(hbp, 'upg_feelds', False);
+      [*] = ;   var brslots : Integer;
+      [*] = ;   var brj : Integer;
+      [*] = ;   for brj := 0 to gc_ai_max_construction_sites-1 do
+      [*] = ;   if gPlayer[plind].aidata.buildprojects[brj].used then
+      [*] = ;   brslots := brslots + 1;
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'build_slots_used',  brslots);
+      [*] = ;   ParserSetIntValueByKeyByHandle(hbp, 'build_slots_total', gc_ai_max_construction_sites);
+      [*] = ;   ParserSaveToFileByHandle(hbp, '@@OUT@@coss3_eco_P' + IntToStr(plind) + '.dat');
+      [*] = ;end;
+      [*] = ;// === END BRIDGE STATE ===
