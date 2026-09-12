@@ -16,7 +16,7 @@ echo ===== ЗАПУСТИ ИГРУ И БОЙ =====
 echo Свой слот ЧЕЛОВЕК, советник ВЫКЛЮЧЕН, противник компьютер.
 echo Когда бой начнётся - вернись сюда и нажми любую клавишу.
 pause >nul
-if "%NIM_BASE_URL%"=="" set "NIM_BASE_URL=https://openrouter.ai/api/v1"
+if "%OPENROUTER_BASE_URL%"=="" set "OPENROUTER_BASE_URL=https://openrouter.ai/api/v1"
 echo.
 echo Запускаю модель. Останов - Ctrl+C. Лог решений: coss3_llm.log
 echo Лог действий бота: coss3_bot.jsonl и строки bridge-human в логе игры.

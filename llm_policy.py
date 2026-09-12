@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Политика на модели NVIDIA NIM: модель решает, что строить и когда бить.
+"""Политика на языковой модели: модель решает, что строить и когда бить.
 
-    setx NVIDIA_API_KEY nvapi-...            (один раз, в Windows)
+    setx OPENROUTER_API_KEY sk-or-v1-...     (один раз, в Windows)
     pip install openai
     python llm_policy.py                      # решение раз в 30 игровых секунд
     python llm_policy.py --every 20 --hints hints.txt
-    python llm_policy.py --model nvidia/...    # другая модель (см. DEFAULT_MODEL)
+    python llm_policy.py --model "@preset/coss3-bot"
 
-Каталог NIM меняется: модели снимают с хостинга. Если вызов падает с 404 —
-возьмите живой id с build.nvidia.com и подставьте через --model или NIM_MODEL,
-менять код не нужно. Другой провайдер — через NIM_BASE_URL, лишь бы он был
-OpenAI-совместим.
+Работаем через OpenRouter (перешли на него 11.09.2026: он дал устойчивую
+задержку и выбор провайдеров, чего не было у бесплатного тира NVIDIA).
+Ключ берётся на openrouter.ai/keys. Если вызов падает с 404 — возьмите живой
+id с openrouter.ai/models и подставьте через --model или COSS3_MODEL. Другой
+провайдер — через OPENROUTER_BASE_URL, лишь бы он был OpenAI-совместим.
+
+Старые имена NVIDIA_API_KEY, NIM_BASE_URL и NIM_MODEL продолжают работать:
+они разбросаны по .cmd-файлам и чужим настройкам, и ломать их посреди работы
+дороже, чем поддержать.
 
 ПОДСКАЗКИ. Файл hints.txt перечитывается перед каждым обращением к модели —
 правьте его прямо во время боя, и следующее решение уже учтёт написанное.
@@ -49,14 +54,22 @@ from run_episodes import Episode
 # Решает НЕ размер модели, а длина ответа: рассуждающая пишет 1200 токенов и
 # не укладывается даже при 3B активных, instruct отвечает в 55 и укладывается
 # с девятикратным запасом. Замер: HANDOFF §5. Своя проверка — --compare.
-# nemotron-3-super-120b-a12b стоял тут раньше — эндпоинт закрыт 20.09.2026.
-# Замены под другие роли (TRAINING_PLAN.md, «Выбор модели»):
-#   nvidia/nemotron-3-ultra-550b-a55b   разбор пачки трасс, вне цикла
-#   deepseek-ai/deepseek-v4-flash-0731  13B активных, если нужен запасной
-#   nvidia/nemotron-3.5-lightning-30b-a3b  рассуждающая: умная, но в такт не лезет
-# Живой список: python llm_policy.py --check (каталог отдают и без ключа).
-DEFAULT_MODEL = "mistralai/mistral-nemotron"
-BASE_URL = os.environ.get("NIM_BASE_URL", "https://integrate.api.nvidia.com/v1")
+#
+# Умолчание сменено 12.09.2026: здесь стояла mistralai/mistral-nemotron, но её
+# на OpenRouter нет вовсе, и запуск без --model падал. deepseek-v4.1-flash —
+# чемпион замера 11.09 (24/39 верных, медиана 1,9 с при бюджете такта 14 с).
+# Замены под другие роли (замеры — HANDOFF §5):
+#   @preset/coss3-bot        то же, но с закреплёнными провайдерами: 8 из 8
+#                            вызовов за 1,8-2,5 с. Для боя это лучший выбор
+#   anthropic/claude-fable-5 29/39, но вдесятеро дороже: для разбора, не для боя
+#   anthropic/claude-haiku-4.5   дёшево, 19/39
+# Живой список: python llm_policy.py --models <подстрока>.
+DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
+# Адрес: новое имя, старое как запасное. Умолчание — OpenRouter, потому что
+# именно там проект и живёт; прежний адрес NVIDIA давно не используется.
+BASE_URL = (os.environ.get("OPENROUTER_BASE_URL")
+            or os.environ.get("NIM_BASE_URL")
+            or "https://openrouter.ai/api/v1")
 
 # TRAIN проходит через _ai_TryUnit (progresseconomicai.inc): идея добавляется,
 # только если _unit_CanApplyCountCostByID(cid, id, plind, count) вернула true —
@@ -360,9 +373,10 @@ def load_key(explicit: str = "") -> tuple[str, str]:
     """Ключ и откуда он взялся. Файл рядом со скриптом — чтобы не звать setx."""
     if explicit:
         return explicit.strip(), "--key"
-    env = os.environ.get("NVIDIA_API_KEY", "").strip()
-    if env:
-        return env, "NVIDIA_API_KEY"
+    for имя in ("OPENROUTER_API_KEY", "NVIDIA_API_KEY"):
+        env = os.environ.get(имя, "").strip()
+        if env:
+            return env, имя
     here = os.path.dirname(os.path.abspath(__file__))
     for name in KEY_FILES:
         path = name if os.path.isabs(name) else os.path.join(here, name)
@@ -439,7 +453,7 @@ def check(client, model: str, think: bool = False,
         print("  должен быть разобранный словарь с ключом 'commands'.")
     if not пресет and model not in ids:
         print(f"модель {model} НЕ значится в каталоге по адресу {BASE_URL}")
-        print("  (у разных провайдеров свои id одной и той же модели, а NIM_BASE_URL,\n"
+        print("  (у разных провайдеров свои id одной и той же модели, а адрес,\n"
               "   заданный через setx, на текущее окно PowerShell не действует)")
         сильные, слабые = похожие(model, ids)
         if сильные:
@@ -1719,8 +1733,8 @@ def ask(client, model: str, prompt: str, think: bool = False,
                     f"        Ответ сервера: {msg[:300]}") from e
             raise RuntimeError(
                 f"модель {model} не отвечает — её убрали из каталога?\n"
-                f"        сверьтесь с build.nvidia.com и задайте другую: "
-                f"--model <id> или NIM_MODEL\n"
+                f"        сверьтесь с openrouter.ai/models и задайте другую: "
+                f"--model <id> или COSS3_MODEL\n"
                 f"        Ответ сервера: {msg[:300]}") from e
         # Откат делаем ТОЛЬКО на отказ разобрать запрос. На таймауте и обрыве
         # повторять нельзя: вторая попытка удвоит и без того съеденный такт.
@@ -2339,7 +2353,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=os.path.expandvars(os.path.expanduser("~/coss3-io")))
     ap.add_argument("--plind", type=int, default=None)
-    ap.add_argument("--model", default=os.environ.get("NIM_MODEL", DEFAULT_MODEL))
+    ap.add_argument("--model", default=(os.environ.get("COSS3_MODEL")
+                                    or os.environ.get("NIM_MODEL")
+                                    or DEFAULT_MODEL))
     ap.add_argument("--every", type=int, default=15,
                     help="решение раз в N игровых секунд")
     ap.add_argument("--hints", default="hints.txt",
@@ -2475,10 +2491,10 @@ def main() -> int:
         key, src = load_key(a.key)
         if not key:
             print("нет ключа. Любой из трёх способов, по порядку поиска:\n"
-                  "        setx NVIDIA_API_KEY nvapi-...        (Windows, один раз)\n"
+                  "        setx OPENROUTER_API_KEY sk-or-v1-...  (Windows, один раз)\n"
                   f"        положить ключ в {os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nim_key.txt')}\n"
-                  "        передать --key nvapi-...\n"
-                  "        сам ключ берётся на build.nvidia.com")
+                  "        передать --key sk-or-v1-...\n"
+                  "        сам ключ берётся на openrouter.ai/keys")
             return 1
         print(f"ключ из {src}")
         try:
