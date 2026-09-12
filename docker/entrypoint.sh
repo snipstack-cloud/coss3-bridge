@@ -306,9 +306,25 @@ state_ready() { ls "$COSS3_GAME"/coss3_eco_P*.dat >/dev/null 2>&1; }
 if state_ready; then
     log "состояние пишется — партия уже идёт"
 else
-    log "состояния нет: игра в меню. Начинаю партию командой NEW"
+    # Условия партии. Без них DoNewGame берёт то, что осталось в меню, и у
+    # десяти копий условия окажутся разными — сравнивать идеи станет нельзя.
+    # Префикс MATCH_ нарочно: COSS3_RES уже занято разрешением ЭКРАНА, и
+    # столкновение имён тут стоило бы долгой путаницы.
+    NEWARGS=""
+    [ -n "${COSS3_MATCH_RES:-}" ]    && NEWARGS="$NEWARGS --res ${COSS3_MATCH_RES}"
+    [ -n "${COSS3_MATCH_PEACE:-}" ]  && NEWARGS="$NEWARGS --peace ${COSS3_MATCH_PEACE}"
+    [ -n "${COSS3_MATCH_AI:-}" ]     && NEWARGS="$NEWARGS --ai ${COSS3_MATCH_AI}"
+    [ -n "${COSS3_MATCH_NATION:-}" ] && NEWARGS="$NEWARGS --nation ${COSS3_MATCH_NATION}"
+    if [ -n "$NEWARGS" ]; then
+        log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
+    else
+        log "состояния нет: игра в меню. Начинаю партию на настройках из меню."
+        log "  Условия НЕ заданы — для опытов задайте COSS3_MATCH_RES/PEACE/AI/NATION,"
+        log "  иначе у копий окажутся разные условия и сравнивать их будет нельзя"
+    fi
     cd /opt/bridge
-    python3 send.py --dir "$COSS3_GAME" --new 2>&1 | sed 's/^/    /' || true
+    # shellcheck disable=SC2086
+    python3 send.py --dir "$COSS3_GAME" --new $NEWARGS 2>&1 | sed 's/^/    /' || true
     cd "$COSS3_GAME"
     for _ in $(seq 1 "${COSS3_NEW_TIMEOUT:-90}"); do
         state_ready && break
@@ -324,6 +340,16 @@ if state_ready; then
     # проверить его надо ДО того, как модель наиграет час на негодном слоте.
     if grep -q "human = True" "$STATE_FILE" && grep -q "adviser = False" "$STATE_FILE"; then
         log "  слот человеческий, советник выключен — как требуется"
+        # Условия партии — в лог и рядом с трассой: через неделю по трассе без
+        # них не сказать, на чём сравнивались идеи.
+        for _field in cid food peasants; do
+            grep -E "^   ${_field} = " "$STATE_FILE" | sed 's/^/    /' || true
+        done
+        if [ -f "$COSS3_GAME/coss3_ack.dat" ]; then
+            cp "$COSS3_GAME/coss3_ack.dat" "$COSS3_IO/match.dat" 2>/dev/null || true
+            grep -E "nat0|nat1|ai1|res|peace" "$COSS3_IO/match.dat" 2>/dev/null \
+                | sed 's/^/    условия: /' || true
+        fi
     else
         log "  ВНИМАНИЕ: слот НЕ человеческий или включён советник:"
         grep -E "human|adviser" "$STATE_FILE" | sed 's/^/    /'
