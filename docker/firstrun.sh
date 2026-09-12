@@ -75,21 +75,21 @@ echo "[firstrun] windows version -> win7"
 wine reg add 'HKCU\Software\Wine' /v Version /d win7 /f
 wineserver --wait
 
-# ВИРТУАЛЬНЫЙ РАБОЧИЙ СТОЛ. Без него игра уходит в полный экран и пытается
-# сменить видеорежим, а у Xvfb экран ровно один и неизменный: смена
-# проваливается, и остаётся ЧЁРНЫЙ ЭКРАН при живом окне и исправном OpenGL.
-# 12.09 это выглядело так: xwininfo показывает окно IsViewable нужного размера,
-# glxinfo рапортует llvmpipe с OpenGL 4.5, ошибок нигде нет — а снимок экрана
-# весит 212 байт. Экран профиля при этом рисовался (обычное окно Windows), и
-# чернело ровно на переходе в игровой режим.
+# ВИРТУАЛЬНЫЙ РАБОЧИЙ СТОЛ — ОТКЛЮЧЁН, включается COSS3_DESKTOP.
 #
-# В виртуальном столе Wine рисует всё в одно окно и видеорежим не трогает.
-# Ставим это настройкой префикса, а не ключом запуска: так действует на любой
-# .exe, включая config.exe, и не зависит от того, кто и как запускает игру.
-echo "[firstrun] включаю виртуальный рабочий стол ${COSS3_DESKTOP:-1024x768}"
-wine reg add 'HKCU\Software\Wine\Explorer' /v Desktop /d Default /f
-wine reg add 'HKCU\Software\Wine\Explorer\Desktops' /v Default \
-    /d "${COSS3_DESKTOP:-1024x768}" /f
-wineserver --wait
+# Ставился против чёрного экрана: игра уходит в полный экран и меняет
+# видеорежим, а у Xvfb он один. Не помогло — чернота осталась, курсор появился.
+# А после его добавления игра начала падать, хотя причинно это не доказано:
+# в тот же заход менялась и видеокарта. Непроверенное изменение в образе
+# держать нельзя, поэтому по умолчанию выключено.
+#
+# Вернуть на пробу: COSS3_DESKTOP=1024x768
+if [ -n "${COSS3_DESKTOP:-}" ]; then
+    echo "[firstrun] виртуальный рабочий стол ${COSS3_DESKTOP}"
+    wine reg add 'HKCU\Software\Wine\Explorer' /v Desktop /d Default /f
+    wine reg add 'HKCU\Software\Wine\Explorer\Desktops' /v Default \
+        /d "${COSS3_DESKTOP}" /f
+    wineserver --wait
+fi
 
 echo "[firstrun] префикс готов"
