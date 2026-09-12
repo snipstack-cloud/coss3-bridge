@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       libvulkan1 libvulkan1:i386 vulkan-tools \
       libgl1-mesa-dri libgl1-mesa-dri:i386 \
       python3 python3-venv python3-pip \
+      git \
       cabextract p7zip-full procps net-tools tini \
  && rm -rf /var/lib/apt/lists/*
 
@@ -83,7 +84,16 @@ COPY --from=game scripts       ./scripts
 COPY --from=game cossacks.exe config.exe modman.exe ./
 COPY --from=game fmod.dll galaxy.dll ogg.dll openal32.dll vorbis.dll vorbisfile.dll ./
 
-# Мост. Кладём рядом, а не в игру: install_bridge.py правит игру сам.
+# Мост кладём в образ как ЗАПАСНОЙ вариант, а рабочий приезжает из git при
+# старте контейнера (COSS3_BRIDGE_GIT). Почему так:
+#   * мост правится каждый день, игра — никогда. Запекать мост в образ значит
+#     пересобирать и перегонять 3,85 ГБ ради правки в одном .py;
+#   * на сервере проверяются ИДЕИ, и каждая идея — это своя ветка или коммит
+#     моста. Образ обязан уметь взять любой ref, не пересобираясь;
+#   * версия моста должна быть ПРИВЯЗАНА К ТРАССЕ. Контейнер печатает точный
+#     SHA и кладёт его в /io/bridge.sha — иначе через неделю не скажешь, какой
+#     мост дал какой результат, и вся ферма опытов бессмысленна.
+# Запасная копия нужна, чтобы образ работал и без сети, и без репозитория.
 #
 # Список ЯВНЫЙ, а не «*.txt», и это не педантизм: рядом лежит nim_key.txt с
 # рабочим ключом OpenRouter, и глоб утащил бы его в слой образа. Из слоя ключ
@@ -101,7 +111,9 @@ RUN python3 -m venv /opt/venv \
  && /opt/venv/bin/pip install --no-cache-dir openai \
  && ln -s /opt/venv/bin/python /usr/local/bin/coss3-python
 
-ENV WINEPREFIX=/wine \
+ENV COSS3_BRIDGE_GIT="" \
+    COSS3_BRIDGE_REF=master \
+    WINEPREFIX=/wine \
     WINEARCH=win32 \
     WINEDEBUG=-all \
     DISPLAY=:99 \

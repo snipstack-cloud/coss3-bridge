@@ -50,6 +50,39 @@ if [ "$COSS3_VNC" = "1" ]; then
     log "VNC на 5900 (без пароля — только за доверенной сетью!)"
 fi
 
+# --- мост из git -------------------------------------------------------------
+# Рабочий мост приезжает из репозитория, запечённый в образ — запасной. Версия
+# ОБЯЗАНА попасть в лог и в /io/bridge.sha: на ферме опытов через неделю никто
+# не вспомнит, какой мост дал какой результат, и трасса без версии бесполезна.
+: "${COSS3_BRIDGE_GIT:=}"
+: "${COSS3_BRIDGE_REF:=master}"
+if [ -n "$COSS3_BRIDGE_GIT" ]; then
+    log "мост из git: ${COSS3_BRIDGE_GIT} @ ${COSS3_BRIDGE_REF}"
+    rm -rf /opt/bridge-git
+    if git clone --quiet --no-single-branch "$COSS3_BRIDGE_GIT" /opt/bridge-git 2>/dev/null \
+       && git -C /opt/bridge-git checkout --quiet "$COSS3_BRIDGE_REF" 2>/dev/null; then
+        SHA=$(git -C /opt/bridge-git rev-parse HEAD)
+        # Файлы моста, но НЕ docker/: скрипты контейнера остаются от образа,
+        # иначе правка entrypoint в ветке может сломать сам запуск и отладить
+        # это будет нечем.
+        cp /opt/bridge-git/*.py /opt/bridge-git/*.inc /opt/bridge-git/*.txt /opt/bridge/ 2>/dev/null || true
+        echo "$SHA" > "$COSS3_IO/bridge.sha"
+        log "мост обновлён: $(git -C /opt/bridge-git log --oneline -1)"
+        log "  SHA записан в ${COSS3_IO}/bridge.sha"
+    else
+        # Молчаливый откат на запасной мост означал бы опыт над НЕ ТОЙ версией,
+        # а результат выглядел бы законным. Это хуже, чем не запуститься.
+        die "не смог взять мост из ${COSS3_BRIDGE_GIT} @ ${COSS3_BRIDGE_REF}.
+     Проверь адрес, доступ (для приватного репозитория нужен токен в URL)
+     и что ref существует. Опыт над неизвестной версией моста бессмыслен,
+     поэтому на запасную копию НЕ откатываюсь."
+    fi
+else
+    echo "запечён-в-образ" > "$COSS3_IO/bridge.sha"
+    log "мост из образа (COSS3_BRIDGE_GIT не задан) — годится для проверки"
+    log "  образа, но не для опытов: версия моста ничем не подтверждена"
+fi
+
 # --- префикс Wine ------------------------------------------------------------
 # Обычно он запечён в образ при сборке. Но если сборка шла на Apple Silicon,
 # под эмуляцией x86 Xvfb зависает, и префикса в образе нет — тогда создаём его
@@ -166,6 +199,14 @@ fi
 if [ "$COSS3_RUN_POLICY" = "1" ]; then
     cd /opt/bridge
     log "запускаю модель: $COSS3_MODEL, такт $COSS3_EVERY, порог волны $COSS3_WAVE_MIN"
+    # COSS3_EXTRA_FLAGS — то, чем идея отличается от базы (его ставит exp.py).
+    # Дописывается В КОНЕЦ, поэтому перебивает одноимённые ключи выше: argparse
+    # берёт последнее вхождение. Так идея «--wave-min 40» работает, не требуя
+    # трогать COSS3_WAVE_MIN.
+    if [ -n "${COSS3_EXTRA_FLAGS:-}" ]; then
+        log "  флаги идеи: ${COSS3_EXTRA_FLAGS}"
+    fi
+    # shellcheck disable=SC2086
     exec python3 llm_policy.py --human \
         --dir "$COSS3_GAME" \
         --hints "$COSS3_HINTS" \
@@ -174,7 +215,8 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
         --wave-min "$COSS3_WAVE_MIN" \
         --ban market,academi \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
-        --log "$COSS3_IO/coss3_llm.log"
+        --log "$COSS3_IO/coss3_llm.log" \
+        ${COSS3_EXTRA_FLAGS:-}
 else
     log "политика выключена (COSS3_RUN_POLICY=0) — держу игру"
     wait "$GAME_PID"
