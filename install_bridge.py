@@ -193,6 +193,41 @@ def main() -> int:
         raise SystemExit(__doc__)
     argv = sys.argv[1:]
     game = argv[0]
+    # Неизвестный ключ — ОШИБКА, а не пустое место. 13.09 в PowerShell в конец
+    # команды попал `^` (перенос строки из cmd.exe, здесь он не работает), и
+    # аргументом ушло `--human-cmd^`. Проверка `"--human-cmd" in argv` дала
+    # False, блок команд не поставился — а установщик отрапортовал «все блоки на
+    # месте» и был формально прав: про этот блок его не просили. Ровно та же
+    # поломка, что 12.09, и ровно то же первое правило проекта: молчаливый
+    # отброс неотличим от бездействия.
+    КЛЮЧИ_СО_ЗНАЧЕНИЕМ = {"--outdir", "--loop", "--cmd-level"}
+    КЛЮЧИ = КЛЮЧИ_СО_ЗНАЧЕНИЕМ | {
+        "--reinstall", "--uninstall", "--queue-builds", "--min-loop",
+        "--only-heartbeat", "--only-state", "--human-probe", "--human-state",
+        "--human-cmd", "--human-only", "--endgame"}
+    чужие, пропустить = [], False
+    for арг in argv[1:]:
+        if пропустить:
+            пропустить = False
+            continue
+        if арг in КЛЮЧИ_СО_ЗНАЧЕНИЕМ:
+            пропустить = True
+            continue
+        if арг not in КЛЮЧИ:
+            чужие.append(арг)
+    if чужие:
+        похожие = []
+        for арг in чужие:
+            гол = арг.strip("^`\\\"' ")          # ^ и ` — переносы строк чужих оболочек
+            if гол in КЛЮЧИ:
+                похожие.append(f"{арг} — похоже на {гол} с прилипшим символом "
+                               f"переноса строки; в PowerShell перенос — это `, а не ^")
+        raise SystemExit(
+            "неизвестные ключи: " + ", ".join(чужие)
+            + ("\n  " + "\n  ".join(похожие) if похожие else "")
+            + "\nНичего не тронуто. Известные ключи: "
+            + ", ".join(sorted(КЛЮЧИ)))
+
     reinstall = "--reinstall" in argv
     uninstall = "--uninstall" in argv and not reinstall
     queue_builds = "--queue-builds" in argv
