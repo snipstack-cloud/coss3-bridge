@@ -1942,7 +1942,11 @@ stone, gold, iron, coal : Integer)`), `_player_ClearGroup` тоже есть в
 `cossacks.ini` поставляется с `LogFileEnabled = false` — все наши `Log(...)` за
 два дня писались в никуда. Теперь блок команд один раз за сессию делает
 `SetLogFileEnabled(True)`, и действия видны в
-`Documents\cossacks\log\cos_*.log` строками `bridge-human: ...`. Плюс
+`Documents\cossacks\log\cos_*.log` строками `bridge-human: ...`. **Осторожно с
+путём: при включённом OneDrive папка `Documents` перенаправлена, и логи лежат в
+`C:\Users\<вы>\OneDrive\Documents\cossacks\log\`** — 13.09 на их поиск ушло
+три попытки. Найти наверняка:
+`Get-ChildItem C:\Users\<вы> -Recurse -Filter "cos_*.log" -ErrorAction SilentlyContinue | sort LastWriteTime -desc | select -first 3`. Плюс
 машиночитаемый `coss3_bot.jsonl` со стороны моста.
 
 ### Проверено на моке (`mock_human.py`)
