@@ -289,7 +289,6 @@
       [*] = ;         // it does: 'eurmil.1=food+140'. The model picks by meaning, and the
       [*] = ;         // name it copies back is one the game will accept.
       [*] = ;         var hsupg : String;
-      [*] = ;         var hshid : Integer;
       [*] = ;         var hsug : Integer;
       [*] = ;         for hsug := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
@@ -348,13 +347,16 @@
       [*] = ;               if (hutype = gc_upg_type_balloon) then
       [*] = ;               huwhat := 'balloon';
       [*] = ;               // Hard length cap. Without it this line is five kilobytes: a
-      [*] = ;               // nation has two hundred odd upgrades, and every one of them
-      [*] = ;               // went into EVERY request to the model, against a tick budget
-      [*] = ;               // of twenty seconds. What did not fit is counted, not dropped
-      [*] = ;               // in silence - upg_hidden says how many.
-      [*] = ;               if (StrLength(hsupg) > 1200) then
-      [*] = ;               hshid := hshid + 1
-      [*] = ;               else
+      [*] = ;               // nation has two hundred odd upgrades, and all of them went
+      [*] = ;               // into EVERY request to the model, against a tick budget of
+      [*] = ;               // twenty seconds.
+      [*] = ;               //
+      [*] = ;               // Deliberately the SMALLEST possible change: one more if around
+      [*] = ;               // what already worked. No new variable, no else-begin, no new
+      [*] = ;               // field in the receipt - each of those was in the version that
+      [*] = ;               // stopped the whole Progress tick from compiling, and there is
+      [*] = ;               // no way here to tell which one did it.
+      [*] = ;               if (StrLength(hsupg) < 1200) then
       [*] = ;               begin
       [*] = ;                  if (StrLength(hsupg) > 0) then
       [*] = ;                  hsupg := hsupg + ',';
@@ -364,7 +366,6 @@
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
-      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'upg_hidden', hshid);
       [*] = ;         // How the match ended, in the same file the policy already reads every
       [*] = ;         // tick. The engine pauses the simulation the moment it sets victorystate,
       [*] = ;         // so this block is about to freeze - and this is the last line it writes.
