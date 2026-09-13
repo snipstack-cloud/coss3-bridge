@@ -288,124 +288,83 @@
       [*] = ;         // A bare 'eurmil.1' means nothing to anyone, so each id carries what
       [*] = ;         // it does: 'eurmil.1=food+140'. The model picks by meaning, and the
       [*] = ;         // name it copies back is one the game will accept.
-      [*] = ;         // Only upgrades that can be taken RIGHT NOW.
-      [*] = ;         //
-      [*] = ;         // 13.09: the first version handed over every upgrade the nation has -
-      [*] = ;         // two hundred odd names, about five kilobytes in EVERY request to the
-      [*] = ;         // model, against a tick budget of twenty seconds. Upgrades live in
-      [*] = ;         // buildings, so 'mil.*' without a mill or 'art.*' without artillery is
-      [*] = ;         // rubbish that would have eaten the whole request.
-      [*] = ;         //
-      [*] = ;         // The place is the letters between the nation-group prefix (three
-      [*] = ;         // characters) and the first dot: 'eurmil.1' -> 'mil'. The id itself
-      [*] = ;         // goes out WHOLE: the command block compares tails, and a whole id
-      [*] = ;         // matches itself.
-      [*] = ;         //
-      [*] = ;         // What is dropped is NOT passed over in silence: upg_hidden counts
-      [*] = ;         // what was dropped for a missing building, upg_unknown what had a
-      [*] = ;         // place missing from the table below. The second number is a reason
-      [*] = ;         // to extend the table, not to live on quietly.
       [*] = ;         var hsupg : String;
       [*] = ;         var hshid : Integer;
-      [*] = ;         var hsunk : Integer;
       [*] = ;         var hsug : Integer;
       [*] = ;         for hsug := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
       [*] = ;            var husid : String = gCountry[hscid].upgrade[hsug].id;
       [*] = ;            var hutype : Integer = gCountry[hscid].upgrade[hsug].itype;
-      [*] = ;            if (StrLength(husid) > 4) and (hutype <> gc_upg_type_none) then
+      [*] = ;            if (StrLength(husid) > 0) and (husid <> 'null')
+      [*] = ;               and (hutype <> gc_upg_type_none) then
       [*] = ;            begin
-      [*] = ;               var hudot : Integer = StrPos('.', husid);
-      [*] = ;               var huplace : String;
-      [*] = ;               if (hudot > 4) then
-      [*] = ;               huplace := SubStr(husid, 4, hudot-4);
-      [*] = ;               // -1 = place not known to us, 0 = no such building, >0 = have it
-      [*] = ;               var huhave : Integer = -1;
-      [*] = ;               if (huplace = 'cen') then
-      [*] = ;               huhave := hscen else
-      [*] = ;               if (huplace = 'mil') then
-      [*] = ;               huhave := hsmill else
-      [*] = ;               if (huplace = 'bla') then
-      [*] = ;               huhave := hssmith else
-      [*] = ;               if (huplace = 'bar') then
-      [*] = ;               huhave := hsba else
-      [*] = ;               if (huplace = 'ba2') then
-      [*] = ;               huhave := hsba18 else
-      [*] = ;               if (huplace = 'sta') then
-      [*] = ;               huhave := hsstab else
-      [*] = ;               if (huplace = 'aca') then
-      [*] = ;               huhave := hsacad else
-      [*] = ;               if (huplace = 'tow') then
-      [*] = ;               huhave := hstow else
-      [*] = ;               if (huplace = 'gol') then
-      [*] = ;               huhave := hsmg else
-      [*] = ;               if (huplace = 'iro') then
-      [*] = ;               huhave := hsmi else
-      [*] = ;               if (huplace = 'coa') then
-      [*] = ;               huhave := hsmc;
-      [*] = ;               if (huhave < 0) then
-      [*] = ;               hsunk := hsunk + 1
-      [*] = ;               else
-      [*] = ;               if (huhave = 0) then
+      [*] = ;               // Ascii labels on purpose: the installer writes this file as
+      [*] = ;               // latin-1, and cyrillic would not survive it.
+      [*] = ;               // Ascii labels on purpose: the installer writes this file as
+      [*] = ;               // latin-1, and cyrillic would not survive it.
+      [*] = ;               //
+      [*] = ;               // A chain of if-else and not a case statement. Every case in
+      [*] = ;               // the game's own Progress-side files puts begin..end in each
+      [*] = ;               // branch; ours had one-line branches, and the whole Progress
+      [*] = ;               // tick stopped compiling - no heartbeat, no state, nothing.
+      [*] = ;               // The chain below is the form already proven in these blocks.
+      [*] = ;               var huwhat : String = 'other';
+      [*] = ;               if (hutype = gc_upg_type_effectfood) or (hutype = gc_upg_type_effectfoodperc) then
+      [*] = ;               huwhat := 'food' else
+      [*] = ;               if (hutype = gc_upg_type_effectwood) or (hutype = gc_upg_type_effectwoodperc) then
+      [*] = ;               huwhat := 'wood' else
+      [*] = ;               if (hutype = gc_upg_type_effectstone) or (hutype = gc_upg_type_effectstoneperc) then
+      [*] = ;               huwhat := 'stone' else
+      [*] = ;               if (hutype = gc_upg_type_lifeperc) then
+      [*] = ;               huwhat := 'hp' else
+      [*] = ;               if (hutype = gc_upg_type_damage) or (hutype = gc_upg_type_damageperc) then
+      [*] = ;               huwhat := 'damage' else
+      [*] = ;               if (hutype = gc_upg_type_protection) then
+      [*] = ;               huwhat := 'armor' else
+      [*] = ;               if (hutype = gc_upg_type_shield) then
+      [*] = ;               huwhat := 'shield' else
+      [*] = ;               if (hutype = gc_upg_type_attrangeperc) then
+      [*] = ;               huwhat := 'range' else
+      [*] = ;               if (hutype = gc_upg_type_attpauseperc) or (hutype = gc_upg_type_single_attpauseperc) then
+      [*] = ;               huwhat := 'rate' else
+      [*] = ;               if (hutype = gc_upg_type_attdispertionperc) then
+      [*] = ;               huwhat := 'accuracy' else
+      [*] = ;               if (hutype = gc_upg_type_speedperc) then
+      [*] = ;               huwhat := 'speed' else
+      [*] = ;               if (hutype = gc_upg_type_buildtimeperc) then
+      [*] = ;               huwhat := 'buildtime' else
+      [*] = ;               if (hutype = gc_upg_type_priceperc) then
+      [*] = ;               huwhat := 'price' else
+      [*] = ;               if (hutype = gc_upg_type_enableunit) then
+      [*] = ;               huwhat := 'unlock' else
+      [*] = ;               if (hutype = gc_upg_type_geology) then
+      [*] = ;               huwhat := 'geology' else
+      [*] = ;               if (hutype = gc_upg_type_healing) then
+      [*] = ;               huwhat := 'heal' else
+      [*] = ;               if (hutype = gc_upg_type_fieldlifeperc) then
+      [*] = ;               huwhat := 'field' else
+      [*] = ;               if (hutype = gc_upg_type_fishingperc) then
+      [*] = ;               huwhat := 'fishing' else
+      [*] = ;               if (hutype = gc_upg_type_balloon) then
+      [*] = ;               huwhat := 'balloon';
+      [*] = ;               // Hard length cap. Without it this line is five kilobytes: a
+      [*] = ;               // nation has two hundred odd upgrades, and every one of them
+      [*] = ;               // went into EVERY request to the model, against a tick budget
+      [*] = ;               // of twenty seconds. What did not fit is counted, not dropped
+      [*] = ;               // in silence - upg_hidden says how many.
+      [*] = ;               if (StrLength(hsupg) > 1200) then
       [*] = ;               hshid := hshid + 1
       [*] = ;               else
       [*] = ;               begin
-      [*] = ;                  var huwhat : String = 'other';
-      [*] = ;                  if (hutype = gc_upg_type_effectfood) or (hutype = gc_upg_type_effectfoodperc) then
-      [*] = ;                  huwhat := 'food' else
-      [*] = ;                  if (hutype = gc_upg_type_effectwood) or (hutype = gc_upg_type_effectwoodperc) then
-      [*] = ;                  huwhat := 'wood' else
-      [*] = ;                  if (hutype = gc_upg_type_effectstone) or (hutype = gc_upg_type_effectstoneperc) then
-      [*] = ;                  huwhat := 'stone' else
-      [*] = ;                  if (hutype = gc_upg_type_lifeperc) then
-      [*] = ;                  huwhat := 'hp' else
-      [*] = ;                  if (hutype = gc_upg_type_damage) or (hutype = gc_upg_type_damageperc) then
-      [*] = ;                  huwhat := 'damage' else
-      [*] = ;                  if (hutype = gc_upg_type_protection) then
-      [*] = ;                  huwhat := 'armor' else
-      [*] = ;                  if (hutype = gc_upg_type_shield) then
-      [*] = ;                  huwhat := 'shield' else
-      [*] = ;                  if (hutype = gc_upg_type_attrangeperc) then
-      [*] = ;                  huwhat := 'range' else
-      [*] = ;                  if (hutype = gc_upg_type_attpauseperc) or (hutype = gc_upg_type_single_attpauseperc) then
-      [*] = ;                  huwhat := 'rate' else
-      [*] = ;                  if (hutype = gc_upg_type_attdispertionperc) then
-      [*] = ;                  huwhat := 'accuracy' else
-      [*] = ;                  if (hutype = gc_upg_type_speedperc) then
-      [*] = ;                  huwhat := 'speed' else
-      [*] = ;                  if (hutype = gc_upg_type_buildtimeperc) then
-      [*] = ;                  huwhat := 'buildtime' else
-      [*] = ;                  if (hutype = gc_upg_type_priceperc) then
-      [*] = ;                  huwhat := 'price' else
-      [*] = ;                  if (hutype = gc_upg_type_enableunit) then
-      [*] = ;                  huwhat := 'unlock' else
-      [*] = ;                  if (hutype = gc_upg_type_geology) then
-      [*] = ;                  huwhat := 'geology' else
-      [*] = ;                  if (hutype = gc_upg_type_healing) then
-      [*] = ;                  huwhat := 'heal' else
-      [*] = ;                  if (hutype = gc_upg_type_fieldlifeperc) then
-      [*] = ;                  huwhat := 'field' else
-      [*] = ;                  if (hutype = gc_upg_type_fishingperc) then
-      [*] = ;                  huwhat := 'fishing' else
-      [*] = ;                  if (hutype = gc_upg_type_balloon) then
-      [*] = ;                  huwhat := 'balloon';
-      [*] = ;                  // Hard length cap: even a filtered list has no right to eat
-      [*] = ;                  // the request. What does not fit is counted in upg_hidden.
-      [*] = ;                  if (StrLength(hsupg) < 1200) then
-      [*] = ;                  begin
-      [*] = ;                     if (StrLength(hsupg) > 0) then
-      [*] = ;                     hsupg := hsupg + ',';
-      [*] = ;                     hsupg := hsupg + husid + '=' + huwhat + '+'
-      [*] = ;                              + IntToStr(gCountry[hscid].upgrade[hsug].value);
-      [*] = ;                  end
-      [*] = ;                  else
-      [*] = ;                  hshid := hshid + 1;
+      [*] = ;                  if (StrLength(hsupg) > 0) then
+      [*] = ;                  hsupg := hsupg + ',';
+      [*] = ;                  hsupg := hsupg + husid + '=' + huwhat + '+'
+      [*] = ;                           + IntToStr(gCountry[hscid].upgrade[hsug].value);
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'upg_hidden', hshid);
-      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'upg_unknown', hsunk);
       [*] = ;         // How the match ended, in the same file the policy already reads every
       [*] = ;         // tick. The engine pauses the simulation the moment it sets victorystate,
       [*] = ;         // so this block is about to freeze - and this is the last line it writes.
