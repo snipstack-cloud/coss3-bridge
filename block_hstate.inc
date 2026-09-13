@@ -299,28 +299,53 @@
       [*] = ;            begin
       [*] = ;               // Ascii labels on purpose: the installer writes this file as
       [*] = ;               // latin-1, and cyrillic would not survive it.
+      [*] = ;               // Ascii labels on purpose: the installer writes this file as
+      [*] = ;               // latin-1, and cyrillic would not survive it.
+      [*] = ;               //
+      [*] = ;               // A chain of if-else and not a case statement. Every case in
+      [*] = ;               // the game's own Progress-side files puts begin..end in each
+      [*] = ;               // branch; ours had one-line branches, and the whole Progress
+      [*] = ;               // tick stopped compiling - no heartbeat, no state, nothing.
+      [*] = ;               // The chain below is the form already proven in these blocks.
       [*] = ;               var huwhat : String = 'other';
-      [*] = ;               case hutype of
-      [*] = ;                  gc_upg_type_effectfood, gc_upg_type_effectfoodperc : huwhat := 'food';
-      [*] = ;                  gc_upg_type_effectwood, gc_upg_type_effectwoodperc : huwhat := 'wood';
-      [*] = ;                  gc_upg_type_effectstone, gc_upg_type_effectstoneperc : huwhat := 'stone';
-      [*] = ;                  gc_upg_type_lifeperc : huwhat := 'hp';
-      [*] = ;                  gc_upg_type_damage, gc_upg_type_damageperc : huwhat := 'damage';
-      [*] = ;                  gc_upg_type_protection : huwhat := 'armor';
-      [*] = ;                  gc_upg_type_shield : huwhat := 'shield';
-      [*] = ;                  gc_upg_type_attrangeperc : huwhat := 'range';
-      [*] = ;                  gc_upg_type_attpauseperc, gc_upg_type_single_attpauseperc : huwhat := 'rate';
-      [*] = ;                  gc_upg_type_attdispertionperc : huwhat := 'accuracy';
-      [*] = ;                  gc_upg_type_speedperc : huwhat := 'speed';
-      [*] = ;                  gc_upg_type_buildtimeperc : huwhat := 'buildtime';
-      [*] = ;                  gc_upg_type_priceperc : huwhat := 'price';
-      [*] = ;                  gc_upg_type_enableunit : huwhat := 'unlock';
-      [*] = ;                  gc_upg_type_geology : huwhat := 'geology';
-      [*] = ;                  gc_upg_type_healing : huwhat := 'heal';
-      [*] = ;                  gc_upg_type_fieldlifeperc : huwhat := 'field';
-      [*] = ;                  gc_upg_type_fishingperc : huwhat := 'fishing';
-      [*] = ;                  gc_upg_type_balloon : huwhat := 'balloon';
-      [*] = ;               end;
+      [*] = ;               if (hutype = gc_upg_type_effectfood) or (hutype = gc_upg_type_effectfoodperc) then
+      [*] = ;               huwhat := 'food' else
+      [*] = ;               if (hutype = gc_upg_type_effectwood) or (hutype = gc_upg_type_effectwoodperc) then
+      [*] = ;               huwhat := 'wood' else
+      [*] = ;               if (hutype = gc_upg_type_effectstone) or (hutype = gc_upg_type_effectstoneperc) then
+      [*] = ;               huwhat := 'stone' else
+      [*] = ;               if (hutype = gc_upg_type_lifeperc) then
+      [*] = ;               huwhat := 'hp' else
+      [*] = ;               if (hutype = gc_upg_type_damage) or (hutype = gc_upg_type_damageperc) then
+      [*] = ;               huwhat := 'damage' else
+      [*] = ;               if (hutype = gc_upg_type_protection) then
+      [*] = ;               huwhat := 'armor' else
+      [*] = ;               if (hutype = gc_upg_type_shield) then
+      [*] = ;               huwhat := 'shield' else
+      [*] = ;               if (hutype = gc_upg_type_attrangeperc) then
+      [*] = ;               huwhat := 'range' else
+      [*] = ;               if (hutype = gc_upg_type_attpauseperc) or (hutype = gc_upg_type_single_attpauseperc) then
+      [*] = ;               huwhat := 'rate' else
+      [*] = ;               if (hutype = gc_upg_type_attdispertionperc) then
+      [*] = ;               huwhat := 'accuracy' else
+      [*] = ;               if (hutype = gc_upg_type_speedperc) then
+      [*] = ;               huwhat := 'speed' else
+      [*] = ;               if (hutype = gc_upg_type_buildtimeperc) then
+      [*] = ;               huwhat := 'buildtime' else
+      [*] = ;               if (hutype = gc_upg_type_priceperc) then
+      [*] = ;               huwhat := 'price' else
+      [*] = ;               if (hutype = gc_upg_type_enableunit) then
+      [*] = ;               huwhat := 'unlock' else
+      [*] = ;               if (hutype = gc_upg_type_geology) then
+      [*] = ;               huwhat := 'geology' else
+      [*] = ;               if (hutype = gc_upg_type_healing) then
+      [*] = ;               huwhat := 'heal' else
+      [*] = ;               if (hutype = gc_upg_type_fieldlifeperc) then
+      [*] = ;               huwhat := 'field' else
+      [*] = ;               if (hutype = gc_upg_type_fishingperc) then
+      [*] = ;               huwhat := 'fishing' else
+      [*] = ;               if (hutype = gc_upg_type_balloon) then
+      [*] = ;               huwhat := 'balloon';
       [*] = ;               if (StrLength(hsupg) > 0) then
       [*] = ;               hsupg := hsupg + ',';
       [*] = ;               hsupg := hsupg + husid + '=' + huwhat + '+'
