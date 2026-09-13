@@ -46,6 +46,9 @@ BUILDABLE = {"center", "mill", "ba17", "ba18", "stable", "smith", "academi",
              "store", "tower"}
 
 # UPGRADE во вставке принимает только эти имена (жёсткий список в .inc)
+# ИМЕНА КОМПЬЮТЕРНОГО СЛОТА. На человеческом не работают ни одно: там имена
+# вида 'eurmil.1'. Оставлены только для старого кода эпизодов; новые проверки
+# идут по upg_avail из состояния.
 UPGRADES = {"century", "food140", "horse", "fort", "reaper", "stone200",
             "stone100", "builders", "wood", "feelds", "bricks1", "bricks2",
             "horseswords", "armor1", "newsteel"}
@@ -122,8 +125,21 @@ def train(role: str, total_count: int) -> Command:
 
 
 def upgrade(name: str) -> Command:
-    if name not in UPGRADES:
-        raise ValueError(f"UPGRADE не поддерживает {name!r}; см. UPGRADES")
+    """Имя апгрейда — то, что игра назвала в upg_avail, например 'eurmil.1'.
+
+    Списком UPGRADES больше не проверяем. Он достался от компьютерного слота,
+    где апгрейды заказывались через _ai_TryUpgrade по движковым константам
+    ('food140', 'reaper'). На человеческом слоте блок команд ищет по
+    gCountry[cid].upgrade[].id, а эти id устроены иначе — commonName + место +
+    номер, country.script:3452. Ни одно имя из старого списка не могло совпасть
+    НИ РАЗУ, и за 13.09 модель потратила на них 21 такт.
+
+    Что доступно этой нации, знает только состояние, поэтому и проверка живёт
+    там, где состояние есть, — в llm_policy.to_commands.
+    """
+    name = str(name).strip()
+    if not name:
+        raise ValueError("UPGRADE без имени")
     return Command("UPGRADE", upg=name)
 
 

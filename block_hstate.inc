@@ -269,27 +269,62 @@
       [*] = ;            if (StrLength(hswhy) > 0) then
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'last_fail', hswhy);
       [*] = ;         end;
-      [*] = ;         // Upgrades THIS NATION actually has. The list in SYSTEM was the same
-      [*] = ;         // for every nation, and that is a lie: the sets differ. On 13.09 the
-      [*] = ;         // model ordered 'reaper' with a mill standing and got back
-      [*] = ;         // 'no upgrade with this name for our nation' - a tick spent on
-      [*] = ;         // something that does not exist.
+      [*] = ;         // Upgrades this nation actually has, AND WHAT EACH ONE DOES.
       [*] = ;         //
-      [*] = ;         // We export SUFFIXES because that is what the UPGRADE command takes:
-      [*] = ;         // an upgrade sid is nation prefix plus base name ('engmilfood140'),
-      [*] = ;         // and the command block matches by suffix. The first three letters
-      [*] = ;         // are the nation, so they are cut off. Comma separated, ready to be
-      [*] = ;         // shown to the model as is.
+      [*] = ;         // 13.09: the first version of this exported a SUFFIX, on the theory
+      [*] = ;         // that an upgrade id is 'nation prefix + base name' and the command
+      [*] = ;         // block matches the tail. Both halves of that were wrong, and the
+      [*] = ;         // cost was a whole match: the model asked for 'food140' fourteen
+      [*] = ;         // times and 'reaper' six, and every one came back
+      [*] = ;         // 'no upgrade with this name for our nation'.
+      [*] = ;         //
+      [*] = ;         // What ids really are: commonName + place + '.' + number, see
+      [*] = ;         // country.script:3452. For a European nation the +140% food upgrade
+      [*] = ;         // is 'eurmil.1'. And commonName is not the nation at all - it is the
+      [*] = ;         // GROUP ('eur', 'rus', 'tur', 'mis'), so cutting three letters was
+      [*] = ;         // guesswork on top of guesswork. We export the id WHOLE: the command
+      [*] = ;         // block compares tails, and a whole id matches itself.
+      [*] = ;         //
+      [*] = ;         // A bare 'eurmil.1' means nothing to anyone, so each id carries what
+      [*] = ;         // it does: 'eurmil.1=food+140'. The model picks by meaning, and the
+      [*] = ;         // name it copies back is one the game will accept.
       [*] = ;         var hsupg : String;
-      [*] = ;         var hsui : Integer;
-      [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
+      [*] = ;         var hsug : Integer;
+      [*] = ;         for hsug := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
-      [*] = ;            var hsus : String = gCountry[hscid].upgrade[hsui].id;
-      [*] = ;            if (StrLength(hsus) > 3) then
+      [*] = ;            var husid : String = gCountry[hscid].upgrade[hsug].id;
+      [*] = ;            var hutype : Integer = gCountry[hscid].upgrade[hsug].itype;
+      [*] = ;            if (StrLength(husid) > 0) and (husid <> 'null')
+      [*] = ;               and (hutype <> gc_upg_type_none) then
       [*] = ;            begin
+      [*] = ;               // Ascii labels on purpose: the installer writes this file as
+      [*] = ;               // latin-1, and cyrillic would not survive it.
+      [*] = ;               var huwhat : String = 'other';
+      [*] = ;               case hutype of
+      [*] = ;                  gc_upg_type_effectfood, gc_upg_type_effectfoodperc : huwhat := 'food';
+      [*] = ;                  gc_upg_type_effectwood, gc_upg_type_effectwoodperc : huwhat := 'wood';
+      [*] = ;                  gc_upg_type_effectstone, gc_upg_type_effectstoneperc : huwhat := 'stone';
+      [*] = ;                  gc_upg_type_lifeperc : huwhat := 'hp';
+      [*] = ;                  gc_upg_type_damage, gc_upg_type_damageperc : huwhat := 'damage';
+      [*] = ;                  gc_upg_type_protection : huwhat := 'armor';
+      [*] = ;                  gc_upg_type_shield : huwhat := 'shield';
+      [*] = ;                  gc_upg_type_attrangeperc : huwhat := 'range';
+      [*] = ;                  gc_upg_type_attpauseperc, gc_upg_type_single_attpauseperc : huwhat := 'rate';
+      [*] = ;                  gc_upg_type_attdispertionperc : huwhat := 'accuracy';
+      [*] = ;                  gc_upg_type_speedperc : huwhat := 'speed';
+      [*] = ;                  gc_upg_type_buildtimeperc : huwhat := 'buildtime';
+      [*] = ;                  gc_upg_type_priceperc : huwhat := 'price';
+      [*] = ;                  gc_upg_type_enableunit : huwhat := 'unlock';
+      [*] = ;                  gc_upg_type_geology : huwhat := 'geology';
+      [*] = ;                  gc_upg_type_healing : huwhat := 'heal';
+      [*] = ;                  gc_upg_type_fieldlifeperc : huwhat := 'field';
+      [*] = ;                  gc_upg_type_fishingperc : huwhat := 'fishing';
+      [*] = ;                  gc_upg_type_balloon : huwhat := 'balloon';
+      [*] = ;               end;
       [*] = ;               if (StrLength(hsupg) > 0) then
       [*] = ;               hsupg := hsupg + ',';
-      [*] = ;               hsupg := hsupg + SubStr(hsus, 4, StrLength(hsus)-3);
+      [*] = ;               hsupg := hsupg + husid + '=' + huwhat + '+'
+      [*] = ;                        + IntToStr(gCountry[hscid].upgrade[hsug].value);
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
