@@ -52,8 +52,23 @@ def идеи() -> configparser.ConfigParser:
     return c
 
 
-def docker(*аргс: str, тихо: bool = False) -> str:
-    р = subprocess.run(["docker", *аргс], capture_output=True, text=True)
+def docker(*аргс: str, тихо: bool = False, ждать: float = 20.0) -> str:
+    """Вызов docker с ТАЙМАУТОМ.
+
+    Без него `exp.py list` — команда, которой нужен только текстовый файл с
+    идеями, — висела намертво, когда демон занят: 13.09 на маке кончился диск,
+    и `docker ps` не отвечал. Перечень идей не имеет права зависеть от docker.
+    """
+    try:
+        р = subprocess.run(["docker", *аргс], capture_output=True, text=True,
+                           timeout=ждать)
+    except subprocess.TimeoutExpired:
+        if not тихо:
+            sys.exit(f"docker {' '.join(аргс[:2])}: не ответил за {ждать:.0f} с. "
+                     f"Демон занят или не запущен.")
+        print(f"  ~ docker {' '.join(аргс[:2])} не ответил за {ждать:.0f} с — "
+              f"показываю без сведений о контейнерах")
+        return ""
     if р.returncode and not тихо:
         sys.exit(f"docker {' '.join(аргс[:2])}: {р.stderr.strip()}")
     return р.stdout.strip()
