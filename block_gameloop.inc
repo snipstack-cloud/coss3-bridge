@@ -39,6 +39,13 @@
       [*] = ;         // Names come from locale/en/gui.txt: 0 None, 1 Normal,
       [*] = ;         // 2 Hard, 3 Very Hard, 4 Impossible.
       [*] = ;         var brctlnat   : String;         // country sid, 'net' = Netherlands
+      [*] = ;         // additional.balloon: 0 as usual, 1 forbidden, 2 GIVEN TO ALL.
+      [*] = ;         // With 2 the fog of war is off for everyone - _player_UpdateFOW
+      [*] = ;         // (player.script:456) skips AddFOWPlayers when balloon=with.
+      [*] = ;         // A MATCH SETTING, not a cheat, and it decides whether the bridge
+      [*] = ;         // may tell the model what the enemy has: on an open map a human
+      [*] = ;         // sees it too.
+      [*] = ;         var brctlball  : Integer = -1;
       [*] = ;         if ParserLoadFromFileByHandle(hctl, brctlpath) then
       [*] = ;         begin
       [*] = ;            brctlcmd := ParserGetValueByKeyByHandle(hctl, 'cmd');
@@ -48,6 +55,8 @@
       [*] = ;            brctlpeace := ParserGetIntValueByKeyByHandle(hctl, 'peace');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'ai') <> '') then
       [*] = ;            brctlai := ParserGetIntValueByKeyByHandle(hctl, 'ai');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'balloon') <> '') then
+      [*] = ;            brctlball := ParserGetIntValueByKeyByHandle(hctl, 'balloon');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
@@ -81,6 +90,8 @@
       [*] = ;            gMap.settings.gen.resourcestart := brctlres;
       [*] = ;            if (brctlpeace >= 0) then
       [*] = ;            gMap.settings.additional.peacetime := brctlpeace;
+      [*] = ;            if (brctlball >= 0) then
+      [*] = ;            gMap.settings.additional.balloon := brctlball;
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
       [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
@@ -117,6 +128,7 @@
       [*] = ;            ParserSetValueByKeyByHandle(back, 'done', 'newgame_called');
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'res', gMap.settings.gen.resourcestart);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'peace', gMap.settings.additional.peacetime);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'balloon', gMap.settings.additional.balloon);
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
       [*] = ;            GUIExecuteState('DoNewGame');
       [*] = ;         end;

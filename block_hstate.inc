@@ -277,6 +277,13 @@
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
+      [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
+      [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
+      [*] = ;         // player.script:456). It decides what the bridge may honestly
+      [*] = ;         // tell the model about the enemy: with an open map a human sees
+      [*] = ;         // his base and his troops too, so the numbers are not a head start.
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'map_open',
+      [*] = ;              (gMap.settings.additional.balloon = gc_mapsettings_balloon_with));
       [*] = ;         // Why the last command failed, put there by the command block. It is
       [*] = ;         // NOT cleared here: the state is written every game second while the
       [*] = ;         // model looks once in fifteen, and clearing on write would hide the

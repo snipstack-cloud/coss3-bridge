@@ -142,6 +142,12 @@ def main() -> int:
                          "Поэтому «Невозможный» это 3, а не 4. "
                          "Задание включает и расстановку слотов: наш человек, "
                          "один компьютер, остальные закрыты")
+    ap.add_argument("--balloon", type=int, default=-1,
+                    help="монгольфьер: 0 как обычно, 1 запрещён, 2 ВЫДАН ВСЕМ — "
+                         "и тогда карта открыта, тумана войны нет ни у кого "
+                         "(_player_UpdateFOW, player.script:456). На открытой "
+                         "карте человек видит базу врага и его войска, значит "
+                         "и модели их показывать честно")
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
@@ -176,7 +182,8 @@ def main() -> int:
         cmd = "END" if a.end else "NEW"
         seed = a.new or 0
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
-                          res=a.res, peace=a.peace, ai=a.ai, nation=a.nation):
+                          res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
+                          balloon=a.balloon):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

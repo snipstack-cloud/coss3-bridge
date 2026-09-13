@@ -245,7 +245,7 @@ def команда_run(a) -> int:
         for пер in ("COSS3_MODEL", "COSS3_EVERY", "COSS3_WAVE_MIN", "COSS3_D3D",
                     "COSS3_RES", "COSS3_VNC", "COSS3_EPISODES", "COSS3_KEEP_ALIVE",
                     "COSS3_MATCH_RES", "COSS3_MATCH_PEACE", "COSS3_MATCH_AI",
-                    "COSS3_MATCH_NATION",
+                    "COSS3_MATCH_NATION", "COSS3_MATCH_BALLOON",
                     "OPENROUTER_API_KEY", "OPENROUTER_BASE_URL",
                     "NVIDIA_API_KEY", "NIM_BASE_URL"):
             if os.environ.get(пер):

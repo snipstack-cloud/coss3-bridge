@@ -332,7 +332,7 @@ class Bridge:
 
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0,
                 res: int = -1, peace: int = -1, ai: int = -1,
-                nation: str = "") -> bool:
+                nation: str = "", balloon: int = -1) -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
@@ -370,6 +370,13 @@ class Bridge:
             поля["ai"] = int(ai)
         if nation:
             поля["nation"] = str(nation)
+        if int(balloon) >= 0:
+            # additional.balloon: 0 как обычно, 1 запрещён, 2 ВЫДАН ВСЕМ — и
+            # тогда тумана войны нет ни у кого (_player_UpdateFOW,
+            # player.script:456). Это настройка партии, а не чит, и от неё
+            # зависит, что честно показывать модели: на открытой карте человек
+            # видит базу врага и его войска.
+            поля["balloon"] = int(balloon)
         text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

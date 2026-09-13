@@ -426,6 +426,9 @@ else
     [ -n "${COSS3_MATCH_PEACE:-}" ]  && NEWARGS="$NEWARGS --peace ${COSS3_MATCH_PEACE}"
     [ -n "${COSS3_MATCH_AI:-}" ]     && NEWARGS="$NEWARGS --ai ${COSS3_MATCH_AI}"
     [ -n "${COSS3_MATCH_NATION:-}" ] && NEWARGS="$NEWARGS --nation ${COSS3_MATCH_NATION}"
+    # Монгольфьер: 2 = выдан всем, и тумана войны нет ни у кого. От него зависит,
+    # что мост честно показывает модели про врага (см. --fair).
+    [ -n "${COSS3_MATCH_BALLOON:-}" ] && NEWARGS="$NEWARGS --balloon ${COSS3_MATCH_BALLOON}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
     else
