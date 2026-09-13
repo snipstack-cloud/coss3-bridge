@@ -272,7 +272,12 @@
       [*] = ;                  if (hsfree) then
       [*] = ;                  begin
       [*] = ;                     var hsdist : Integer = Round(VectorDistance(hsox, 0, hsoz, hscx, 0, hscz));
-      [*] = ;                     if (hsdist <= 26) then
+      [*] = ;                     // Within the range the GAME counts as ours: 85,
+      [*] = ;                     // gc_ai_dist_mines_expansion (dmscript.global:506). It used to be
+      [*] = ;                     // 26 - the radius of the ring search - but since 13.09 a mine is
+      [*] = ;                     // placed straight ON the deposit, so that limit no longer applies
+      [*] = ;                     // to mines and the state was telling the model a lie.
+      [*] = ;                     if (hsdist <= gc_ai_dist_mines_expansion) then
       [*] = ;                     hson[hsok] := hson[hsok] + 1;
       [*] = ;                     if (hsod[hsok] < 0) or (hsdist < hsod[hsok]) then
       [*] = ;                     begin
