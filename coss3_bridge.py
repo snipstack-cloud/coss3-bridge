@@ -332,7 +332,8 @@ class Bridge:
 
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0,
                 res: int = -1, peace: int = -1, ai: int = -1,
-                nation: str = "", balloon: int = -1) -> bool:
+                nation: str = "", balloon: int = -1,
+                cannons: int = -1, capture: int = -1) -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
@@ -377,6 +378,15 @@ class Bridge:
             # зависит, что честно показывать модели: на открытой карте человек
             # видит базу врага и его войска.
             поля["balloon"] = int(balloon)
+        if int(cannons) >= 0:
+            # 1 = без пушек, башен и стен ни у кого (player.script:2703).
+            поля["cannons"] = int(cannons)
+        if int(capture) >= 0:
+            # 1 не захватывать крестьян, 2 ни крестьян ни центры, 3 только
+            # артиллерией. Касается нашей меры: по умолчанию крестьянина можно
+            # ЗАХВАТИТЬ вместо убийства, и из вражеского счёта он уходит так же,
+            # то есть «цель взята» могло означать захват.
+            поля["capture"] = int(capture)
         text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

@@ -148,6 +148,16 @@ def main() -> int:
                          "(_player_UpdateFOW, player.script:456). На открытой "
                          "карте человек видит базу врага и его войска, значит "
                          "и модели их показывать честно")
+    ap.add_argument("--cannons", type=int, default=-1,
+                    help="пушки: 0 как обычно, 1 БЕЗ ПУШЕК, БАШЕН И СТЕН ни у "
+                         "кого, 2 дорогие пушки (player.script:2703)")
+    ap.add_argument("--capture", type=int, default=-1,
+                    help="захват: 0 как обычно, 1 не захватывать крестьян, "
+                         "2 ни крестьян ни центры, 3 только артиллерией. С "
+                         "--cannons 1 третий вариант означает, что захвата нет "
+                         "вовсе. Важно для меры: по умолчанию крестьянина можно "
+                         "захватить вместо убийства, а из счёта врага он уходит "
+                         "одинаково")
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
@@ -183,7 +193,8 @@ def main() -> int:
         seed = a.new or 0
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
-                          balloon=a.balloon):
+                          balloon=a.balloon, cannons=a.cannons,
+                          capture=a.capture):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

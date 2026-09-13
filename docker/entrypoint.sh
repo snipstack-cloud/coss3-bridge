@@ -432,6 +432,14 @@ else
     # сравним ни с чем, и узнать об этом через час по отчёту.
     : "${COSS3_MATCH_BALLOON:=2}"
     [ -n "${COSS3_MATCH_BALLOON:-}" ] && NEWARGS="$NEWARGS --balloon ${COSS3_MATCH_BALLOON}"
+    # Без пушек, башен и стен; захват только артиллерией, которой при cannons=1
+    # нет ни у кого — то есть захвата нет вовсе. Второе важно для МЕРЫ: по
+    # умолчанию вражеского крестьянина можно захватить вместо убийства, и из
+    # его счёта он уходит одинаково, так что «цель взята» могло означать захват.
+    : "${COSS3_MATCH_CANNONS:=1}"
+    : "${COSS3_MATCH_CAPTURE:=3}"
+    [ -n "${COSS3_MATCH_CANNONS:-}" ] && NEWARGS="$NEWARGS --cannons ${COSS3_MATCH_CANNONS}"
+    [ -n "${COSS3_MATCH_CAPTURE:-}" ] && NEWARGS="$NEWARGS --capture ${COSS3_MATCH_CAPTURE}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
     else

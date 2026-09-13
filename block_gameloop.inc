@@ -46,6 +46,15 @@
       [*] = ;         // may tell the model what the enemy has: on an open map a human
       [*] = ;         // sees it too.
       [*] = ;         var brctlball  : Integer = -1;
+      [*] = ;         // additional.cannons: 1 = no cannons, towers and walls for ANYONE
+      [*] = ;         // (player.script:2703 clears bproduceenabled for mortars and guns
+      [*] = ;         // and disables the artillery upgrades).
+      [*] = ;         var brctlcann  : Integer = -1;
+      [*] = ;         // additional.capture: 1 no peasants, 2 no peasants and centres,
+      [*] = ;         // 3 artillery only. This one touches our own measure: by default a
+      [*] = ;         // peasant can be CAPTURED instead of killed, and he leaves the
+      [*] = ;         // enemy count all the same - so 'goal taken' could mean a capture.
+      [*] = ;         var brctlcapt  : Integer = -1;
       [*] = ;         if ParserLoadFromFileByHandle(hctl, brctlpath) then
       [*] = ;         begin
       [*] = ;            brctlcmd := ParserGetValueByKeyByHandle(hctl, 'cmd');
@@ -57,6 +66,10 @@
       [*] = ;            brctlai := ParserGetIntValueByKeyByHandle(hctl, 'ai');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'balloon') <> '') then
       [*] = ;            brctlball := ParserGetIntValueByKeyByHandle(hctl, 'balloon');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'cannons') <> '') then
+      [*] = ;            brctlcann := ParserGetIntValueByKeyByHandle(hctl, 'cannons');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'capture') <> '') then
+      [*] = ;            brctlcapt := ParserGetIntValueByKeyByHandle(hctl, 'capture');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
@@ -92,6 +105,10 @@
       [*] = ;            gMap.settings.additional.peacetime := brctlpeace;
       [*] = ;            if (brctlball >= 0) then
       [*] = ;            gMap.settings.additional.balloon := brctlball;
+      [*] = ;            if (brctlcann >= 0) then
+      [*] = ;            gMap.settings.additional.cannons := brctlcann;
+      [*] = ;            if (brctlcapt >= 0) then
+      [*] = ;            gMap.settings.additional.capture := brctlcapt;
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
       [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
@@ -129,6 +146,8 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'res', gMap.settings.gen.resourcestart);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'peace', gMap.settings.additional.peacetime);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'balloon', gMap.settings.additional.balloon);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'cannons', gMap.settings.additional.cannons);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'capture', gMap.settings.additional.capture);
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
       [*] = ;            GUIExecuteState('DoNewGame');
       [*] = ;         end;
