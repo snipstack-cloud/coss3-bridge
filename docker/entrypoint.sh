@@ -19,7 +19,22 @@ export WINEDLLOVERRIDES="mscoree,mshtml="
 export PYTHONUNBUFFERED=1
 
 log() { echo "[coss3 $(date +%H:%M:%S)] $*"; }
-die() { log "ОСТАНОВКА: $*"; exit 1; }
+# Остановка НЕ должна убивать контейнер. 13.09 он умирал на проверке «партия
+# так и не началась» — то есть ровно тогда, когда надо зайти и посмотреть, что
+# внутри. `docker exec` на остановленном контейнере отвечает «is not running»,
+# и причина остаётся неизвестной. Держим его стоять, как после конца прогона.
+die() {
+    log "ОСТАНОВКА: $*"
+    if [ "${COSS3_KEEP_ALIVE:-1}" = "1" ]; then
+        log "контейнер оставлен стоять — зайдите и посмотрите:"
+        log "  docker exec <имя> tail -40 ${COSS3_IO:-/io}/game.log"
+        log "  docker exec <имя> ls -la /opt/cossacks/coss3_hb.dat /opt/cossacks/coss3_eco_P*.dat"
+        log "  docker exec <имя> sh -c 'ls -lat /opt/cossacks/*.log | head'"
+        log "  COSS3_KEEP_ALIVE=0 — падать сразу, как раньше"
+        while true; do sleep 3600; done
+    fi
+    exit 1
+}
 
 : "${COSS3_GAME:=/opt/cossacks}"
 : "${COSS3_RES:=800x600}"
