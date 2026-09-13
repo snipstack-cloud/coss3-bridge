@@ -478,7 +478,12 @@
       [*] = ;               // fell, and below 500 the whole endless production stops.
       [*] = ;               if (hccmd = 'SEED') then
       [*] = ;               begin
-      [*] = ;                  var hcfid : Integer = _unit_ConvertObjSIDToID(hccid, 'field');
+      [*] = ;                  // sid must be a VARIABLE: _unit_ConvertObjSIDToID takes it as
+      [*] = ;                  // 'var sid : String' (unit.script:438), a literal does not compile.
+      [*] = ;                  // On 13.09 that killed the whole Progress tick - with it the economy
+      [*] = ;                  // of BOTH players: nothing was being built anywhere.
+      [*] = ;                  var hcfsid : String = 'field';
+      [*] = ;                  var hcfid : Integer = _unit_ConvertObjSIDToID(hccid, hcfsid);
       [*] = ;                  gTmpIntList.Clear;
       [*] = ;                  for hck := 0 to hcobjn-1 do
       [*] = ;                  begin

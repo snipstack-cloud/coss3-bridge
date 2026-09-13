@@ -224,6 +224,37 @@ def цель_блока(файл: str) -> str:
         return "../gui/menu.inc/doprogress.inc"        # интерфейсный актор
     return "units/global.inc/progress.inc"             # человеческий слот и петля
 
+# Функции движка, берущие параметр КАК VAR: туда нельзя передать литерал —
+# блок не скомпилируется, и по правилу 3b это роняет весь тик Progress вместе с
+# экономикой обоих игроков. 13.09 так встала живая партия из-за
+# _unit_ConvertObjSIDToID(cid, 'field').
+VAR_ПАРАМЕТР = {
+    "_unit_ConvertObjSIDToID": 2,      # (const cid; var sid : String)
+    "_country_GetSIDByID": 2,          # (const id; var sid : String)
+    "_unit_GetCostByID": (4, 5, 6, 7, 8, 9),
+}
+
+
+def литерал_в_var(строки: list[str]) -> list[str]:
+    """Строки, где в var-параметр движка передан литерал в кавычках."""
+    беда = []
+    for n, s in enumerate(строки, 1):
+        for имя, места in VAR_ПАРАМЕТР.items():
+            i = s.find(имя + "(")
+            if i < 0:
+                continue
+            хвост = s[i + len(имя) + 1:]
+            конец = хвост.find(")")
+            арги = [a.strip() for a in (хвост[:конец] if конец > 0 else хвост).split(",")]
+            нужные = места if isinstance(места, tuple) else (места,)
+            for м in нужные:
+                if len(арги) >= м and арги[м - 1].startswith("'"):
+                    беда.append(f"строка {n}: {имя} ждёт ПЕРЕМЕННУЮ "
+                                f"{м}-м параметром, а передан литерал "
+                                f"{арги[м - 1]}")
+    return беда
+
+
 def проверить(файл, т, б, декл=None, дом=None):
     сырое = open(файл,"rb").read()
     текст = сырое.decode("latin-1")
@@ -256,6 +287,8 @@ def проверить(файл, т, б, декл=None, дом=None):
                      ", ".join(str(н) for н in кривые[:8]) +
                      ("..." if len(кривые) > 8 else ""))
     if beg != end: плохо.append(f"баланс begin/end: {beg}/{end}")
+    for беда in литерал_в_var(строки):
+        плохо.append(беда)
     вне = область_видимости(строки)
     if вне:
         видно = ", ".join(f"{и} (строка {н})" for н, и in вне[:4])
