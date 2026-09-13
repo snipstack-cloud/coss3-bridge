@@ -2348,7 +2348,7 @@ def json_objects(text: str) -> list[dict]:
 
 
 def ask(client, model: str, prompt: str, think: bool = False,
-        retry: int = 1) -> dict:
+        retry: int = 1, max_tokens: int = 0) -> dict:
     if REPLAY:                              # --replay: модель не зовём вовсе
         return следующий_ответ()
     kw = dict(
@@ -2356,7 +2356,7 @@ def ask(client, model: str, prompt: str, think: bool = False,
         messages=[{"role": "system", "content": SYSTEM},
                   {"role": "user", "content": prompt}],
         temperature=0.4,
-        max_tokens=MAX_TOKENS,
+        max_tokens=max_tokens or MAX_TOKENS,
     )
     extra: dict = {}
     if ONLY:
@@ -3163,11 +3163,19 @@ def разбор_партии(a, client, номер: int, итог: str, дне�
         прежний = SYSTEM
         globals()["SYSTEM"] = SYSTEM_CRITIC
         try:
-            ответ = ask(client, a.model, запрос, a.think, retry=0)
+            # Разбору нужен запас: 14.09 ответ критика обрезало на первой же
+            # фразе (finish_reason=stop), и JSON не собрался. Боевому такту
+            # 1200 хватает, потому что там короткий план, а здесь — рассуждение
+            # о всей партии.
+            ответ = ask(client, a.model, запрос, a.think, retry=0,
+                        max_tokens=3000)
         finally:
             globals()["SYSTEM"] = прежний
     except Exception as e:
         print(f"        разбор не удался: {str(e)[:120]}")
+        return ""
+    if not ответ:
+        print("        разбор пуст: модель не вернула разбираемого JSON")
         return ""
     куски = [f"## Партия {номер}: {итог}"]
     for ключ, подпись in (("причина", "Причина"), ("узкое_место", "Узкое место"),
