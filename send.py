@@ -8,6 +8,7 @@
     python send.py store=3 tower=2
     python send.py center=4 ba17=6 --ticks 60
     python send.py train:peasant=40
+    python send.py balance:wood=8 balance:stone=6   # СКОЛЬКО ЛЮДЕЙ на ресурсе
     python send.py upg:food140
     python send.py --dir "C:\\Users\\LapSt\\coss3-io" --plind 1 store=3
     python send.py --attack 12               # волна из 12 бойцов, вне перемирия
@@ -31,7 +32,8 @@ import os
 import re
 import time
 
-from coss3_bridge import Bridge, ROLE, BUILDABLE, UPGRADES, build, train, upgrade, mode
+from coss3_bridge import (Bridge, ROLE, BUILDABLE, UPGRADES, RESOURCE,
+                           build, train, upgrade, mode, balance)
 
 # роль -> ключ состояния, чтобы показывать прогресс
 ROLE_KEY = {
@@ -93,8 +95,20 @@ def parse_targets(tokens: list[str]):
             cmds.append(upgrade(name))
             upgs.append(name)
             continue
+        if tok.startswith("balance:"):
+            # BALANCE на человеческом слоте — это ЧИСЛО ЛЮДЕЙ на ресурсе, и без
+            # него крестьяне просто стоят: 13.09 игрок держал mineiron=1 при
+            # 18 свободных крестьянах и нуле на добыче, дерево не росло вовсе.
+            рес, _, чис = tok[8:].partition("=")
+            if рес not in RESOURCE:
+                raise SystemExit(f"нет такого ресурса: {рес}\nдоступны: {sorted(RESOURCE)}")
+            if not чис:
+                raise SystemExit(f"нужно balance:{рес}=ЧИСЛО ЛЮДЕЙ")
+            cmds.append(balance(рес, int(чис)))
+            continue
         if "=" not in tok:
-            raise SystemExit(f"не разобрал аргумент {tok!r}; нужно роль=число или upg:имя")
+            raise SystemExit(f"не разобрал аргумент {tok!r}; нужно роль=число, "
+                             f"train:роль=число, balance:ресурс=люди или upg:имя")
         role, _, num = tok.partition("=")
         is_train = role.startswith("train:")
         role = role[6:] if is_train else role
@@ -114,7 +128,8 @@ def parse_targets(tokens: list[str]):
 
 def main() -> int:
     ap = argparse.ArgumentParser(add_help=True)
-    ap.add_argument("targets", nargs="*", help="роль=число, train:роль=число, upg:имя")
+    ap.add_argument("targets", nargs="*",
+                    help="роль=число, train:роль=число, balance:ресурс=люди, upg:имя")
     ap.add_argument("--dir", default=os.path.expandvars(os.path.expanduser("~/coss3-io")))
     ap.add_argument("--plind", type=int, default=None)
     ap.add_argument("--ticks", type=int, default=40, help="сколько тиков удерживать цель")
