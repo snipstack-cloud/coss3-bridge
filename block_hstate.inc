@@ -219,6 +219,90 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
+      [*] = ;         // --- ore deposits: what a player sees on the map ---------------------
+      [*] = ;         // The model asked for this itself (questions10, 1:46): 'is there an iron
+      [*] = ;         // deposit within 26 of my town centre, and on which side?'. Until now the
+      [*] = ;         // human slot reported only how many mines were BUILT, never where the
+      [*] = ;         // deposits are - so BUILD minegold was a blind guess, and the bridge could
+      [*] = ;         // only answer NO PLACE afterwards.
+      [*] = ;         //
+      [*] = ;         // _ai_FillOreList (ai.script:220) does not depend on the AI at all: it walks
+      [*] = ;         // the environment player's objects and keeps gc_baseid_res of gold, iron and
+      [*] = ;         // coal. It is called for bai only (miscext2.script:4419), so on the human
+      [*] = ;         // slot the list stays empty - we fill it ourselves, ONCE: deposits do not
+      [*] = ;         // appear or move. It also keeps only VISIBLE ones, which is exactly fair:
+      [*] = ;         // under fog the model learns no more than the human has scouted.
+      [*] = ;         if (gPlayer[plind].aidata.orelist.GetCount = 0) then
+      [*] = ;         _ai_FillOreList(plind);
+      [*] = ;         var hsod : array [0..2] of Integer;      // distance to nearest FREE deposit
+      [*] = ;         var hson : array [0..2] of Integer;      // how many free within reach (26)
+      [*] = ;         var hsdx : array [0..2] of Float;
+      [*] = ;         var hsdz : array [0..2] of Float;
+      [*] = ;         var hsoi : Integer;
+      [*] = ;         for hsoi := 0 to 2 do
+      [*] = ;         hsod[hsoi] := -1;
+      [*] = ;         for hsoi := 0 to gPlayer[plind].aidata.orelist.GetCount-1 do
+      [*] = ;         begin
+      [*] = ;            var hsoh : Integer = gPlayer[plind].aidata.orelist.Get(hsoi);
+      [*] = ;            var hsopr : Pointer = _res_GetTRes(hsoh);
+      [*] = ;            if (hsopr<>nil) then
+      [*] = ;            begin
+      [*] = ;               var hsok : Integer = -1;
+      [*] = ;               if (TRes(hsopr).itype = gc_resource_type_gold) then hsok := 0;
+      [*] = ;               if (TRes(hsopr).itype = gc_resource_type_iron) then hsok := 1;
+      [*] = ;               if (TRes(hsopr).itype = gc_resource_type_coal) then hsok := 2;
+      [*] = ;               if (hsok >= 0) then
+      [*] = ;               begin
+      [*] = ;                  var hsox : Float = GetGameObjectPositionXByHandle(hsoh);
+      [*] = ;                  var hsoz : Float = GetGameObjectPositionZByHandle(hsoh);
+      [*] = ;                  // Taken? A building standing ON the deposit means a mine is there.
+      [*] = ;                  // Same test the game itself uses in _ai_GetClosestOrePlaceWithRes.
+      [*] = ;                  gIntegerList.Clear;
+      [*] = ;                  _misc_MakeListObjectsInRadius(hsox, hsoz, 1, False,
+      [*] = ;                       (1 shl gc_obj_material_building), 1, False, gIntegerList);
+      [*] = ;                  var hsfree : Boolean = True;
+      [*] = ;                  var hsoj : Integer;
+      [*] = ;                  for hsoj := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hsbh : Integer = gIntegerList.Get(hsoj);
+      [*] = ;                     if (VectorDistance(hsox, 0, hsoz, GetGameObjectPositionXByHandle(hsbh),
+      [*] = ;                          0, GetGameObjectPositionZByHandle(hsbh)) < gc_epsilon+0.5) then
+      [*] = ;                     hsfree := False;
+      [*] = ;                  end;
+      [*] = ;                  if (hsfree) then
+      [*] = ;                  begin
+      [*] = ;                     var hsdist : Integer = Round(VectorDistance(hsox, 0, hsoz, hscx, 0, hscz));
+      [*] = ;                     if (hsdist <= 26) then
+      [*] = ;                     hson[hsok] := hson[hsok] + 1;
+      [*] = ;                     if (hsod[hsok] < 0) or (hsdist < hsod[hsok]) then
+      [*] = ;                     begin
+      [*] = ;                        hsod[hsok] := hsdist;
+      [*] = ;                        hsdx[hsok] := hsox - hscx;
+      [*] = ;                        hsdz[hsok] := hsoz - hscz;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         // Side as a word: a human reads the minimap, not coordinates. North is -Z.
+      [*] = ;         var hsname : array [0..2] of String;
+      [*] = ;         hsname[0] := 'gold';
+      [*] = ;         hsname[1] := 'iron';
+      [*] = ;         hsname[2] := 'coal';
+      [*] = ;         for hsoi := 0 to 2 do
+      [*] = ;         begin
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ore_' + hsname[hsoi] + '_dist', hsod[hsoi]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ore_' + hsname[hsoi] + '_near', hson[hsoi]);
+      [*] = ;            var hsside : String = '';
+      [*] = ;            if (hsod[hsoi] >= 0) then
+      [*] = ;            begin
+      [*] = ;               if (hsdz[hsoi] < -0.5*Abs(hsdx[hsoi])) then hsside := 'N';
+      [*] = ;               if (hsdz[hsoi] >  0.5*Abs(hsdx[hsoi])) then hsside := 'S';
+      [*] = ;               if (hsdx[hsoi] >  0.5*Abs(hsdz[hsoi])) then hsside := hsside + 'E';
+      [*] = ;               if (hsdx[hsoi] < -0.5*Abs(hsdz[hsoi])) then hsside := hsside + 'W';
+      [*] = ;            end;
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ore_' + hsname[hsoi] + '_side', hsside);
+      [*] = ;         end;
       [*] = ;         // Real prices, straight from the engine. On the AI side this was the one
       [*] = ;         // thing we could never read, and the model spent whole episodes guessing
       [*] = ;         // which resource blocked a hire.

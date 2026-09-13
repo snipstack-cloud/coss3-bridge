@@ -1762,6 +1762,28 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         else:
             lines.append("  волны: НИ ОДНОЙ. Никто никуда не идёт, пока ты не "
                          "отдашь ATTACK")
+    # Залежи. Модель сама попросила это в questions10 (1:46): «есть ли залежь
+    # железа в пределах 26 от ратуши и с какой стороны?». До сих пор состояние
+    # говорило только сколько шахт ПОСТРОЕНО, и BUILD minegold был гаданием.
+    _зал = []
+    for _к, _имя in (("gold", "золото"), ("iron", "железо"), ("coal", "уголь")):
+        _d = st.get(f"ore_{_к}_dist")
+        if _d is None:
+            continue
+        _d = _чис(_d)
+        _n = _чис(st.get(f"ore_{_к}_near"))
+        _s = str(st.get(f"ore_{_к}_side") or "").strip()
+        if _d < 0:
+            _зал.append(f"{_имя} — свободных не видно")
+        elif _n > 0:
+            _зал.append(f"{_имя} — {_n} в пределах 26 (ближайшая {_d}"
+                        + (f", {_s}" if _s else "") + ")")
+        else:
+            _зал.append(f"{_имя} — ближе 26 НЕТ, ближайшая свободная в {_d}"
+                        + (f" на {_s}" if _s else "")
+                        + ": шахту там не поставить")
+    if _зал:
+        lines.append("  свободные залежи: " + "; ".join(_зал))
     # ЧЕСТНОСТЬ: не давать модели того, чего не видит человек.
     #
     # Число крестьян у противника мост знает точно и каждый такт — сквозь туман
@@ -2902,6 +2924,10 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "mil_inf", "mil_shooters", "my_freewar", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
                         "wave_sent",
+                        "ore_gold_dist", "ore_gold_near", "ore_gold_side",
+                        "ore_iron_dist", "ore_iron_near", "ore_iron_side",
+                        "ore_coal_dist", "ore_coal_near", "ore_coal_side",
+                        "map_open",
                         "can_pea", "can_inf", "famine", "en_near_dist")
                         if st.get(k) is not None}
                     _снимок.update({k: v for k, v in st.items()
