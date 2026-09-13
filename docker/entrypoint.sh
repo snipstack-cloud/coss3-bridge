@@ -12,6 +12,11 @@ set -euo pipefail
 # Wine не должен спрашивать про Mono и Gecko: диалог уходит на виртуальный
 # экран, нажимать его некому, и контейнер висит молча. Игре они не нужны.
 export WINEDLLOVERRIDES="mscoree,mshtml="
+# Python буферизует вывод, когда он идёт не в терминал, а в `docker logs`:
+# строки копятся по нескольку килобайт и появляются пачками. Для наблюдателя
+# это неотличимо от зависания — 13.09 контейнер выглядел мёртвым, пока модель
+# спокойно играла. Молчание не имеет права быть неотличимым от бездействия.
+export PYTHONUNBUFFERED=1
 
 log() { echo "[coss3 $(date +%H:%M:%S)] $*"; }
 die() { log "ОСТАНОВКА: $*"; exit 1; }
@@ -490,7 +495,9 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
     # цели, и это НЕ ошибка. С `set -e` такой код обрывал бы скрипт до разбора.
     set +e
     # shellcheck disable=SC2086
-    python3 llm_policy.py --human \
+    # -u к тому же PYTHONUNBUFFERED: переменную окружения легко потерять при
+    # ручном запуске, а ключ виден прямо в команде.
+    python3 -u llm_policy.py --human \
         --dir "$COSS3_GAME" \
         --hints "$COSS3_HINTS" \
         --model "$COSS3_MODEL" \
