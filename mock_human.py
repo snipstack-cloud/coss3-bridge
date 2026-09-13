@@ -320,12 +320,16 @@ def пульс_интерфейса(d: str, gt: int, исход: str) -> None:
     os.replace(врем, os.path.join(d, "coss3_gui.dat"))
 
 
-def новая_партия(d: str, gt: int, исход: str) -> bool:
-    """Ждёт NEW на замершей партии и отвечает так же, как block_endgame.
+def новая_партия(d: str, gt: int, исход: str, живая: bool = False) -> bool:
+    """Ждёт NEW и отвечает так же, как блоки в игре.
 
     Смысл: в игре после поражения блок в Progress уже не работает, и команду
     берёт интерфейс. Мок обязан вести себя так же, иначе петля эпизодов
     проверяется только на Windows — то есть не проверяется.
+
+    `живая=True` — партия ещё идёт: тогда NEW берёт блок в Progress и отвечает
+    `newgame_called`, как `run_episodes.Episode.start` и различает. Так бывает
+    при обрыве учебным отрезком (--stop-at), когда до конца партии далеко.
     """
     ctl = os.path.join(d, "coss3_ctl.dat")
     if not os.path.exists(ctl):
@@ -337,8 +341,12 @@ def новая_партия(d: str, gt: int, исход: str) -> bool:
         если = строка.split("=", 1)
         if len(если) == 2 and если[0].strip() == "cmd":
             cmd = если[1].strip()
-    готово = "restarted_after_end" if cmd == "NEW" else "ping"
-    тело = (f"   cmd = {cmd}\n   from = endgame\n   victory = {исход}\n"
+    if cmd == "NEW":
+        готово = "newgame_called" if живая else "restarted_after_end"
+    else:
+        готово = "ping"
+    откуда = "progress" if живая else "endgame"
+    тело = (f"   cmd = {cmd}\n   from = {откуда}\n   victory = {исход}\n"
             f"   gametime = {gt}\n   done = {готово}\n")
     врем = os.path.join(d, ".tmp_ack")
     with open(врем, "wb") as f:
@@ -376,6 +384,13 @@ def main() -> int:
         м.состояние()
         исход = м.исход()
         пульс_интерфейса(a.dir, int(м.t), исход)
+        if исход == "none" and новая_партия(a.dir, int(м.t), "none", живая=True):
+            # NEW на ИДУЩЕЙ партии: так мост обрывает её учебным отрезком.
+            партия += 1
+            м = Мир(a.dir, a.plind)
+            print(f"партия {партия}: начал заново по NEW из живой игры", flush=True)
+            time.sleep(a.tick)
+            continue
         if исход != "none":
             # Игра здесь встаёт: victorystate<>none -> SetProgressingPauseMode.
             # Мок замирает так же — состояние БОЛЬШЕ НЕ ПИШЕТСЯ. Если бы он
