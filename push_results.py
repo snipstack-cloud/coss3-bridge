@@ -42,8 +42,8 @@ for _s in (sys.stdout, sys.stderr):
 ЦЕЛИКОМ = ["отчёт.md", "coss3_bot.jsonl", "match.dat", "bridge.sha",
            "опыт.json", "policy.rc", "ack_last.dat"]
 # Что отправляем хвостом: строк и сколько.
-ХВОСТОМ = {"coss3_llm.log": 400, "game.log": 300, "install.log": 200,
-           "report.txt": 800}
+ХВОСТОМ = {"policy.log": 400, "coss3_llm.log": 400, "game.log": 300,
+           "install.log": 200, "report.txt": 800}
 
 # Похожее на ключ. Список нарочно шире, чем «наши» ключи: в логи попадает то,
 # чего туда не клали, и обыск должен ловить чужое тоже.

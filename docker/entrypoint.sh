@@ -543,7 +543,7 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
         --ban market,academi \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
         --log "$COSS3_IO/coss3_llm.log" \
-        ${COSS3_EXTRA_FLAGS:-}
+        ${COSS3_EXTRA_FLAGS:-} > >(tee -a "$COSS3_IO/policy.log") 2>&1
     rc=$?
     set -e
     postmortem "$rc"
