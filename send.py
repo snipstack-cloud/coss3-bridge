@@ -297,7 +297,12 @@ def main() -> int:
         места = (f"  мест={ц('my_farmused')}/{ц('my_farm')}"
                  if st.get("my_farm") is not None else "")
         print(f"  t={st.get('gametime'):>5}s  {progress(st)}  "
-              f"в стройке={st.get('build_slots_used')}  "
+              # build_slots_used пишет блок КОМПЬЮТЕРНОГО слота; на человеческом
+              # его нет, и строка всю дорогу показывала None при идущей стройке.
+              # Человеческий блок кладёт сюда wip («store/8,house/13») и
+              # building_now — берём их, а прежнее поле оставляем запасным.
+              f"в стройке={st.get('wip') or st.get('build_slots_used') or '—'}"
+              f" ({st.get('building_now', '?')})  "
               f"еда={st.get('food')}  дерево={st.get('wood')}  "
               f"камень={st.get('stone')}  "
               f"на еде/дер/кам={ц('on_food')}/{ц('on_wood')}/{ц('on_stone')} "
