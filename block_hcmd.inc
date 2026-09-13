@@ -129,6 +129,54 @@
       [*] = ;                     var hcang : Integer;
       [*] = ;                     var hcfx, hcfz : Float;
       [*] = ;                     var hcfound : Boolean = False;
+      [*] = ;                     // A MINE GOES ON A DEPOSIT, so guessing by rings is the wrong tool: twelve
+      [*] = ;                     // probes per ring with step 2 stand about nine units apart at radius 17, and
+      [*] = ;                     // a deposit slips between them. Since 13.09 the deposit list is filled on the
+      [*] = ;                     // human slot too (block_hstate calls _ai_FillOreList), so take the nearest
+      [*] = ;                     // FREE one of the right kind and put the dummy straight on it. Rings below
+      [*] = ;                     // stay as the fallback for everything else - and for a mine, if this misses.
+      [*] = ;                     var hcuse : Integer = gObjProp[hccid][hcid].usage;
+      [*] = ;                     var hcores : Integer = -1;
+      [*] = ;                     if (gObjProp[hccid][hcid].airole = gc_ai_unit_minegold) then hcores := gc_resource_type_gold;
+      [*] = ;                     if (gObjProp[hccid][hcid].airole = gc_ai_unit_mineiron) then hcores := gc_resource_type_iron;
+      [*] = ;                     if (gObjProp[hccid][hcid].airole = gc_ai_unit_minecoal) then hcores := gc_resource_type_coal;
+      [*] = ;                     if (hcores >= 0) then
+      [*] = ;                     begin
+      [*] = ;                        if (gPlayer[plind].aidata.orelist.GetCount = 0) then
+      [*] = ;                        _ai_FillOreList(plind);
+      [*] = ;                        var hcbest : Float = 1000000;
+      [*] = ;                        var hcoi : Integer;
+      [*] = ;                        for hcoi := 0 to gPlayer[plind].aidata.orelist.GetCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hcoh : Integer = gPlayer[plind].aidata.orelist.Get(hcoi);
+      [*] = ;                           var hcopr : Pointer = _res_GetTRes(hcoh);
+      [*] = ;                           if (hcopr<>nil) then
+      [*] = ;                           if (TRes(hcopr).itype = hcores) then
+      [*] = ;                           begin
+      [*] = ;                              var hcox : Float = GetGameObjectPositionXByHandle(hcoh);
+      [*] = ;                              var hcoz : Float = GetGameObjectPositionZByHandle(hcoh);
+      [*] = ;                              var hcod : Float = VectorDistance(hcox, 0, hcoz, hcx, 0, hcz);
+      [*] = ;                              if (hcod < hcbest) then
+      [*] = ;                              begin
+      [*] = ;                                 var hcdum2 : Integer = _player_CreateConstructionDummyBySID(hcmisc, hccid, hcsid, hcox, hcoz);
+      [*] = ;                                 if (hcdum2 <> 0) then
+      [*] = ;                                 begin
+      [*] = ;                                    if (_misc_CanPlaceBuilding(hcdum2, plind, hcuse, hcox, hcoz, 0, 0.26, 0, -1, True)) then
+      [*] = ;                                    begin
+      [*] = ;                                       hcbest := hcod;
+      [*] = ;                                       hcfound := True;
+      [*] = ;                                       hcfx := hcox;
+      [*] = ;                                       hcfz := hcoz;
+      [*] = ;                                    end;
+      [*] = ;                                    GameObjectDestroyByHandle(hcdum2);
+      [*] = ;                                 end;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hcfound) then
+      [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' on a deposit at ' + FloatToStr(hcfx) +
+      [*] = ;                            ',' + FloatToStr(hcfz) + ' (' + FloatToStr(hcbest) + ' from base)');
+      [*] = ;                     end;
       [*] = ;                     while (hcrad < 26.0) and (not hcfound) do
       [*] = ;                     begin
       [*] = ;                        for hcang := 0 to 11 do
