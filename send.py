@@ -9,6 +9,7 @@
     python send.py center=4 ba17=6 --ticks 60
     python send.py train:peasant=40
     python send.py balance:wood=8 balance:stone=6   # СКОЛЬКО ЛЮДЕЙ на ресурсе
+    python send.py seed                            # засеять поля у мельниц
     python send.py upg:food140
     python send.py --dir "C:\\Users\\LapSt\\coss3-io" --plind 1 store=3
     python send.py --attack 12               # волна из 12 бойцов, вне перемирия
@@ -33,7 +34,7 @@ import re
 import time
 
 from coss3_bridge import (Bridge, ROLE, BUILDABLE, UPGRADES, RESOURCE,
-                           build, train, upgrade, mode, balance)
+                           build, train, upgrade, mode, balance, seed)
 
 # роль -> ключ состояния, чтобы показывать прогресс
 ROLE_KEY = {
@@ -94,6 +95,9 @@ def parse_targets(tokens: list[str]):
                 raise SystemExit(f"нет такого апгрейда: {name}\nдоступны: {sorted(UPGRADES)}")
             cmds.append(upgrade(name))
             upgs.append(name)
+            continue
+        if tok == "seed":
+            cmds.append(seed())
             continue
         if tok.startswith("balance:"):
             # BALANCE на человеческом слоте — это ЧИСЛО ЛЮДЕЙ на ресурсе, и без

@@ -464,6 +464,42 @@
       [*] = ;                         IntToStr(gTmpIntList.GetCount) + ' peasants inside, had ' + IntToStr(hminside));
       [*] = ;                  end;
       [*] = ;               end;
+      [*] = ;               // SEED: sow the fields around every mill we have.
+      [*] = ;               //
+      [*] = ;               // Food in this game is not a deposit lying about - it GROWS on fields, and
+      [*] = ;               // somebody has to sow them. The native economy AI does it itself
+      [*] = ;               // (_ai_DoSeedWheat, progresseconomicai.inc:4015), but on the human slot
+      [*] = ;               // nobody does, and nobody did since the slot appeared: every trace shows
+      [*] = ;               // 'GATHER res0 - no deposit within 40 of base' and food that only falls.
+      [*] = ;               // That is where the 500-food production stop came from, game after game.
+      [*] = ;               //
+      [*] = ;               // _unit_DoSeedWheat lays a 7x7 field around the building (unit.script:6470).
+      [*] = ;               // For a human this is the mill's own button, so the bridge takes nothing the
+      [*] = ;               // player does not have.
+      [*] = ;               if (hccmd = 'SEED') then
+      [*] = ;               begin
+      [*] = ;                  var hcsown : Integer;
+      [*] = ;                  for hck := 0 to hcobjn-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hcmh : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                     var hcmp : Pointer = _unit_GetTObj(hcmh);
+      [*] = ;                     if (hcmp<>nil) then
+      [*] = ;                     if (gObjProp[TObj(hcmp).cid][TObj(hcmp).id].airole = gc_ai_unit_mill) then
+      [*] = ;                     if (TObj(hcmp).bbuilt) then
+      [*] = ;                     begin
+      [*] = ;                        _unit_DoSeedWheat(hcmh, True);
+      [*] = ;                        hcsown := hcsown + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hcsown = 0) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why',
+      [*] = ;                          'SEED: no mill is built yet - fields are sown around a mill');
+      [*] = ;                     Log('bridge-human: SEED - no mill built');
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  Log('bridge-human: SEED sown around ' + IntToStr(hcsown) + ' mills');
+      [*] = ;               end;
       [*] = ;               if (hccmd = 'UPGRADE') then
       [*] = ;               begin
       [*] = ;                  // Upgrades without a single _ai_ call. The sid of an upgrade is

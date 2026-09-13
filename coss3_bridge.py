@@ -169,6 +169,21 @@ def balance(res: str, value: int) -> Command:
     return Command("BALANCE", RESOURCE[res], value)
 
 
+def seed() -> Command:
+    """SEED — засеять поля вокруг всех своих мельниц.
+
+    Еда в этой игре не лежит залежью, а РАСТЁТ на полях, и посеять их должен
+    кто-то. Нативный экономический ИИ делает это сам (_ai_DoSeedWheat,
+    progresseconomicai.inc:4015); на человеческом слоте не делал никто, и с
+    самого его появления еда только проедалась: в каждой трассе стоит
+    «GATHER res0 - no deposit within 40 of base». Отсюда же брался и вечный
+    стоп производства на пороге 500 еды.
+
+    У человека это кнопка на мельнице, так что мост не берёт лишнего.
+    """
+    return Command("SEED")
+
+
 def builders(cap: int) -> Command:
     """BUILDERS — потолок крестьян на ОДНУ стройку.
 
