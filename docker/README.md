@@ -141,7 +141,13 @@ docker save coss3:1 -o ~/coss3.tar
 
 # на Windows, в Ubuntu (WSL)
 docker load -i /mnt/c/Users/<вы>/coss3.tar
-cd ~ && mkdir -p io profile
+cd ~ && mkdir -p io
+# Профиль ТОЛЬКО под root: его писала игра из контейнера (он работает от root),
+# файлы принадлежат root, и копия от обычного пользователя выходит неполной.
+# Пустой или битый том профиля = игра стоит на диалоге создания профиля, до
+# главного меню не доходит, пульса нет.
+sudo mkdir -p ~/profile
+sudo cp -a ~/profile-РАБОЧАЯ/. ~/profile/
 docker run -d --name coss3 --env-file coss3.env \
     -e COSS3_BRIDGE_GIT=git@github.com:snipstack-cloud/coss3-bridge.git \
     -v "$PWD/io:/io" -v "$PWD/profile:/profile" \

@@ -109,10 +109,18 @@
 
 ```bash
 git -C ~/coss3-git pull
-sudo rm -rf ~/profile-barracks; mkdir -p ~/io-barracks ~/profile-barracks
-cp -a ~/profile/. ~/profile-barracks/
+sudo rm -rf ~/profile-barracks
+sudo mkdir -p ~/io-barracks ~/profile-barracks
+sudo cp -a ~/profile/. ~/profile-barracks/     # ИМЕННО под root, см. ниже
 # и docker run с COSS3_EXPERIMENT=barracks2, см. docker/README.md
 ```
+
+**Профиль копировать только под root.** Его писала игра из контейнера, который
+работает от root, и файлы принадлежат root: копия от обычного пользователя
+выходит неполной. Дальше происходит не отказ, а худшее — игра встаёт на диалоге
+создания профиля и до главного меню НЕ доходит, а пульс идёт только оттуда.
+Копия молча стоит полчаса и умирает по таймауту. Здесь до 13.09 стояло
+`cp -a` без `sudo` — это было неверно.
 
 ### Дальше, по убыванию пользы
 
