@@ -119,6 +119,23 @@
       [*] = ;                     if (hpo<>nil) and (TObj(hpo).cid = hccid) and (TObj(hpo).id = hcid) then
       [*] = ;                     hchave := hchave + 1;
       [*] = ;                  end;
+      [*] = ;                  // Not enough for it? SAY SO, with the price. Until 13.09 this branch was
+      [*] = ;                  // simply not taken and the bridge stayed silent: from the Python side that
+      [*] = ;                  // is indistinguishable from 'the command never arrived'. The player asked
+      [*] = ;                  // for mineiron=1 with 170 wood and 50 stone and saw nothing at all.
+      [*] = ;                  // The price comes from the engine, so this also answers what the model could
+      [*] = ;                  // never look up: what a building costs.
+      [*] = ;                  if (hchave < hca2) and (not _unit_CanApplyCostByID(hccid, hcid, plind)) then
+      [*] = ;                  begin
+      [*] = ;                     var hcpf, hcpw, hcps, hcpg, hcpi, hcpc : Integer;
+      [*] = ;                     _unit_GetCostByID(hccid, hcid, plind, hcpf, hcpw, hcps, hcpg, hcpi, hcpc);
+      [*] = ;                     var hcprice : String = 'food=' + IntToStr(hcpf) + ' wood=' + IntToStr(hcpw) +
+      [*] = ;                          ' stone=' + IntToStr(hcps) + ' gold=' + IntToStr(hcpg) +
+      [*] = ;                          ' iron=' + IntToStr(hcpi) + ' coal=' + IntToStr(hcpc);
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BUILD ' + hcsid +
+      [*] = ;                          ': NOT ENOUGH RESOURCES. It costs ' + hcprice);
+      [*] = ;                     Log('bridge-human: BUILD ' + hcsid + ' - not enough resources, costs ' + hcprice);
+      [*] = ;                  end;
       [*] = ;                  if (hchave < hca2) and (_unit_CanApplyCostByID(hccid, hcid, plind)) then
       [*] = ;                  begin
       [*] = ;                     // Pick a spot: rings around the base, first valid one wins.
