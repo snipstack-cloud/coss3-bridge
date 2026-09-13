@@ -219,6 +219,52 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
+      [*] = ;         // --- what can be paid for RIGHT NOW -----------------------------------
+      [*] = ;         //
+      [*] = ;         // The model used to find this out by spending a tick: order it, get nothing,
+      [*] = ;         // guess which resource was short. Now the bridge asks the engine the same
+      [*] = ;         // question the interface asks - _unit_CanApplyCostByID - and answers before
+      [*] = ;         // the order. A human sees it as a greyed-out button.
+      [*] = ;         var hsroles : array [0..8] of Integer;
+      [*] = ;         var hsrname : array [0..8] of String;
+      [*] = ;         hsroles[0] := gc_ai_unit_center;    hsrname[0] := 'center';
+      [*] = ;         hsroles[1] := gc_ai_unit_mill;      hsrname[1] := 'mill';
+      [*] = ;         hsroles[2] := gc_ai_unit_smith;     hsrname[2] := 'smith';
+      [*] = ;         hsroles[3] := gc_ai_unit_ba17;      hsrname[3] := 'ba17';
+      [*] = ;         hsroles[4] := gc_ai_unit_store;     hsrname[4] := 'store';
+      [*] = ;         hsroles[5] := gc_ai_unit_house;     hsrname[5] := 'house';
+      [*] = ;         hsroles[6] := gc_ai_unit_minegold;  hsrname[6] := 'minegold';
+      [*] = ;         hsroles[7] := gc_ai_unit_mineiron;  hsrname[7] := 'mineiron';
+      [*] = ;         hsroles[8] := gc_ai_unit_minecoal;  hsrname[8] := 'minecoal';
+      [*] = ;         var hscan : String = '';
+      [*] = ;         var hscant : String = '';
+      [*] = ;         var hsri : Integer;
+      [*] = ;         for hsri := 0 to 8 do
+      [*] = ;         begin
+      [*] = ;            var hsrid : Integer = -1;
+      [*] = ;            var hsrj : Integer;
+      [*] = ;            for hsrj := 0 to gc_country_maxmembers-1 do
+      [*] = ;            if (hsrid < 0) and (gObjProp[hscid][hsrj].airole = hsroles[hsri]) then
+      [*] = ;            hsrid := hsrj;
+      [*] = ;            if (hsrid >= 0) then
+      [*] = ;            begin
+      [*] = ;               if (_unit_CanApplyCostByID(hscid, hsrid, plind)) then
+      [*] = ;               hscan := hscan + hsrname[hsri] + ' '
+      [*] = ;               else
+      [*] = ;               hscant := hscant + hsrname[hsri] + ' ';
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         // Units too: the peasant and the 17th-century infantry are the two the bot
+      [*] = ;         // actually hires. For them the 500-food stop matters as much as the price.
+      [*] = ;         if (hspeaid >= 0) then
+      [*] = ;         begin
+      [*] = ;            if (_unit_CanApplyCostByID(hscid, hspeaid, plind)) then
+      [*] = ;            hscan := hscan + 'peasant '
+      [*] = ;            else
+      [*] = ;            hscant := hscant + 'peasant ';
+      [*] = ;         end;
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'can_now', hscan);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'cant_now', hscant);
       [*] = ;         // --- ore deposits: what a player sees on the map ---------------------
       [*] = ;         // The model asked for this itself (questions10, 1:46): 'is there an iron
       [*] = ;         // deposit within 26 of my town centre, and on which side?'. Until now the
