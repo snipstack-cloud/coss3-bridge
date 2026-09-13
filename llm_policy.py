@@ -1442,6 +1442,17 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
                          f"нет в списке, скажи об этом в 'stuck'")
         lines.append("  Имя копируй отсюда БУКВА В БУКВУ. Другого игра не примет: "
                      "имена вроде 'food140' или 'reaper' не существуют.")
+    # Что стало с ПОСЛАННОЙ волной. До 13.09 трасса знала, сколько бойцов ушло,
+    # и ничего о том, дошли ли они: семь прогонов слали по 20-30 и не убили ни
+    # одного крестьянина врага, а отличить «погибли по дороге» от «стоят на
+    # месте» было нечем.
+    _ж = st.get("wave_alive")
+    if _ж is not None:
+        _ж = int(float(_ж or 0))
+        if _ж:
+            lines.append(f"  в последней волне ещё живы: {_ж}")
+        elif волны:
+            lines.append("  от последней волны не осталось никого")
     if not int(float(st.get("centers", 0) or 0)):
         lines.append("  ратуши НЕТ: без неё не построить ничего, кроме мельницы,"
                      " и не нанять крестьян")
@@ -2316,6 +2327,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "my_stores", "mines_iron", "mines_gold", "mines_coal",
                         "mil_inf", "mil_shooters", "my_freewar", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
+                        "wave_alive",
                         "can_pea", "can_inf", "famine", "en_near_dist")
                         if st.get(k) is not None}
                     _снимок.update({k: v for k, v in st.items()

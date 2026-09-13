@@ -160,6 +160,26 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         // WAVE_ALIVE: how many of the wave we sent are still alive.
+      [*] = ;         //
+      [*] = ;         // The gap this closes: the trace knew how many we SENT and nothing
+      [*] = ;         // about what became of them. Seven runs on 13.09 sent waves of 20-30
+      [*] = ;         // and killed not one enemy peasant, and there was no way to tell
+      [*] = ;         // whether they died on the way, at the wall, or stood still.
+      [*] = ;         //
+      [*] = ;         // Taken from the named group the command block puts the wave into
+      [*] = ;         // ('coss3_bridge_wave', block_hcmd), not from order types: the wave
+      [*] = ;         // is sent by _player_SetGroupPosition in attack move mode, and what
+      [*] = ;         // per-unit order that leaves is not ours to assume.
+      [*] = ;         //
+      [*] = ;         // OUR OWN units only. A human sees his whole army whenever he looks;
+      [*] = ;         // anything about the enemy would be sight the player does not have -
+      [*] = ;         // the fog of war lives on the drawing side, and scripts cannot ask
+      [*] = ;         // what the player can see.
+      [*] = ;         var hswg : String = 'coss3_bridge_wave';
+      [*] = ;         var hswave : Integer = _misc_GetOrCreateGroupByName(hsph, hswg);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wave_alive',
+      [*] = ;                                        GetGroupCountGameObjectsByHandle(hswave));
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'objects',   hscount);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'peasants',  hspea);
       [*] = ;         // No town centre yet means no position, and en_near_dist is measured

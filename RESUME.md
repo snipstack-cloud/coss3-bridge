@@ -153,7 +153,7 @@ docker logs -f coss3
 
 ### Контрольные числа установки
 
-Блоки: `block_human.inc` 72, `block_hstate.inc` **311**, `block_hcmd.inc` 594,
+Блоки: `block_human.inc` 72, `block_hstate.inc` **331**, `block_hcmd.inc` 594,
 `block_gameloop.inc` 126, `block_endgame.inc` 109.
 
 **Патчится теперь ДВА файла, а не один.** `progress.inc` — игровая сторона,
@@ -161,7 +161,7 @@ docker logs -f coss3
 конец партии движок встречает паузой симуляции, и всё, что стоит в `Progress`,
 замирает вместе с ней.
 
-Измерено: чистый `progress.inc` 188 → **1222** после установки; чистый
+Измерено: чистый `progress.inc` 188 → **1242** после установки; чистый
 `doprogress.inc` 1743 → **1852**.
 
 **Числа у Steam и GOG ОДИНАКОВЫЕ.** Раньше здесь стояло, что стимовский
