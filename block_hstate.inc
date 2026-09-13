@@ -269,100 +269,27 @@
       [*] = ;            if (StrLength(hswhy) > 0) then
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'last_fail', hswhy);
       [*] = ;         end;
-      [*] = ;         // Upgrades this nation actually has, AND WHAT EACH ONE DOES.
+      [*] = ;         // Upgrades THIS NATION actually has. The list in SYSTEM was the same
+      [*] = ;         // for every nation, and that is a lie: the sets differ. On 13.09 the
+      [*] = ;         // model ordered 'reaper' with a mill standing and got back
+      [*] = ;         // 'no upgrade with this name for our nation' - a tick spent on
+      [*] = ;         // something that does not exist.
       [*] = ;         //
-      [*] = ;         // 13.09: the first version of this exported a SUFFIX, on the theory
-      [*] = ;         // that an upgrade id is 'nation prefix + base name' and the command
-      [*] = ;         // block matches the tail. Both halves of that were wrong, and the
-      [*] = ;         // cost was a whole match: the model asked for 'food140' fourteen
-      [*] = ;         // times and 'reaper' six, and every one came back
-      [*] = ;         // 'no upgrade with this name for our nation'.
-      [*] = ;         //
-      [*] = ;         // What ids really are: commonName + place + '.' + number, see
-      [*] = ;         // country.script:3452. For a European nation the +140% food upgrade
-      [*] = ;         // is 'eurmil.1'. And commonName is not the nation at all - it is the
-      [*] = ;         // GROUP ('eur', 'rus', 'tur', 'mis'), so cutting three letters was
-      [*] = ;         // guesswork on top of guesswork. We export the id WHOLE: the command
-      [*] = ;         // block compares tails, and a whole id matches itself.
-      [*] = ;         //
-      [*] = ;         // A bare 'eurmil.1' means nothing to anyone, so each id carries what
-      [*] = ;         // it does: 'eurmil.1=food+140'. The model picks by meaning, and the
-      [*] = ;         // name it copies back is one the game will accept.
+      [*] = ;         // We export SUFFIXES because that is what the UPGRADE command takes:
+      [*] = ;         // an upgrade sid is nation prefix plus base name ('engmilfood140'),
+      [*] = ;         // and the command block matches by suffix. The first three letters
+      [*] = ;         // are the nation, so they are cut off. Comma separated, ready to be
+      [*] = ;         // shown to the model as is.
       [*] = ;         var hsupg : String;
-      [*] = ;         var hsug : Integer;
-      [*] = ;         for hsug := 0 to gc_country_maxupgradecount-1 do
+      [*] = ;         var hsui : Integer;
+      [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
-      [*] = ;            var husid : String = gCountry[hscid].upgrade[hsug].id;
-      [*] = ;            var hutype : Integer = gCountry[hscid].upgrade[hsug].itype;
-      [*] = ;            if (StrLength(husid) > 0) and (husid <> 'null')
-      [*] = ;               and (hutype <> gc_upg_type_none) then
+      [*] = ;            var hsus : String = gCountry[hscid].upgrade[hsui].id;
+      [*] = ;            if (StrLength(hsus) > 3) then
       [*] = ;            begin
-      [*] = ;               // Ascii labels on purpose: the installer writes this file as
-      [*] = ;               // latin-1, and cyrillic would not survive it.
-      [*] = ;               // Ascii labels on purpose: the installer writes this file as
-      [*] = ;               // latin-1, and cyrillic would not survive it.
-      [*] = ;               //
-      [*] = ;               // A chain of if-else and not a case statement. Every case in
-      [*] = ;               // the game's own Progress-side files puts begin..end in each
-      [*] = ;               // branch; ours had one-line branches, and the whole Progress
-      [*] = ;               // tick stopped compiling - no heartbeat, no state, nothing.
-      [*] = ;               // The chain below is the form already proven in these blocks.
-      [*] = ;               var huwhat : String = 'other';
-      [*] = ;               if (hutype = gc_upg_type_effectfood) or (hutype = gc_upg_type_effectfoodperc) then
-      [*] = ;               huwhat := 'food' else
-      [*] = ;               if (hutype = gc_upg_type_effectwood) or (hutype = gc_upg_type_effectwoodperc) then
-      [*] = ;               huwhat := 'wood' else
-      [*] = ;               if (hutype = gc_upg_type_effectstone) or (hutype = gc_upg_type_effectstoneperc) then
-      [*] = ;               huwhat := 'stone' else
-      [*] = ;               if (hutype = gc_upg_type_lifeperc) then
-      [*] = ;               huwhat := 'hp' else
-      [*] = ;               if (hutype = gc_upg_type_damage) or (hutype = gc_upg_type_damageperc) then
-      [*] = ;               huwhat := 'damage' else
-      [*] = ;               if (hutype = gc_upg_type_protection) then
-      [*] = ;               huwhat := 'armor' else
-      [*] = ;               if (hutype = gc_upg_type_shield) then
-      [*] = ;               huwhat := 'shield' else
-      [*] = ;               if (hutype = gc_upg_type_attrangeperc) then
-      [*] = ;               huwhat := 'range' else
-      [*] = ;               if (hutype = gc_upg_type_attpauseperc) or (hutype = gc_upg_type_single_attpauseperc) then
-      [*] = ;               huwhat := 'rate' else
-      [*] = ;               if (hutype = gc_upg_type_attdispertionperc) then
-      [*] = ;               huwhat := 'accuracy' else
-      [*] = ;               if (hutype = gc_upg_type_speedperc) then
-      [*] = ;               huwhat := 'speed' else
-      [*] = ;               if (hutype = gc_upg_type_buildtimeperc) then
-      [*] = ;               huwhat := 'buildtime' else
-      [*] = ;               if (hutype = gc_upg_type_priceperc) then
-      [*] = ;               huwhat := 'price' else
-      [*] = ;               if (hutype = gc_upg_type_enableunit) then
-      [*] = ;               huwhat := 'unlock' else
-      [*] = ;               if (hutype = gc_upg_type_geology) then
-      [*] = ;               huwhat := 'geology' else
-      [*] = ;               if (hutype = gc_upg_type_healing) then
-      [*] = ;               huwhat := 'heal' else
-      [*] = ;               if (hutype = gc_upg_type_fieldlifeperc) then
-      [*] = ;               huwhat := 'field' else
-      [*] = ;               if (hutype = gc_upg_type_fishingperc) then
-      [*] = ;               huwhat := 'fishing' else
-      [*] = ;               if (hutype = gc_upg_type_balloon) then
-      [*] = ;               huwhat := 'balloon';
-      [*] = ;               // Hard length cap. Without it this line is five kilobytes: a
-      [*] = ;               // nation has two hundred odd upgrades, and all of them went
-      [*] = ;               // into EVERY request to the model, against a tick budget of
-      [*] = ;               // twenty seconds.
-      [*] = ;               //
-      [*] = ;               // Deliberately the SMALLEST possible change: one more if around
-      [*] = ;               // what already worked. No new variable, no else-begin, no new
-      [*] = ;               // field in the receipt - each of those was in the version that
-      [*] = ;               // stopped the whole Progress tick from compiling, and there is
-      [*] = ;               // no way here to tell which one did it.
-      [*] = ;               if (StrLength(hsupg) < 1200) then
-      [*] = ;               begin
-      [*] = ;                  if (StrLength(hsupg) > 0) then
-      [*] = ;                  hsupg := hsupg + ',';
-      [*] = ;                  hsupg := hsupg + husid + '=' + huwhat + '+'
-      [*] = ;                           + IntToStr(gCountry[hscid].upgrade[hsug].value);
-      [*] = ;               end;
+      [*] = ;               if (StrLength(hsupg) > 0) then
+      [*] = ;               hsupg := hsupg + ',';
+      [*] = ;               hsupg := hsupg + SubStr(hsus, 4, StrLength(hsus)-3);
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
