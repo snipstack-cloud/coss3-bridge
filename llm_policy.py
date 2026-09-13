@@ -1478,12 +1478,125 @@ def _чис(v) -> int:
         return 0
 
 
+# --- Дневник партии ---------------------------------------------------------
+#
+# Человек помнит не протокол своих кликов, а структуру: что уже стоит, что не
+# получилось и почему, чем кончились бои. Замер 13.09 показал, что протокол ей
+# вредит: с полной историей партии первая волна ушла на 10:01 против 5:49-7:58
+# у базы, волн вчетверо меньше. А пять строк «why» — это намерения, а не
+# результаты, и они помнят только последние сто игровых секунд.
+#
+# Дневник собирается из того, что и так приходит каждый такт, и НЕ РАСТЁТ со
+# временем: вехи по одной на здание, неудачи без повторов, исходы волн.
+
+ЗДАНИЯ_ВЕХИ = (("centers", "ратуша"), ("mills", "мельница"), ("smiths", "кузница"),
+               ("ba17", "казарма"), ("ba18", "казарма18"), ("my_stores", "склад"),
+               ("houses", "дом"), ("stable", "конюшня"), ("academi", "академия"),
+               ("market", "рынок"), ("towers", "башня"),
+               ("mines_gold", "шахта золота"), ("mines_iron", "шахта железа"),
+               ("mines_coal", "шахта угля"))
+
+
+def _мс(gt) -> str:
+    м, с = divmod(max(0, int(gt or 0)), 60)
+    return f"{м}:{с:02d}"
+
+
+class Дневник:
+    """Память о партии: вехи, неудачи, исходы волн. Живёт одну партию."""
+
+    ВОЛНА_ИТОГ = 60          # через сколько игровых секунд подводить итог волны
+
+    def __init__(self) -> None:
+        self.вехи: list[str] = []
+        self.неудачи: dict[str, list] = {}     # суть -> [время, текст, сколько раз]
+        self.волны: list[dict] = []
+        self._прежние: dict[str, int] = {}
+        self._прошлый_сбой = ""      # last_fail держится в состоянии тактами
+
+    @staticmethod
+    def _ч(v) -> int:
+        try:
+            return int(float(str(v).strip()))
+        except (TypeError, ValueError):
+            return 0
+
+    def такт(self, st: dict, брак: list[str] | None = None) -> None:
+        gt = self._ч(st.get("gametime"))
+        for ключ, имя in ЗДАНИЯ_ВЕХИ:
+            if ключ not in st:
+                continue
+            было = self._прежние.get(ключ)
+            стало = self._ч(st.get(ключ))
+            if было is not None and стало > было:
+                self.вехи.append(f"{_мс(gt)} {имя}"
+                                 + (f" ×{стало}" if стало > 1 else ""))
+            self._прежние[ключ] = стало
+        # Неудачи: та же беда с другими числами — это одна беда, а не две.
+        сбой = " ".join(str(st.get("last_fail") or "").split())[:120]
+        новые = list(брак or [])
+        if сбой and сбой != self._прошлый_сбой:
+            новые.append(сбой)          # тот же текст подряд — та же попытка
+        self._прошлый_сбой = сбой
+        for текст in новые:
+            текст = " ".join(текст.split())[:120]
+            if not текст:
+                continue
+            суть = re.sub(r"\d+", "#", текст.lower())
+            if суть in self.неудачи:
+                self.неудачи[суть][2] += 1
+            else:
+                self.неудачи[суть] = [gt, текст, 1]
+        # Итоги волн: что стало с ушедшими и с крестьянами врага.
+        for в in self.волны:
+            if в.get("итог") is None and gt - в["gt"] >= self.ВОЛНА_ИТОГ:
+                в["итог"] = (self._наших(st), self._врага(st))
+
+    @classmethod
+    def _наших(cls, st: dict) -> int:
+        return sum(cls._ч(st.get(k)) for k in ("mil_inf", "mil_shooters", "mil_cav"))
+
+    @classmethod
+    def _врага(cls, st: dict) -> int:
+        for k, v in st.items():
+            if k.endswith("_peasants"):
+                return cls._ч(v)
+        return 0
+
+    def волна(self, gt: int, сколько: int, цель: str, st: dict) -> None:
+        self.волны.append({"gt": gt, "сколько": сколько, "цель": цель,
+                           "было": (self._наших(st), self._врага(st)),
+                           "итог": None})
+
+    def строки(self) -> list[str]:
+        if not (self.вехи or self.неудачи or self.волны):
+            return []
+        out = ["", "## Что уже случилось в этой партии"]
+        if self.вехи:
+            out.append("  построено: " + "   ".join(self.вехи[-12:]))
+        for время, текст, раз in sorted(self.неудачи.values())[-5:]:
+            out.append(f"  {_мс(время)} НЕ ВЫШЛО: {текст}"
+                       + (f" (и ещё {раз - 1} раз)" if раз > 1 else ""))
+        for в in self.волны[-5:]:
+            строка = f"  {_мс(в['gt'])} волна {в['сколько']} на {в['цель']}"
+            if в["итог"]:
+                (нб, вб), (нс, вс) = в["было"], в["итог"]
+                строка += (f": наших бойцов {нб} -> {нс}, "
+                           f"крестьян врага {вб} -> {вс}")
+                if вб == вс:
+                    строка += " — НИ ОДНОГО НЕ УБИЛИ"
+            else:
+                строка += ": итог ещё не подведён"
+            out.append(строка)
+        return out
+
+
 def situation(st: dict, mp: dict, history: list[str], hints: str,
               было: dict | None = None, заказ: list | None = None,
               restart_ok: bool = False, расхождение: list[str] | None = None,
               повторы: dict | None = None, брак: list[str] | None = None,
               волны: list | None = None, вето: str = "", вмеш: str = "",
-              мир: str = "") -> str:
+              мир: str = "", дневник: list[str] | None = None) -> str:
     gt = int(st.get("gametime", 0))
     mm, ss = divmod(gt, 60)
     done = " ".join(("+" if ok else "-") + name for name, ok, _ in stages(st))
@@ -1676,6 +1789,8 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
             f"  В прошлом ответе ты написал про {с}, но команды {с} в "
             f"\"commands\" не было — игра её НЕ ПОЛУЧИЛА и ничего по ней не "
             f"сделала. Нужна — отдай её командой." for с in расхождение]
+    if дневник:
+        lines += дневник
     if history:
         lines += ["", "## Что я делал раньше"] + [
             f"  {h}" for h in history[-ОКНО_ИСТОРИИ:]] if ОКНО_ИСТОРИИ else lines
@@ -2369,6 +2484,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
 
     history: list[str] = []
     вопросов_задано = 0                  # один за партию: человек — узкое место
+    дневник = Дневник() if a.memo else None
     прошлый_мир = load_world(a.world)    # чтобы заметить ответ, данный на ходу
     next_call = 0
     base_enemy = None
@@ -2512,7 +2628,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
             prompt = situation(st, mp, history, подсказки,
                                было_st, прошлый_заказ, a.allow_restart,
                                расхождение, повторы, брак, волны, вето_волны,
-                               вмешательство, мир=мир_текст)
+                               вмешательство, мир=мир_текст,
+                               дневник=дневник.строки() if дневник else None)
             # Кладём запрос в коробку: ответ приходит асинхронно, и к моменту
             # записи трассы контекст такта уже сменился. Без этого в трассе
             # осталось бы решение без обстановки, из которой оно выросло.
@@ -2795,6 +2912,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                   f"команды {_с} в ответе нет")
         history.append(f"{mm}:{ss:02d} {why}")
 
+        if дневник is not None:
+            дневник.такт(st, брак)
         for _c in cmds:
             if _c.cmd == "BALANCE" and _c.a1 == RESOURCE["food"]:
                 _кр = int(st.get("peasants", 0) or 0)
@@ -2839,6 +2958,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 else:
                     next_attack = gt + a.attack_every
                     волны.append((gt, attack, цель_атаки))
+                    if дневник is not None:
+                        дневник.волна(gt, attack, цель_атаки, st)
                     волна_была = True
                     print(f"        волна {len(волны)}: {attack} бойцов ушли на {цель_атаки}")
             elif not a.native_war and attack > св + аг:
@@ -3035,6 +3156,10 @@ def main() -> int:
                     metavar="файл",
                     help="файл знаний о мире: уходит в промпт ЦЕЛИКОМ, и туда же "
                          "модель пишет свой вопрос человеку. Пусто — канал выключен")
+    ap.add_argument("--memo", action="store_true",
+                    help="дневник партии в запросе: вехи построек, неудачи без "
+                         "повторов, исходы волн. Человек помнит структуру, а не "
+                         "протокол; полная история ходов замером 13.09 вредна")
     ap.add_argument("--questions", type=int, default=1,
                     metavar="N",
                     help="сколько вопросов модель может задать за партию (по "
