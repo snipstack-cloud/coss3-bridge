@@ -932,7 +932,14 @@ def подготовить_мир(path: str) -> None:
     if not path or os.path.exists(path):
         return
     мастер = os.path.join(os.path.dirname(os.path.abspath(__file__)), "world.md")
-    if os.path.abspath(мастер) == os.path.abspath(path) or not os.path.exists(мастер):
+    if os.path.abspath(мастер) == os.path.abspath(path):
+        return
+    if not os.path.exists(мастер):
+        # 13.09 это стоило целой серии: в контейнер копировались только
+        # *.py/*.inc/*.txt, world.md не доезжал, посев молча не делался, и все
+        # четыре копии играли с ПУСТЫМ описанием мира. В логе не было ни слова.
+        print(f"МАСТЕР МИРА НЕ НАЙДЕН: {мастер}. Модель начнёт с пустого "
+              f"описания мира — знания в промпт не пойдут, только канал вопросов")
         return
     try:
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)

@@ -174,6 +174,12 @@ if [ -n "$COSS3_BRIDGE_GIT" ]; then
         # иначе правка entrypoint в ветке может сломать сам запуск и отладить
         # это будет нечем.
         cp /opt/bridge-git/*.py /opt/bridge-git/*.inc /opt/bridge-git/*.txt /opt/bridge/ 2>/dev/null || true
+        # world.md — мастер-файл знаний о мире, из которого llm_policy сеет
+        # /io/world.md. Под маску *.md попадают ещё HANDOFF и WORKLOG на сотни
+        # килобайт, поэтому берём только его. 13.09 прогон questions5 прошёл
+        # БЕЗ знаний о мире именно потому, что .md сюда не копировался вовсе:
+        # канал работал, а описание мира было пустым, и никто этого не заметил.
+        cp /opt/bridge-git/world.md /opt/bridge/ 2>/dev/null || true
         echo "$SHA" > "$COSS3_IO/bridge.sha"
         log "мост обновлён: $(git -C /opt/bridge-git log --oneline -1)"
         log "  SHA записан в ${COSS3_IO}/bridge.sha"
