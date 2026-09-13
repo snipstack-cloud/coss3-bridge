@@ -186,7 +186,23 @@ COSS3_RESULTS_GIT=git@github.com:snipstack-cloud/coss3-results.git
 COSS3_RESULTS_KEY=/ssh/results_key
 ```
 
-Ложится в ветку `results`, по каталогу на копию: `<дата>/<идея>/<копия>/`.
+Репозиторий заведён 13.09: **`snipstack-cloud/coss3-results`**, приватный,
+отдельный от моста. Ложится в ветку `results`, по каталогу на копию:
+`<дата>/<идея>/<копия>/`.
+
+Ключ заводится ОДИН РАЗ на машине, где крутятся контейнеры. Приватная половина
+никуда не уезжает — на GitHub уходит только публичная:
+
+```bash
+ssh-keygen -t ed25519 -N "" -C "coss3-results $(hostname)" -f ~/.ssh/coss3_results
+cat ~/.ssh/coss3_results.pub      # эту половину — в deploy keys, С ГАЛКОЙ «Allow write access»
+```
+
+Монтируется в контейнер так же, как ключ чтения моста:
+
+```
+-v ~/.ssh/coss3_results:/ssh/results_key:ro
+```
 Уезжают отчёт, трасса, квитанция условий, SHA моста, описание идеи и ХВОСТЫ
 логов — целиком они не отправляются, `game.log` под Wine бывает мегабайтным.
 
