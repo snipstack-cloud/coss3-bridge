@@ -168,30 +168,30 @@ fi
 # обновляется из git, а этот скрипт запечён в образ.
 : "${COSS3_EXPERIMENT:=}"
 if [ -n "$COSS3_EXPERIMENT" ]; then
-    ИНИ=/opt/bridge-git/docker/experiments.ini
-    if [ ! -f "$ИНИ" ]; then
+    INI=/opt/bridge-git/docker/experiments.ini
+    if [ ! -f "$INI" ]; then
         die "задан COSS3_EXPERIMENT=${COSS3_EXPERIMENT}, но файла идей нет:
-     ${ИНИ}
+     ${INI}
      Идея обязана приезжать из git, иначе не сказать, что проверялось.
      Задайте COSS3_BRIDGE_GIT либо снимите COSS3_EXPERIMENT."
     fi
-    ИДЕЯ=$(python3 /opt/bridge/pick_experiment.py "$ИНИ" "$COSS3_EXPERIMENT" \
-               --io "$COSS3_IO" --копия "$COSS3_SLOT" 2>&1) \
+    IDEA=$(python3 /opt/bridge/pick_experiment.py "$INI" "$COSS3_EXPERIMENT" \
+               --io "$COSS3_IO" --copy "$COSS3_SLOT" 2>&1) \
         || die "идея не взята:
-${ИДЕЯ}
+${IDEA}
      Прогон «без флагов» под именем идеи выглядел бы законным и попал бы в
      сравнение — поэтому не начинаю."
-    ФЛАГИ_ИДЕИ=$(printf '%s\n' "$ИДЕЯ" | sed -n 's/^COSS3_EXTRA_FLAGS=//p')
-    ОПИСАНИЕ=$(printf '%s\n' "$ИДЕЯ" | sed -n 's/^ОПИСАНИЕ=//p')
-    log "идея «${COSS3_EXPERIMENT}»: ${ОПИСАНИЕ}"
+    IDEA_FLAGS=$(printf '%s\n' "$IDEA" | sed -n 's/^COSS3_EXTRA_FLAGS=//p')
+    IDEA_WHAT=$(printf '%s\n' "$IDEA" | sed -n 's/^IDEA_WHAT=//p')
+    log "идея «${COSS3_EXPERIMENT}»: ${IDEA_WHAT}"
     if [ -n "${COSS3_EXTRA_FLAGS:-}" ]; then
         # Явно заданное перебивает файл, но молча этого делать нельзя: отчёт
         # ссылался бы на идею, а игра шла бы с другими флагами.
         log "  флаги из окружения ПЕРЕБИВАЮТ файл идей:"
-        log "    файл:      ${ФЛАГИ_ИДЕИ:-—}"
+        log "    файл:      ${IDEA_FLAGS:-—}"
         log "    окружение: ${COSS3_EXTRA_FLAGS}"
     else
-        COSS3_EXTRA_FLAGS="$ФЛАГИ_ИДЕИ"
+        COSS3_EXTRA_FLAGS="$IDEA_FLAGS"
         log "  флаги: ${COSS3_EXTRA_FLAGS:-— (как на мастере)}"
     fi
 fi
@@ -451,14 +451,14 @@ postmortem() {
     # Результат наружу, пока контейнер жив. Без этого прогон умирает вместе с
     # ним, а на ферме из десяти копий сравнивать становится нечего уже к утру.
     if [ -n "${COSS3_RESULTS_GIT:-}" ]; then
-        ИМЯ="${COSS3_RESULTS_NAME:-${COSS3_EXPERIMENT:-прогон}/${COSS3_SLOT}}"
-        log "отправляю результат в git: ${COSS3_RESULTS_GIT} (${ИМЯ})"
+        RUN_NAME="${COSS3_RESULTS_NAME:-${COSS3_EXPERIMENT:-прогон}/${COSS3_SLOT}}"
+        log "отправляю результат в git: ${COSS3_RESULTS_GIT} (${RUN_NAME})"
         python3 /opt/bridge/push_results.py \
             --io "$COSS3_IO" \
             --repo "$COSS3_RESULTS_GIT" \
             --branch "${COSS3_RESULTS_BRANCH:-results}" \
             --key "${COSS3_RESULTS_KEY:-/ssh/results_key}" \
-            --name "$ИМЯ" 2>&1 | sed 's/^/    /' \
+            --name "$RUN_NAME" 2>&1 | sed 's/^/    /' \
             || log "  НЕ ОТПРАВИЛОСЬ. Файлы целы в ${COSS3_IO} — прогон не пропал"
     fi
     if [ "${COSS3_KEEP_ALIVE:-1}" = "1" ]; then

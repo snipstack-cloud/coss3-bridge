@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Достать идею опыта из experiments.ini клона и выдать её контейнеру.
 
-    python3 pick_experiment.py <файл идей> <имя идеи> --io /io --копия 3
+    python3 pick_experiment.py <файл идей> <имя идеи> --io /io --copy 3
 
 Печатает строки для оболочки:
 
     COSS3_EXTRA_FLAGS=--wave-min 40
-    ОПИСАНИЕ=порог волны 40 вместо 20
+    IDEA_WHAT=порог волны 40 вместо 20
 
 Зачем отдельным файлом, а не куском entrypoint.sh: скрипты контейнера запечены
 в образ и из git НЕ обновляются, а `*.py` обновляются. Правка здесь доезжает до
@@ -35,7 +35,7 @@ def main() -> int:
     p.add_argument("ини")
     p.add_argument("ид")
     p.add_argument("--io", default="", help="куда положить опыт.json")
-    p.add_argument("--копия", default="0")
+    p.add_argument("--copy", dest="копия", default="0")
     a = p.parse_args()
 
     if not os.path.isfile(a.ини):
@@ -67,11 +67,14 @@ def main() -> int:
         except OSError as e:
             print(f"опыт.json не записан: {e}", file=sys.stderr)
 
-    # Значения без кавычек: оболочка читает их через `IFS= read -r`, поэтому
-    # пробелы во флагах не разваливаются, а кавычки только мешали бы.
+    # Ключи ЛАТИНИЦЕЙ, и это не вкусовщина: их подставляет оболочка, а bash не
+    # допускает многобайтовых имён переменных — `ОПИСАНИЕ=...` он принимает за
+    # команду и падает в рантайме. `bash -n` этого не ловит.
+    #
+    # Значения без кавычек: пробелы во флагах не должны разваливаться.
     print(f"COSS3_EXTRA_FLAGS={идея['флаги']}")
-    print(f"ОПИСАНИЕ={идея['что']}")
-    print(f"REF={идея['ref']}")
+    print(f"IDEA_WHAT={идея['что']}")
+    print(f"IDEA_REF={идея['ref']}")
     return 0
 
 

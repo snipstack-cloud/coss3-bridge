@@ -37,6 +37,18 @@ if [ ! -f "$GAME_SRC/galaxy.dll" ]; then
     echo "  Собираю дальше, но если игра в контейнере не стартует — смотреть сюда первым."
 fi
 
+# Кириллица в именах переменных оболочки. `bash -n` её НЕ ловит: синтаксически
+# «ИНИ=...» — законная команда, и падает она только в рантайме. За проект это
+# случилось четырежды, последний раз — на живом контейнере, который из-за этого
+# не запустился. Проверка стоит здесь, до сборки: образ с таким скриптом
+# бесполезен.
+if ! python3 "$ROOT/check_shell.py" "$ROOT/docker/entrypoint.sh" \
+        "$ROOT/docker/build.sh" "$ROOT/docker/firstrun.sh" \
+        "$ROOT/docker/ssh_wrapper.sh"; then
+    echo "СТОП: не собираю — скрипт контейнера упадёт в рантайме."
+    exit 1
+fi
+
 build_image() {
     echo "собираю $TAG под linux/amd64 из «${GAME_SRC}»"
     docker buildx build --platform linux/amd64 \
