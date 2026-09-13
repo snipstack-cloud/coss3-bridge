@@ -426,8 +426,11 @@ else
     [ -n "${COSS3_MATCH_PEACE:-}" ]  && NEWARGS="$NEWARGS --peace ${COSS3_MATCH_PEACE}"
     [ -n "${COSS3_MATCH_AI:-}" ]     && NEWARGS="$NEWARGS --ai ${COSS3_MATCH_AI}"
     [ -n "${COSS3_MATCH_NATION:-}" ] && NEWARGS="$NEWARGS --nation ${COSS3_MATCH_NATION}"
-    # Монгольфьер: 2 = выдан всем, и тумана войны нет ни у кого. От него зависит,
-    # что мост честно показывает модели про врага (см. --fair).
+    # Монгольфьер: 2 = выдан всем, и тумана войны нет ни у кого. С 13.09 это
+    # условие ВСЕХ прогонов (решение игрока), поэтому умолчание здесь, а не в
+    # env-файле: забыть его в одной серии — значит получить прогон, который не
+    # сравним ни с чем, и узнать об этом через час по отчёту.
+    : "${COSS3_MATCH_BALLOON:=2}"
     [ -n "${COSS3_MATCH_BALLOON:-}" ] && NEWARGS="$NEWARGS --balloon ${COSS3_MATCH_BALLOON}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
