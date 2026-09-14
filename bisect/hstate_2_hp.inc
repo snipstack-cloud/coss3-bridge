@@ -236,7 +236,7 @@
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
       [*] = ;         hsfr[3] := gc_ai_unit_officer17;   hsfn[3] := 'officer17';
       [*] = ;         hsfr[4] := gc_ai_unit_dragoon17;   hsfn[4] := 'dragoon17';
-      [*] = ;         var hsfl : String = '';
+      [*] = ;         var hsftxt : String = '';
       [*] = ;         var hsfi : Integer;
       [*] = ;         for hsfi := 0 to 4 do
       [*] = ;         begin
@@ -247,13 +247,13 @@
       [*] = ;            hsfid := hsfj;
       [*] = ;            if (hsfid >= 0) then
       [*] = ;            begin
-      [*] = ;               hsfl := hsfl + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
-      [*] = ;               hsfl := hsfl + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp) + ' ';
+      [*] = ;               hsftxt := hsftxt + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
+      [*] = ;               hsftxt := hsftxt + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp) + ' ';
       [*] = ;            end;
       [*] = ;         end;
-      [*] = ;         if (hsfl = '') then
-      [*] = ;         hsfl := 'none-found';
-      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsfl);
+      [*] = ;         if (hsftxt = '') then
+      [*] = ;         hsftxt := 'none-found';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsftxt);
       [*] = ;         // --- wood and stone on the ground, within reach --------------------
       [*] = ;         //
       [*] = ;         // The model wrote this urok itself (14.09): '15 men on stone gave +0, it must
