@@ -524,13 +524,23 @@ postmortem() {
     # at X,Z», «not enough resources». 14.09 разбор волн упёрся ровно в это:
     # 35 волн, 1139 бойцов, ноль убитых, а проверить приказ было нечем —
     # game.log в результатах оказался логом ЗАПУСКА, а не игры.
-    GAMELOG=$(ls -t /profile/log/cos_*.log 2>/dev/null | head -1)
+    # ВНИМАНИЕ: при set -e присваивание из $(...) наследует код команды, и
+    # пустой ls (файлов нет) роняет весь entrypoint. 14.09 так завершились с
+    # кодом 2 все три копии attack_check — уже ПОСЛЕ партии, потеряв отправку.
+    GAMELOG=$(ls -t /profile/log/cos_*.log 2>/dev/null | head -1) || true
+    if [ -z "$GAMELOG" ]; then
+        # Профиль монтируется томом, и внутри него игра может держать лог как в
+        # log/, так и рядом. Ищем шире, чем в одном месте, и всё равно молча не
+        # падаем: строки моста — полезный довесок, а не условие прогона.
+        GAMELOG=$(find /profile "$WINEPREFIX/drive_c/users" -name 'cos_*.log' \
+                  -type f 2>/dev/null | head -1) || true
+    fi
     if [ -n "$GAMELOG" ]; then
         grep "bridge-human" "$GAMELOG" 2>/dev/null | tail -400 \
             >"$COSS3_IO/мост_в_игре.log" || true
-        log "  строк моста в логе игры: $(wc -l <"$COSS3_IO/мост_в_игре.log" 2>/dev/null || echo 0)"
+        log "  строк моста из $GAMELOG: $(wc -l <"$COSS3_IO/мост_в_игре.log" 2>/dev/null || echo 0)"
     else
-        log "  лог игры не найден в /profile/log — строки моста не сохранены"
+        log "  лог игры не найден — строки моста не сохранены"
     fi
     echo "$rc" >"$COSS3_IO/policy.rc"
     # Результат наружу, пока контейнер жив. Без этого прогон умирает вместе с
