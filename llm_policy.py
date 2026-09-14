@@ -1824,6 +1824,24 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         else:
             lines.append("  волны: НИ ОДНОЙ. Никто никуда не идёт, пока ты не "
                          "отдашь ATTACK")
+    # Лес и камень НА ЗЕМЛЕ, а не в запасе. Модель сама записала урок: «15
+    # человек на камне дали камень +0 — он, видимо, уже исчерпан в пределах 40».
+    # Была права и проверить не могла: состояние говорило только про запас.
+    # Числа — вместимость в рабочих местах, а не «сколько тонн»: в клетке леса
+    # помещается 2 рубщика, в клетке камня 3.
+    _мест = []
+    for _к, _имя in (("wood", "дерево"), ("stone", "камень")):
+        if f"{_к}_slots_near" not in st:
+            continue
+        _вс, _св = _чис(st.get(f"{_к}_slots_near")), _чис(st.get(f"{_к}_slots_free"))
+        if _вс <= 0:
+            _мест.append(f"{_имя} — РЯДОМ КОНЧИЛОСЬ, посылать некуда")
+        elif _св <= 0:
+            _мест.append(f"{_имя} — все {_вс} мест заняты, лишние встанут без дела")
+        else:
+            _мест.append(f"{_имя} — свободно {_св} мест из {_вс}")
+    if _мест:
+        lines.append("  на земле рядом (в пределах 40): " + "; ".join(_мест))
     # Сколько людей BALANCE может переставить ПРЯМО СЕЙЧАС. Число свободных
     # крестьян игрок видит в интерфейсе, так что форы нет; а вот связать его со
     # своей командой модель не догадывалась. 13.09 в base_open3 копия 1 четыре
@@ -3023,6 +3041,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "my_farmused", "building_now", "wip", "last_fail",
                         "wave_sent",
                         "can_now", "cant_now",
+                        "wood_slots_near", "wood_slots_free",
+                        "stone_slots_near", "stone_slots_free",
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",

@@ -219,6 +219,44 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
+      [*] = ;         // --- wood and stone on the ground, within reach --------------------
+      [*] = ;         //
+      [*] = ;         // The model wrote this urok itself (14.09): '15 men on stone gave +0, it must
+      [*] = ;         // be worked out within 40'. She was right and had no way to check: the human
+      [*] = ;         // slot reported the STOCK of stone but never how much was left ON THE MAP.
+      [*] = ;         // GATHER looks for a deposit within 40 of the base (block_hcmd), so that is
+      [*] = ;         // the circle we count - cells of gResGrid, 4 units each, so 10 cells.
+      [*] = ;         //
+      [*] = ;         // Capacity, not piles: one wood cell holds 2 gatherers, a stone cell 3
+      [*] = ;         // (gc_gameplay_resource_maxattackers_*). Free = capacity minus those already
+      [*] = ;         // working there. A human sees the same forest and rocks on his screen.
+      [*] = ;         var hswn, hswf, hssn, hssf : Integer;
+      [*] = ;         var hsgx, hsgy : Integer;
+      [*] = ;         var hsbgx : Integer = floor(hscx + (GetMapWidth div 2)) div gc_resgrid_size;
+      [*] = ;         var hsbgy : Integer = floor(hscz + (GetMapHeight div 2)) div gc_resgrid_size;
+      [*] = ;         for hsgx := 0 to gc_resgrid_countx-1 do
+      [*] = ;         for hsgy := 0 to gc_resgrid_county-1 do
+      [*] = ;         begin
+      [*] = ;            var hswc : Integer = gResGrid[hsgx,hsgy].fResCount[gc_resource_type_wood];
+      [*] = ;            var hssc : Integer = gResGrid[hsgx,hsgy].fResCount[gc_resource_type_stone];
+      [*] = ;            if ((hswc+hssc) > 0) then
+      [*] = ;            begin
+      [*] = ;               var hscd : Integer = Round(Sqrt(Sqr(hsbgx-hsgx)+Sqr(hsbgy-hsgy)));
+      [*] = ;               if (hscd <= 10) then
+      [*] = ;               begin
+      [*] = ;                  hswn := hswn + hswc*gc_gameplay_resource_maxattackers_wood;
+      [*] = ;                  hssn := hssn + hssc*gc_gameplay_resource_maxattackers_stone;
+      [*] = ;                  hswf := hswf + Max(0, hswc*gc_gameplay_resource_maxattackers_wood
+      [*] = ;                       - gResGrid[hsgx,hsgy].fWorkerCount[plind][gc_resource_type_wood]);
+      [*] = ;                  hssf := hssf + Max(0, hssc*gc_gameplay_resource_maxattackers_stone
+      [*] = ;                       - gResGrid[hsgx,hsgy].fWorkerCount[plind][gc_resource_type_stone]);
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_near', hswn);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_free', hswf);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_near', hssn);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_free', hssf);
       [*] = ;         // --- what can be paid for RIGHT NOW -----------------------------------
       [*] = ;         //
       [*] = ;         // The model used to find this out by spending a tick: order it, get nothing,
