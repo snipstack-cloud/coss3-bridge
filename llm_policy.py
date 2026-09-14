@@ -3157,15 +3157,36 @@ def одна_партия(a, client, br: Bridge, plind: int,
             if attack:
                 _кмд += f" ATTACK:{attack}->{цель_атаки}"
             _мм, _сс = divmod(int(float(st.get("gametime", 0) or 0)), 60)
+            # Крестьяне врага — наша мера цели; ключ зависит от номера слота.
+            _вражкр = next((v for k, v in st.items()
+                            if k.endswith("_peasants") and k != "peasants"), "?")
+            _хвост = ""
+            _с = str(st.get("wip", "") or "")
+            if _с:
+                _хвост += f" строится={_с}"
+            _н = str(st.get("cant_now", "") or "").strip()
+            if _н:
+                _хвост += f" НЕ ПО КАРМАНУ: {_н}"
+            _о = " ".join(str(st.get("last_fail", "") or "").split())
+            if _о:
+                _хвост += f" | отказ: {_о[:90]}"
             ТРАССА_ПАРТИИ.append(
                 f"{_мм}:{_сс:02d} еда={_ц('food')} дер={_ц('wood')} кам={_ц('stone')} "
                 f"зол={_ц('gold')} жел={_ц('iron')} уг={_ц('coal')} | "
                 f"крест={_ц('peasants')} своб={_ц('idle_pea')} "
-                f"наеде={_ц('on_food')} | ратуш={_ц('centers')} мельн={_ц('mills')} "
-                f"кузн={_ц('smiths')} казарм={_ц('ba17')} шахты "
-                f"з{_ц('mines_gold')}/ж{_ц('mines_iron')}/у{_ц('mines_coal')} | "
+                f"еда/дер/кам/шахта/стройка="
+                f"{_ц('on_food')}/{_ц('on_wood')}/{_ц('on_stone')}/"
+                f"{_ц('on_mine')}/{_ц('on_build')} | "
+                f"мест={_ц('my_farmused')}/{_ц('my_farm')} | "
+                f"ратуш={_ц('centers')} мельн={_ц('mills')} "
+                f"кузн={_ц('smiths')} казарм={_ц('ba17')} склад={_ц('my_stores')} "
+                f"шахты з{_ц('mines_gold')}/ж{_ц('mines_iron')}/у{_ц('mines_coal')} | "
                 f"пехота={_ц('mil_inf')} стрелки={_ц('mil_shooters')} "
-                f"свободбойц={_ц('my_freewar')} | {_кмд}")
+                f"свободбойц={_ц('my_freewar')} волна={_ц('wave_sent')} | "
+                f"крестьян_врага={_вражкр} досюда={_ц('en_near_dist')} | "
+                f"мест_на_земле дер={_ц('wood_slots_free')}/{_ц('wood_slots_near')} "
+                f"кам={_ц('stone_slots_free')}/{_ц('stone_slots_near')} | "
+                f"{_кмд}{_хвост}")
             _у = " ".join(str(box["data"].get("lesson", "") or "").split())
             if _у:
                 УРОКИ_ПАРТИИ.append(f"{_мм}:{_сс:02d} {_у}")
