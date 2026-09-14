@@ -219,47 +219,6 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
-      [*] = ;         // --- WHICH FIGHTERS THIS NATION CAN HIRE ----------------------------
-      [*] = ;         //
-      [*] = ;         // A newcomer opens the barracks and reads what is inside: name, price,
-      [*] = ;         // health. The bot never had that. Result, 12 games of 14.09: the army was
-      [*] = ;         // made of pikemen ONLY (infantry17 ordered 144 times, musk17 zero times),
-      [*] = ;         // and every wave died at the enemy base without killing a single peasant.
-      [*] = ;         // musketeernet was available all along - she simply could not see it.
-      [*] = ;         //
-      [*] = ;         // No aiforce here on purpose: that number lives inside the AI and a human
-      [*] = ;         // never sees it. Price and health he does see, by clicking the unit.
-      [*] = ;         var hsfr : array [0..4] of Integer;
-      [*] = ;         var hsfn : array [0..4] of String;
-      [*] = ;         hsfr[0] := gc_ai_unit_infantry17;  hsfn[0] := 'infantry17';
-      [*] = ;         hsfr[1] := gc_ai_unit_musk17;      hsfn[1] := 'musk17';
-      [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
-      [*] = ;         hsfr[3] := gc_ai_unit_officer17;   hsfn[3] := 'officer17';
-      [*] = ;         hsfr[4] := gc_ai_unit_dragoon17;   hsfn[4] := 'dragoon17';
-      [*] = ;         var hsfl : String = '';
-      [*] = ;         var hsfi : Integer;
-      [*] = ;         for hsfi := 0 to 4 do
-      [*] = ;         begin
-      [*] = ;            var hsfid : Integer = -1;
-      [*] = ;            var hsfj : Integer;
-      [*] = ;            for hsfj := 0 to gc_country_maxmembers-1 do
-      [*] = ;            if (hsfid < 0) and (gObjProp[hscid][hsfj].airole = hsfr[hsfi]) then
-      [*] = ;            hsfid := hsfj;
-      [*] = ;            if (hsfid >= 0) then
-      [*] = ;            begin
-      [*] = ;               var hsff, hsfw, hsfs, hsfg, hsfir, hsfc : Integer;
-      [*] = ;               _unit_GetCostByID(hscid, hsfid, plind, hsff, hsfw, hsfs, hsfg, hsfir, hsfc);
-      [*] = ;               hsfl := hsfl + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
-      [*] = ;               hsfl := hsfl + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp);
-      [*] = ;               hsfl := hsfl + ',food' + IntToStr(hsff) + ',gold' + IntToStr(hsfg);
-      [*] = ;               hsfl := hsfl + ',iron' + IntToStr(hsfir) + ',coal' + IntToStr(hsfc) + ' ';
-      [*] = ;            end;
-      [*] = ;         end;
-      [*] = ;         // Always write the key, even empty: a missing line and 'none' look the
-      [*] = ;         // same from Python, and 14.09 we spent a round guessing which it was.
-      [*] = ;         if (hsfl = '') then
-      [*] = ;         hsfl := 'none-found';
-      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsfl);
       [*] = ;         // --- wood and stone on the ground, within reach --------------------
       [*] = ;         //
       [*] = ;         // The model wrote this urok itself (14.09): '15 men on stone gave +0, it must
