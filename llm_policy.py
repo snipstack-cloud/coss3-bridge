@@ -1835,6 +1835,20 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         else:
             lines.append("  волны: НИ ОДНОЙ. Никто никуда не идёт, пока ты не "
                          "отдашь ATTACK")
+    # Кого вообще можно нанять в бой. Новичок открывает казарму и читает, что
+    # там лежит; у бота этого не было никогда. 14.09, 12 партий: армия целиком
+    # из пикинёров (infantry17 заказан 144 раза, musk17 — ноль), и каждая волна
+    # гибла у базы врага, не убив ни одного крестьянина.
+    _бойцы = str(st.get("fighters", "") or "").split()
+    if _бойцы:
+        _разбор = []
+        for _б in _бойцы:
+            _роль, _, _хвост = _б.partition("=")
+            _части = _хвост.split(",")
+            _имя = _части[0] if _части else ""
+            _цена = " ".join(ч for ч in _части[1:] if not ч.endswith("0"))
+            _разбор.append(f"{_роль} ({_имя}: {', '.join(_части[1:])})")
+        lines.append("  кого можно нанять в бой: " + "; ".join(_разбор))
     # БЕЗ РАТУШИ ДОБЫЧИ НЕТ. Замер на живой игре 14.09: десять рубщиков при
     # отсутствии ратуши дали дерево 1000 -> 1000 и разошлись за двадцать секунд;
     # та же команда после ратуши дала 300 -> 580. Крестьянам некуда нести, и они
@@ -3060,7 +3074,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "mil_inf", "mil_shooters", "my_freewar", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
                         "wave_sent",
-                        "can_now", "cant_now",
+                        "can_now", "cant_now", "fighters",
                         "wood_slots_near", "wood_slots_free",
                         "stone_slots_near", "stone_slots_free",
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
