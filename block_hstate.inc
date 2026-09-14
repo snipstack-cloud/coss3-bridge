@@ -160,6 +160,53 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         // --- WHAT BECAME OF THE WAVE -----------------------------------
+      [*] = ;         //
+      [*] = ;         // 18 games, 1139 men sent in waves, ZERO enemy peasants killed - and
+      [*] = ;         // the trace could not tell 'died on the way' from 'arrived and failed'.
+      [*] = ;         // wave_sent says how many LEFT; nothing said what happened next. The
+      [*] = ;         // model kept guessing: 'maybe the wave is still walking'.
+      [*] = ;         //
+      [*] = ;         // Only OUR OWN troops, and only what a player sees anyway: he watches
+      [*] = ;         // his army on the map, and the game itself shouts 'your troops are
+      [*] = ;         // under attack'. Wounded = attacked; far from the centre = marching.
+      [*] = ;         //
+      [*] = ;         // A SECOND pass on purpose: hscx/hscz (our centre) is only final after
+      [*] = ;         // the first loop - a soldier met before the town centre would have been
+      [*] = ;         // measured from 0,0.
+      [*] = ;         var hswaway : Integer = 0;   // soldiers further than 60 from our centre
+      [*] = ;         var hswhurt : Integer = 0;   // soldiers with hp below max - being hit
+      [*] = ;         var hswfar  : Integer = 0;   // how far the furthest one got
+      [*] = ;         if (hscen > 0) then
+      [*] = ;         begin
+      [*] = ;            var hswi : Integer;
+      [*] = ;            for hswi := 0 to hscount-1 do
+      [*] = ;            begin
+      [*] = ;               var hswh : Integer = GetGameObjectHandleByIndex(hswi, hsph);
+      [*] = ;               var hswo : Pointer = _unit_GetTObj(hswh);
+      [*] = ;               if (hswo<>nil) then
+      [*] = ;               begin
+      [*] = ;                  var hswu : Integer = gObjProp[TObj(hswo).cid][TObj(hswo).id].usage;
+      [*] = ;                  if (hswu = gc_obj_usage_lightinfantry) or (hswu = gc_obj_usage_weak) or
+      [*] = ;                     (hswu = gc_obj_usage_grenadier) or (hswu = gc_obj_usage_shooter) or
+      [*] = ;                     (hswu = gc_obj_usage_archer) then
+      [*] = ;                  begin
+      [*] = ;                     var hswd : Integer = Round(VectorDistance(
+      [*] = ;                        GetGameObjectPositionXByHandle(hswh), 0,
+      [*] = ;                        GetGameObjectPositionZByHandle(hswh), hscx, 0, hscz));
+      [*] = ;                     if (hswd > 60) then
+      [*] = ;                     hswaway := hswaway + 1;
+      [*] = ;                     if (hswd > hswfar) then
+      [*] = ;                     hswfar := hswd;
+      [*] = ;                     if (TObj(hswo).hp < gPlayer[plind].objbase[TObj(hswo).cid][TObj(hswo).id].maxhp) then
+      [*] = ;                     hswhurt := hswhurt + 1;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_away', hswaway);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_hurt', hswhurt);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_far',  hswfar);
       [*] = ;         // WAVE_SENT: how many were in the LAST wave we sent.
       [*] = ;         //
       [*] = ;         // It was called wave_alive for one run, and that was a lie. The group

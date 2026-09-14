@@ -293,6 +293,12 @@ class Мир:
                           "musk17=musketeernet,hp95,food40,gold15,iron20,coal10 "
                           "officer17=officer,hp110,food50,gold40,iron0,coal0"),
              "mil_inf": self.армия, "mil_shooters": 0, "mil_cav": 0,
+             # Судьба волны: ушедшие, раненые и дальность самого дальнего.
+             # Числа грубые (мок не водит бойцов по карте), важна ФОРМА и то,
+             # что поля вообще есть: без них разбор молчал бы там, где игра
+             # говорит.
+             "mil_away": self.волна, "mil_hurt": 0,
+             "mil_far": 210 if self.волна else 0,
              "my_freewar": max(0, self.армия - self.волна),
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],
