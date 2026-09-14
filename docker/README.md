@@ -200,6 +200,85 @@ docker exec coss3 python3 /opt/bridge/log_review.py --trace /io/coss3_bot.jsonl 
 остановился, `./io/<номер>/coss3_bot.jsonl` читается с хоста напрямую — нужен
 только `log_review.py` из репозитория.
 
+### Запуск серии: шаблон, которым мы пользуемся
+
+`exp.py` у нас не используется — серия поднимается обычным `docker run`. Шаблон
+ниже проверен 14.09 на идее `fighters`; меняются ровно две первые строки.
+
+**Имена переменных только латиницей.** Кириллица в имени переменной bash — это
+КОМАНДА, а не присваивание, и `bash -n` такого не ловит: в этом проекте на грабле
+наступали трижды.
+
+```bash
+IDEA=shooters          # имя секции в docker/experiments.ini
+PFX=s                  # префикс контейнеров и каталогов, чтобы не смешать серии
+
+git -C ~/coss3-git pull          # entrypoint.sh монтируется отсюда
+
+for n in 1 2 3; do
+  rm -rf ~/io-$PFX$n ~/profile-$PFX$n
+  mkdir -p ~/io-$PFX$n ~/profile-$PFX$n
+  cp -a ~/profile/. ~/profile-$PFX$n/
+done
+
+for n in 1 2 3; do
+  docker run -d --name coss3-$PFX$n --env-file ~/coss3.env --entrypoint /usr/bin/tini \
+    -e COSS3_BRIDGE_GIT=git@github.com:snipstack-cloud/coss3-bridge.git \
+    -e COSS3_BRIDGE_REF=verified \
+    -e COSS3_EXPERIMENT=$IDEA \
+    -e COSS3_RESULTS_NAME=$IDEA/$n \
+    -e COSS3_RESULTS_GIT=git@github.com:snipstack-cloud/coss3-results.git \
+    -e COSS3_RESULTS_KEY=/ssh/results_key \
+    -v ~/io-$PFX$n:/io -v ~/profile-$PFX$n:/profile \
+    -v ~/.ssh/coss3_deploy:/ssh/deploy_key:ro \
+    -v ~/.ssh/coss3_results:/ssh/results_key:ro \
+    -v ~/coss3-git/docker/entrypoint.sh:/opt/bridge/entrypoint.sh:ro \
+    coss3:2 -- /bin/bash /opt/bridge/entrypoint.sh
+done
+
+docker logs -f coss3-${PFX}1
+```
+
+Число партий на копию берётся из флагов идеи (`--episodes 3`), поэтому
+`COSS3_EPISODES` задавать не надо. Профиль копируется каждой копии свой: общий
+том игра портит, а пустой означает, что она встанет на выборе профиля.
+
+**Четыре строки в логе — контроль, а не украшение.** Смотреть их ДО того, как
+уходить ждать результата: три минуты ожидания впустую стоят дороже.
+
+```
+мост обновлён: <SHA>            та ли версия играет
+идея «<имя>»: <описание>        идея прочитана из experiments.ini в клоне
+  флаги: ... --hints-extra ...  то, чем идея отличается от базы
+пульс есть: тик Progress жив    блоки скомпилировались
+```
+
+Строки «идея» нет — значит `COSS3_EXPERIMENT` не дошёл или секции нет в файле по
+метке `verified` (частый случай: идею завели на `master`, а контейнер берёт
+`verified`). Флагов нет — серия проверяет базу под именем идеи.
+
+Остановить и убрать:
+
+```bash
+docker rm -f $(docker ps -aq --filter name=coss3-$PFX)
+```
+
+### Разбор серии
+
+```bash
+cat ~/io-${PFX}1/отчёт.md                      # одна копия целиком
+python3 ~/coss3-git/series_report.py ~/coss3-results/<дата>/$IDEA \
+                                     ~/coss3-results/<дата>/<база>
+python3 ~/coss3-git/results_ui.py --out /mnt/c/Users/<вы>/Downloads/результаты.html
+```
+
+`series_report.py` печатает партию за партией — исход, время, `TRAIN musk17`
+против `infantry17`, стрелков, волн — и отдельной строкой то, ради чего он
+написан: **сколько взятых целей пришлось на партии СО СТРЕЛКАМИ.** 14.09 идея
+`fighters` дала «цель 5 из 9 против 3 из 9», и по этому числу её легко было
+засчитать; на деле в четырёх целях из пяти стрелков не было вовсе, то есть
+разница была не про идею, а про разброс.
+
 ### Как завести идею
 
 `docker/experiments.ini` — одна секция на идею. Руками его править можно, это
