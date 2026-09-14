@@ -283,6 +283,15 @@ class Мир:
              # игра говорит «заложено», а мок молчал бы, как раньше молчала игра.
              "wip": ",".join(f"{с['роль']}/{ПРЕДЕЛ_СТРОИТЕЛЕЙ.get(с['роль'], 8)}"
                              for с in self.стройки),
+             # Кого можно нанять в бой — тем же форматом, что пишет block_hstate:
+             # `роль=sid,hpN,foodN,goldN,ironN,coalN`, роли через пробел. Роли и
+             # sid настоящие (country.script:2685/2699/2728 — у Нидерландов это
+             # pikeman, musketeernet, officer), ЧИСЛА ПРАВДОПОДОБНЫЕ, а не
+             # замеренные: цены лежат в бинарнике. Мок проверяет форму и разбор,
+             # а не экономику.
+             "fighters": ("infantry17=pikeman,hp120,food30,gold5,iron10,coal5 "
+                          "musk17=musketeernet,hp95,food40,gold15,iron20,coal10 "
+                          "officer17=officer,hp110,food50,gold40,iron0,coal0"),
              "mil_inf": self.армия, "mil_shooters": 0, "mil_cav": 0,
              "my_freewar": max(0, self.армия - self.волна),
              "my_x": 128.0, "my_z": 128.0,

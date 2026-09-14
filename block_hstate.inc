@@ -249,10 +249,10 @@
       [*] = ;            begin
       [*] = ;               var hsff, hsfw, hsfs, hsfg, hsfir, hsfc : Integer;
       [*] = ;               _unit_GetCostByID(hscid, hsfid, plind, hsff, hsfw, hsfs, hsfg, hsfir, hsfc);
-      [*] = ;               hsfl := hsfl + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid]
-      [*] = ;                    + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp)
-      [*] = ;                    + ',food' + IntToStr(hsff) + ',gold' + IntToStr(hsfg)
-      [*] = ;                    + ',iron' + IntToStr(hsfir) + ',coal' + IntToStr(hsfc) + ' ';
+      [*] = ;               hsfl := hsfl + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
+      [*] = ;               hsfl := hsfl + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp);
+      [*] = ;               hsfl := hsfl + ',food' + IntToStr(hsff) + ',gold' + IntToStr(hsfg);
+      [*] = ;               hsfl := hsfl + ',iron' + IntToStr(hsfir) + ',coal' + IntToStr(hsfc) + ' ';
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Always write the key, even empty: a missing line and 'none' look the
