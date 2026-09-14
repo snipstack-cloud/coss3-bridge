@@ -69,21 +69,39 @@ def heartbeat(d: str) -> None:
               "вместе с ней — это ожидаемо)")
 
 
-def find_ai_plind(d: str) -> int | None:
-    """Слот с bai=True среди всех coss3_eco_P*.dat."""
-    best = None
+def find_ai_plind(d: str, fresh: float = 60) -> int | None:
+    """Наш слот среди coss3_eco_P*.dat: сначала ЧЕЛОВЕЧЕСКИЙ, потом bai.
+
+    15.09 эта функция увела приказ в чужой файл. Она искала только bai=True —
+    признак КОМПЬЮТЕРНОГО слота, — а в папке игры с 09.09 лежал файл состояния
+    той, прежней конструкции. Слот нашёлся, приказ записался в coss3_atk_P1.dat,
+    и никто его не прочитал: человеческий блок читает свой P0. Со стороны это
+    выглядело как «команда MOVE не работает», и час ушёл на поиск несуществующей
+    поломки в блоке.
+
+    Поэтому два правила. Первое: человеческий слот важнее — с 11.09 бот играет
+    им. Второе: файл старше fresh секунд не в счёт, каким бы он ни был; залежь
+    от прошлой конструкции слотом не является.
+    """
+    человек, комп = None, None
+    сейчас = time.time()
     for name in os.listdir(d):
         m = re.fullmatch(r"coss3_eco_P(\d+)\.dat", name)
         if not m:
             continue
         n = int(m.group(1))
+        путь = os.path.join(d, name)
         try:
+            if fresh and (сейчас - os.path.getmtime(путь)) > fresh:
+                continue
             st = Bridge(d, n).read_state() or {}
         except Exception:
             continue
-        if st.get("bai"):
-            best = n if best is None else min(best, n)
-    return best
+        if st.get("human"):
+            человек = n if человек is None else min(человек, n)
+        elif st.get("bai"):
+            комп = n if комп is None else min(комп, n)
+    return человек if человек is not None else комп
 
 
 def parse_targets(tokens: list[str]):
