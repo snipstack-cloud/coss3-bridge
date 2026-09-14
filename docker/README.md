@@ -210,35 +210,35 @@ docker exec coss3 python3 /opt/bridge/log_review.py --trace /io/coss3_bot.jsonl 
 наступали трижды.
 
 ```bash
-IDEA=shooters          # имя секции в docker/experiments.ini
-PFX=s                  # префикс контейнеров и каталогов, чтобы не смешать серии
-: "${IDEA:?IDEA не задана — запускать нечего}"
-: "${PFX:?PFX не задан}"
+# Имя идеи и префикс пишутся ПРЯМО в команде. Переменных нет нарочно: 14.09
+# серия отыграла пятнадцать минут впустую из-за того, что IDEA была задана в
+# одной оболочке, а docker run шёл из другой. Подставлять нечего - ошибиться
+# негде. Меняются два слова: shooters и s.
 
 git -C ~/coss3-git pull          # entrypoint.sh монтируется отсюда
 
 for n in 1 2 3; do
-  rm -rf ~/io-$PFX$n ~/profile-$PFX$n
-  mkdir -p ~/io-$PFX$n ~/profile-$PFX$n
-  cp -a ~/profile/. ~/profile-$PFX$n/
+  rm -rf ~/io-s$n ~/profile-s$n
+  mkdir -p ~/io-s$n ~/profile-s$n
+  cp -a ~/profile/. ~/profile-s$n/
 done
 
 for n in 1 2 3; do
-  docker run -d --name coss3-$PFX$n --env-file ~/coss3.env --entrypoint /usr/bin/tini \
+  docker run -d --name coss3-s$n --env-file ~/coss3.env --entrypoint /usr/bin/tini \
     -e COSS3_BRIDGE_GIT=git@github.com:snipstack-cloud/coss3-bridge.git \
     -e COSS3_BRIDGE_REF=verified \
-    -e COSS3_EXPERIMENT=$IDEA \
-    -e COSS3_RESULTS_NAME=$IDEA/$n \
+    -e COSS3_EXPERIMENT=shooters \
+    -e COSS3_RESULTS_NAME=shooters/$n \
     -e COSS3_RESULTS_GIT=git@github.com:snipstack-cloud/coss3-results.git \
     -e COSS3_RESULTS_KEY=/ssh/results_key \
-    -v ~/io-$PFX$n:/io -v ~/profile-$PFX$n:/profile \
+    -v ~/io-s$n:/io -v ~/profile-s$n:/profile \
     -v ~/.ssh/coss3_deploy:/ssh/deploy_key:ro \
     -v ~/.ssh/coss3_results:/ssh/results_key:ro \
     -v ~/coss3-git/docker/entrypoint.sh:/opt/bridge/entrypoint.sh:ro \
     coss3:2 -- /bin/bash /opt/bridge/entrypoint.sh
 done
 
-docker logs -f coss3-${PFX}1
+docker logs -f coss3-s1
 ```
 
 Число партий на копию берётся из флагов идеи (`--episodes 3`), поэтому
@@ -259,14 +259,15 @@ docker logs -f coss3-${PFX}1
 метке `verified` (частый случай: идею завели на `master`, а контейнер берёт
 `verified`). Флагов нет — серия проверяет базу под именем идеи.
 
-**Две строки с `:?` в начале шаблона — не украшение.** 14.09 серия `shooters`
+**Почему без переменных.** 14.09 серия `shooters`
 отыграла пятнадцать минут впустую: переменные задавались в одной оболочке, а
 `docker run` шёл из другой, и в контейнер уехали `COSS3_EXPERIMENT=` (пусто) и
 `COSS3_RESULTS_NAME=/1`. Идея не прочиталась, подсказки не подмешались, партия
 пошла одна вместо трёх — а узнали мы об этом из отчёта, где стояло «Прогон:
-одиночный прогон». Теперь такой запуск отвергает и оболочка (`:?`), и сам
-контейнер: пустой сегмент в `COSS3_RESULTS_NAME` — всегда описка подстановки,
-законного случая нет.
+одиночный прогон». Поэтому имя идеи пишется в команде буквально, а
+подстраховкой стоит сам контейнер: пустой сегмент в `COSS3_RESULTS_NAME`
+(`/x`, `x/`, `x//y`) — всегда описка подстановки, законного случая нет, и
+`entrypoint` на нём отказывается стартовать ДО игры.
 
 Остановить и убрать:
 
