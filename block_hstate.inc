@@ -255,6 +255,10 @@
       [*] = ;                    + ',iron' + IntToStr(hsfir) + ',coal' + IntToStr(hsfc) + ' ';
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         // Always write the key, even empty: a missing line and 'none' look the
+      [*] = ;         // same from Python, and 14.09 we spent a round guessing which it was.
+      [*] = ;         if (hsfl = '') then
+      [*] = ;         hsfl := 'none-found';
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsfl);
       [*] = ;         // --- wood and stone on the ground, within reach --------------------
       [*] = ;         //
