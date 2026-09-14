@@ -410,8 +410,10 @@ SYSTEM_CRITIC = """\
  "гипотеза": "что изменить в следующей партии, одним действием",
  "как_проверить": "по какому числу будет видно, сработало ли"}
 
-По-русски, коротко, с числами из данных. Не предлагай того, чего у бота нет:
-команды — BUILD, TRAIN, BALANCE, BUILDERS, SEED, UPGRADE, ATTACK."""
+По-русски. КАЖДОЕ ПОЛЕ — ОДНО ПРЕДЛОЖЕНИЕ, не длиннее 20 слов; внутри строк не
+переноси строки и не ставь кавычек. Ничего, кроме JSON: ни пояснений до, ни
+после, ни разметки ```. Не предлагай того, чего у бота нет: команды — BUILD,
+TRAIN, BALANCE, BUILDERS, SEED, UPGRADE, ATTACK."""
 
 
 KEY_FILES = ("nim_key.txt", os.path.expanduser("~/.coss3_nim_key"))
@@ -749,6 +751,30 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
         except OSError:
             pass                            # трасса не должна ронять партию
     return "победа" if исход == "win" else "поражение"
+
+
+def отметить_конец(a, st: dict, gt: int, исход: str) -> None:
+    """Запись `finish` в трассу. Без неё отчёт не знает, чем кончилась партия.
+
+    14.09: цель и горизонт возвращались из цикла простым return, запись делал
+    только конец_партии (победа/поражение от игры). В трассе отметки не было, а
+    run_report ищет именно её — и пятнадцать партий, среди которых была ВЗЯТАЯ
+    ЦЕЛЬ на 12:07, вышли в отчёте как «не кончилась, цель не взята». Ошибка
+    измерения, вторая в проекте после счёта крестьян врага от старта.
+    """
+    if not a.botlog:
+        return
+    try:
+        with open(a.botlog, "a", encoding="utf-8") as f:
+            f.write(json.dumps({
+                "gt": int(gt), "finish": исход,
+                "state": {k: _чис(st.get(k)) for k in (
+                    "gametime", "peasants", "mil_inf", "mil_shooters",
+                    "food", "wood", "stone", "gold", "iron", "my_farmused")
+                    if st.get(k) is not None},
+            }, ensure_ascii=False) + "\n")
+    except OSError:
+        pass                                # трасса не должна ронять партию
 
 
 def stalled(d: str, plind: int, no_mode: bool) -> None:
@@ -2434,7 +2460,11 @@ def ask(client, model: str, prompt: str, think: bool = False,
         raise ValueError(
             f"ответ обрезан на {MAX_TOKENS} токенах, до JSON модель не дошла. "
             f"Хвост: ...{text[-160:]}")
-    raise ValueError(f"нет разбираемого JSON (finish_reason={fin}): {text[:300]}")
+    # Показываем ответ ЦЕЛИКОМ (до 2000 символов). 14.09 здесь стояло 300, и
+    # четыре подряд неудачи критика выглядели как «ответ обрезан провайдером»,
+    # хотя обрезал их сам этот print. Чинить по обрезанной улике нельзя.
+    raise ValueError(f"нет разбираемого JSON (finish_reason={fin}), "
+                     f"длина {len(text)}: {text[:2000]}")
 
 
 def одна_партия(a, client, br: Bridge, plind: int,
@@ -2724,6 +2754,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                     темп_игры()
                     print(f"ЦЕЛЬ ДОСТИГНУТА на {mm}:{ss:02d}: крестьян у врага "
                           f"{base_enemy} -> {en}, убито {base_enemy - en}")
+                    отметить_конец(a, st, gt, "цель")
                     return "цель"
                 else:
                     # Враг вырос — запоминаем новое число. Без этого сравнение
@@ -3134,11 +3165,13 @@ def одна_партия(a, client, br: Bridge, plind: int,
             темп_игры()
             _м, _с = divmod(int(a.stop_at), 60)
             print(f"учебный отрезок {_м}:{_с:02d} пройден — начинаю новую партию")
+            отметить_конец(a, st, gt, "отрезок")
             return "отрезок"
         if gt - gt0 >= a.horizon:
             print()
             темп_игры()
             print(f"горизонт {a.horizon} исчерпан, цель не достигнута")
+            отметить_конец(a, st, gt, "горизонт")
             return "горизонт"
 
 
@@ -3167,7 +3200,7 @@ def разбор_партии(a, client, номер: int, итог: str, дне�
             # фразе (finish_reason=stop), и JSON не собрался. Боевому такту
             # 1200 хватает, потому что там короткий план, а здесь — рассуждение
             # о всей партии.
-            ответ = ask(client, a.model, запрос, a.think, retry=0,
+            ответ = ask(client, a.model, запрос, a.think, retry=1,
                         max_tokens=3000)
         finally:
             globals()["SYSTEM"] = прежний
