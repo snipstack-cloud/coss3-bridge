@@ -1884,11 +1884,11 @@ ExecuteState('DoNewGame');
 |---|---|---|---|
 | `block_human.inc` | `--human-probe` | зонд: только читает и пишет файл | 72 строки |
 | `block_hstate.inc` | `--human-state` | состояние: один проход по объектам → `coss3_eco_P<n>.dat` | **620** |
-| `block_hcmd.inc` | `--human-cmd` | BUILD, TRAIN, BALANCE (в том числе шахты), UPGRADE, ATTACK, **MOVE**, BUILDERS | **740** |
+| `block_hcmd.inc` | `--human-cmd` | BUILD, TRAIN, BALANCE (в том числе шахты), UPGRADE, ATTACK, **MOVE**, BUILDERS | **744** |
 | `block_gameloop.inc` | ставится всегда | пульс и команды живой партии: `NEW`, `END`, условия партии включая `balloon` | **157** |
 | `block_endgame.inc` | `--endgame` | конец партии: исход наружу и `NEW` с экрана поражения | 109 |
 
-**Установленный `progress.inc` — 1708 строк** (15.09, с судьбой волны, позицией войск и MOVE;
+**Установленный `progress.inc` — 1712 строк** (15.09, с судьбой волны, позицией войск и MOVE;
 чистый там 188; замерено установкой в песочницу из настоящих скриптов игры).
 Числа у Steam и GOG ОДИНАКОВЫЕ — прежняя запись про разницу в 61 строку
 неверна, см. `RESUME.md`. **188 строк означает, что не

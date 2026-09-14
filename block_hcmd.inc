@@ -595,6 +595,11 @@
       [*] = ;         ParserClearByHandle(hah);
       [*] = ;         var haok : Boolean = ParserLoadFromFileByHandle(hah, hapath);
       [*] = ;         DeleteFileStream(hapath);
+      [*] = ;         // Mode is read HERE, before the condition that uses it. First try put
+      [*] = ;         // the declaration inside the block and the test in its own condition -
+      [*] = ;         // a name used before it is declared. The whole Progress tick stopped
+      [*] = ;         // compiling, exactly as PROGRESS.md 5.4 describes.
+      [*] = ;         var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
       [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move')) then
       [*] = ;         begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, 'count');
@@ -604,7 +609,6 @@
       [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
       [*] = ;            // stand aside, take a place in advance - was physically impossible.
       [*] = ;            // Empty mode means attack: an older client sends no such key.
-      [*] = ;            var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
       [*] = ;            var haph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;            var han : Integer = GetPlayerGameObjectsCountByHandle(haph);
       [*] = ;            // Our own anchor point: the ATTACK file is read outside the command
