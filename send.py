@@ -13,6 +13,7 @@
     python send.py upg:food140
     python send.py --dir "C:\\Users\\LapSt\\coss3-io" --plind 1 store=3
     python send.py --attack 12               # волна из 12 бойцов, вне перемирия
+    python send.py --move 5                  # двинуть пятерых домой, БЕЗ боя
     python send.py --mode 1                  # билд-ордер ведёт модель
     python send.py --end                     # сдаться (эпизод окончен)
     python send.py --new                     # переиграть игру
@@ -140,6 +141,11 @@ def main() -> int:
     ap.add_argument("--once", action="store_true", help="отправить один раз и выйти")
     ap.add_argument("--attack", type=int, default=0,
                     help="отправить в атаку N свободных бойцов (только вне перемирия)")
+    ap.add_argument("--move", type=int, default=0,
+                    help="двинуть N свободных бойцов БЕЗ боя (перемирие не мешает)")
+    ap.add_argument("--move-target", default="home",
+                    choices=("home", "peasants", "base", "army"),
+                    help="куда двигать: home — к своей ратуше (по умолчанию)")
     ap.add_argument("--mode", type=int, choices=(0, 1), default=None,
                     help="1 — билд-ордер ведёт модель (нативный выключен), 0 — как в оригинале")
     ap.add_argument("--end", action="store_true",
@@ -224,6 +230,20 @@ def main() -> int:
         print(f"{cmd}: блок ответил '{ack.get('done')}', "
               f"gamemode={ack.get('gamemode')}, victorystate={ack.get('victory')}, "
               f"игровое время {ack.get('gametime')}")
+        return 0
+
+    if a.move:
+        # Руками, без модели: единственный способ проверить MOVE на живой игре
+        # отдельно от всего остального. Перемирие движению не мешает - бой оно
+        # запрещает, ходьбу нет.
+        plind = a.plind if a.plind is not None else find_ai_plind(d)
+        if plind is None:
+            print("не нашёл слот игрока")
+            return 1
+        br = Bridge(d, plind)
+        ушло = br.attack(a.move, a.move_target, mode="move")
+        print(f"MOVE {a.move} -> {a.move_target} отправлен" if ушло
+              else "предыдущий приказ ещё не забран игрой")
         return 0
 
     if a.attack:
