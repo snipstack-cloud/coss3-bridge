@@ -3236,7 +3236,9 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "my_stores", "mines_iron", "mines_gold", "mines_coal",
                         "mil_inf", "mil_shooters", "my_freewar", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
-                        "wave_sent",
+                        # Судьба волны: без неё по трассе снова нельзя отличить
+                        # «погибли по дороге» от «дошли и не справились».
+                        "wave_sent", "mil_away", "mil_hurt", "mil_far",
                         "can_now", "cant_now", "fighters",
                         "wood_slots_near", "wood_slots_free",
                         "stone_slots_near", "stone_slots_free",
