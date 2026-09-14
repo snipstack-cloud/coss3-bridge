@@ -299,6 +299,8 @@ class Мир:
              # говорит.
              "mil_away": self.волна, "mil_hurt": 0,
              "mil_far": 210 if self.волна else 0,
+             "mil_near": 150 if self.волна else 0,
+             "mil_side": "NE" if self.волна else "",
              "my_freewar": max(0, self.армия - self.волна),
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],

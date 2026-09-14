@@ -175,6 +175,10 @@
       [*] = ;         // the first loop - a soldier met before the town centre would have been
       [*] = ;         // measured from 0,0.
       [*] = ;         var hswaway : Integer = 0;   // soldiers further than 60 from our centre
+      [*] = ;         var hswnear : Integer = 0;   // and how close the NEAREST of them is
+      [*] = ;         var hswsx   : Float = 0;     // sum of dx of those away - gives the side
+      [*] = ;         var hswsz   : Float = 0;     // sum of dz; sign of the sum is the sign of the mean
+      [*] = ;         var hswside : String = '';   // N/S/E/W, as for ore deposits
       [*] = ;         var hswhurt : Integer = 0;   // soldiers with hp below max - being hit
       [*] = ;         var hswfar  : Integer = 0;   // how far the furthest one got
       [*] = ;         if (hscen > 0) then
@@ -195,7 +199,13 @@
       [*] = ;                        GetGameObjectPositionXByHandle(hswh), 0,
       [*] = ;                        GetGameObjectPositionZByHandle(hswh), hscx, 0, hscz));
       [*] = ;                     if (hswd > 60) then
-      [*] = ;                     hswaway := hswaway + 1;
+      [*] = ;                     begin
+      [*] = ;                        hswaway := hswaway + 1;
+      [*] = ;                        if (hswnear = 0) or (hswd < hswnear) then
+      [*] = ;                        hswnear := hswd;
+      [*] = ;                        hswsx := hswsx + (GetGameObjectPositionXByHandle(hswh) - hscx);
+      [*] = ;                        hswsz := hswsz + (GetGameObjectPositionZByHandle(hswh) - hscz);
+      [*] = ;                     end;
       [*] = ;                     if (hswd > hswfar) then
       [*] = ;                     hswfar := hswd;
       [*] = ;                     if (TObj(hswo).hp < gPlayer[plind].objbase[TObj(hswo).cid][TObj(hswo).id].maxhp) then
@@ -204,7 +214,18 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         // Side as a word, exactly as for ore above: a human reads the minimap.
+      [*] = ;         // The SUM is enough - its sign is the sign of the mean, and no division.
+      [*] = ;         if (hswaway > 0) then
+      [*] = ;         begin
+      [*] = ;            if (hswsz < -0.5*Abs(hswsx)) then hswside := 'N';
+      [*] = ;            if (hswsz >  0.5*Abs(hswsx)) then hswside := 'S';
+      [*] = ;            if (hswsx >  0.5*Abs(hswsz)) then hswside := hswside + 'E';
+      [*] = ;            if (hswsx < -0.5*Abs(hswsz)) then hswside := hswside + 'W';
+      [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_away', hswaway);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_near', hswnear);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'mil_side', hswside);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_hurt', hswhurt);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_far',  hswfar);
       [*] = ;         // WAVE_SENT: how many were in the LAST wave we sent.
