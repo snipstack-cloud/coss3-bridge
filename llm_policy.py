@@ -311,6 +311,10 @@ infantry17, musk17.
     и ПАРОЙ в том же ответе: {"cmd":"BALANCE","role":"wood","total":40}
   людей на еду (ЧИСЛО):   {"cmd":"BALANCE","role":"food","total":8}
   волна из трёх на крестьян: {"cmd":"ATTACK","count":3,"target":"peasants"}
+  отвести пятерых домой БЕЗ боя: {"cmd":"MOVE","count":5,"target":"home"}
+    MOVE двигает и не ищет врага по дороге; цели home, peasants, base, army.
+    Берёт только СВОБОДНЫХ бойцов: того, кто уже идёт в волне, вернуть нельзя.
+    MOVE и ATTACK в одном ответе не ужиться — файл приказа один.
   апгрейд (имя из списка): {"cmd":"UPGRADE","role":"mil.1"}
   не больше 3 строителей: {"cmd":"BUILDERS","total":3}
   засеять поля:           {"cmd":"SEED"}
@@ -2401,7 +2405,7 @@ def нормализовать(item: dict) -> tuple[str, str, int]:
 
 
 def to_commands(data: dict, доступные: set[str] | None = None
-                ) -> tuple[list, int, str, list[str]]:
+                ) -> tuple[list, int, str, list[str], str, int, str]:
     """JSON модели -> команды моста. Что не разобралось — возвращаем строками.
 
     Раньше непонятное отбрасывалось молча, и потерянная команда была неотличима
@@ -2410,6 +2414,7 @@ def to_commands(data: dict, доступные: set[str] | None = None
     """
     cmds, attack, брак = [], 0, []
     цель_атаки = "base"
+    движение, цель_движения = 0, "home"
     for item in (data.get("commands") or [])[:6]:
         if not isinstance(item, dict):
             брак.append(f"{item!r}: команда должна быть объектом JSON")
@@ -2453,6 +2458,21 @@ def to_commands(data: dict, доступные: set[str] | None = None
                     брак.append(f"UPGRADE: нужно имя в поле role (поля: {поля})")
                 else:
                     cmds.append(upgrade(role))
+            elif c == "MOVE":
+                # То же движение, что у ATTACK, но без режима атаки: бойцы идут
+                # и не ищут врага по дороге. Человек двигает войска кликом и не
+                # обязан вести их в бой; у бота такой возможности не было вовсе.
+                if total > 0:
+                    движение = max(движение, total)
+                    цель = str(item.get("target", item.get("where", ""))).strip().lower()
+                    if цель in ("home", "peasants", "base", "army"):
+                        цель_движения = цель
+                    elif цель:
+                        брак.append(f"MOVE target={цель}: не знаю такой цели; "
+                                    f"можно home, peasants, base, army")
+                else:
+                    брак.append(f"MOVE: нужно число бойцов > 0 в поле count"
+                                f" (поля: {поля})")
             elif c == "ATTACK":
                 if total > 0:
                     attack = max(attack, total)
@@ -2486,7 +2506,14 @@ def to_commands(data: dict, доступные: set[str] | None = None
                 брак.append(f"{c or '?'}: нет такой команды (поля: {поля})")
         except ValueError as e:
             брак.append(f"{c} {role}: {e}")
-    return cmds, attack, str(data.get("why", ""))[:200], брак, цель_атаки
+    # Атака важнее движения: если модель отдала обе, идём в бой, а про
+    # проглоченный MOVE говорим вслух - молчаливый отброс неотличим от отказа.
+    if attack and движение:
+        брак.append("MOVE и ATTACK в одном ответе: выполнен ATTACK, "
+                    "движение пропущено — файл приказа один")
+        движение = 0
+    return (cmds, attack, str(data.get("why", ""))[:200], брак, цель_атаки,
+            движение, цель_движения)
 
 
 MAX_TOKENS = 1200         # с запасом: обрезанный ответ теряет весь такт
@@ -3062,7 +3089,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
         _дост = {x.split("=", 1)[0].strip()
                  for x in str(st.get("upg_avail", "") or "").split(",")
                  if x.strip()}
-        cmds, attack, why, брак, цель_атаки = to_commands(box["data"], _дост)
+        (cmds, attack, why, брак, цель_атаки,
+         движение, цель_движения) = to_commands(box["data"], _дост)
         # Заниженная волна. Считаем ЗДЕСЬ, а не у отправки ниже: трасса такта
         # пишется раньше отправки, и вето, посчитанное позже, в неё не попало бы
         # — а именно по трассе потом разбирают партию.
@@ -3184,6 +3212,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
             print(f"        {c.cmd} {c.a1} -> {c.a2}" + (f" {c.upg}" if c.upg else ""))
         if attack:
             print(f"        ATTACK {attack} -> {цель_атаки}")
+        if движение:
+            print(f"        MOVE {движение} -> {цель_движения}")
         if вето_волны:
             print(f"        ВЕТО МОСТА: {вето_волны}")
         if принуждение:
@@ -3338,6 +3368,20 @@ def одна_партия(a, client, br: Bridge, plind: int,
             прошлый_заказ = [т for т in прошлый_заказ if т[0] != "ATTACK"]
         if cmds and br.send(cmds):
             br.wait_consumed(timeout=15)
+        # MOVE уходит ДО атаки и отдельно от неё: главный случай — движение без
+        # боя вовсе, и прятать его внутрь веток ATTACK значило бы потерять.
+        # Файл приказа один, поэтому обе команды разом не отдать: to_commands
+        # это ловит и говорит вслух.
+        if движение:
+            св = int(st.get("my_freewar", 0) or 0)
+            if св <= 0:
+                print(f"        MOVE {движение} не отправлен: свободных бойцов нет "
+                      f"— идущие в походе своего приказа не бросают")
+            elif not br.attack(движение, цель_движения, mode="move"):
+                print(f"        MOVE {движение} не отправлен: прошлый приказ ещё "
+                      f"не забран игрой")
+            else:
+                print(f"        MOVE {движение} -> {цель_движения} (без боя)")
         if attack and not вето_волны:
             св = int(st.get("my_freewar", 0) or 0)
             аг = int(st.get("my_agressors", 0) or 0)

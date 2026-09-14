@@ -249,6 +249,20 @@ class Мир:
         os.unlink(путь)
         хотят = int(пары.get("count", 0) or 0)
         цель = пары.get("target", "base")
+        # MOVE: тот же файл приказа, другой режим. Мок обязан знать про него,
+        # иначе движение выглядело бы как атака и петля проверялась бы вслепую.
+        if пары.get("mode", "") == "move":
+            свободных = self.армия - self.волна
+            ушло = min(хотят, свободных)
+            if ушло <= 0:
+                self.отказ = f"MOVE {хотят}: no free soldiers"
+                print("mock-human: " + self.отказ, flush=True)
+                return
+            # Движение без боя: бойцы уходят от базы, но волной НЕ считаются —
+            # wave_sent остаётся прежним, как и в игре.
+            self.ушли_без_боя = ушло
+            print(f"mock-human: MOVE {ушло} target={цель} (без боя)", flush=True)
+            return
         свободных = self.армия - self.волна
         if хотят > свободных:
             self.отказ = f"ATTACK {хотят}: only {свободных} soldiers are free"
@@ -297,10 +311,11 @@ class Мир:
              # Числа грубые (мок не водит бойцов по карте), важна ФОРМА и то,
              # что поля вообще есть: без них разбор молчал бы там, где игра
              # говорит.
-             "mil_away": self.волна, "mil_hurt": 0,
-             "mil_far": 210 if self.волна else 0,
-             "mil_near": 150 if self.волна else 0,
-             "mil_side": "NE" if self.волна else "",
+             "mil_away": self.волна + getattr(self, "ушли_без_боя", 0),
+             "mil_hurt": 0,
+             "mil_far": 210 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
+             "mil_near": 150 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
+             "mil_side": "NE" if (self.волна or getattr(self, "ушли_без_боя", 0)) else "",
              "my_freewar": max(0, self.армия - self.волна),
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],

@@ -449,8 +449,11 @@ class Bridge:
             pass
 
     ЦЕЛИ_АТАКИ = ("peasants", "base", "army")
+    # MOVE ходит туда же, куда ATTACK, плюс домой. 'home' — единственная цель,
+    # которой не нужен враг: это наша собственная ратуша.
+    ЦЕЛИ_ДВИЖЕНИЯ = ("home", "peasants", "base", "army")
 
-    def attack(self, count: int, target: str = "base") -> bool:
+    def attack(self, count: int, target: str = "base", mode: str = "") -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -464,10 +467,17 @@ class Bridge:
         False, если предыдущий приказ ещё не забран."""
         if os.path.exists(self.atk_path):
             return False
-        цель = str(target or "base").strip().lower()
-        if цель not in self.ЦЕЛИ_АТАКИ:
-            цель = "base"
-        text = dump_parser_file("br_atk", {"count": int(count), "target": цель})
+        движение = str(mode or "").strip().lower() == "move"
+        годные = self.ЦЕЛИ_ДВИЖЕНИЯ if движение else self.ЦЕЛИ_АТАКИ
+        цель = str(target or ("home" if движение else "base")).strip().lower()
+        if цель not in годные:
+            цель = "home" if движение else "base"
+        # Пустой mode означает атаку: старый блок такого ключа не знает и просто
+        # его не прочитает, поведение остаётся прежним.
+        приказ = {"count": int(count), "target": цель}
+        if движение:
+            приказ["mode"] = "move"
+        text = dump_parser_file("br_atk", приказ)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="latin-1") as f:

@@ -595,10 +595,16 @@
       [*] = ;         ParserClearByHandle(hah);
       [*] = ;         var haok : Boolean = ParserLoadFromFileByHandle(hah, hapath);
       [*] = ;         DeleteFileStream(hapath);
-      [*] = ;         if (haok) and (not gbool_peacemode) then
+      [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move')) then
       [*] = ;         begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, 'count');
       [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, 'target');
+      [*] = ;            // MOVE: the same order file, only the mode differs. A player moves his
+      [*] = ;            // troops wherever he likes with a click and is not obliged to send them
+      [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
+      [*] = ;            // stand aside, take a place in advance - was physically impossible.
+      [*] = ;            // Empty mode means attack: an older client sends no such key.
+      [*] = ;            var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
       [*] = ;            var haph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;            var han : Integer = GetPlayerGameObjectsCountByHandle(haph);
       [*] = ;            // Our own anchor point: the ATTACK file is read outside the command
@@ -683,6 +689,13 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // 'home' is our own anchor: the only target that needs no enemy at all.
+      [*] = ;            if (hatrg = 'home') then
+      [*] = ;            begin
+      [*] = ;               hatx := hax;
+      [*] = ;               hatz := haz;
+      [*] = ;               hafound := True;
+      [*] = ;            end;
       [*] = ;            if (hafound) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
       [*] = ;               // ONE GROUP PER WAVE. The name used to be the same for every wave, and
@@ -699,6 +712,17 @@
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               GroupAddGameObjectByHandle(hagr, gIntegerList.Get(hak));
       [*] = ;               _group_Initialize(hagr, nil);
+      [*] = ;               if (hamode = 'move') then
+      [*] = ;               begin
+      [*] = ;                  // No _unit_ListSetSearchEnemy here on purpose: that is what turns a
+      [*] = ;                  // walk into a hunt. Mode default is how the game itself moves a
+      [*] = ;                  // group - player.script:2503.
+      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, 0, 1,
+      [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                  Log('bridge-human: MOVE ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
+      [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;               end
+      [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then
       [*] = ;               begin
       [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, 0, 1,
