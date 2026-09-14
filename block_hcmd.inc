@@ -685,7 +685,16 @@
       [*] = ;            end;
       [*] = ;            if (hafound) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
-      [*] = ;               var hagr : Integer = _misc_GetOrCreateGroupByName(haph, 'coss3_bridge_wave');
+      [*] = ;               // ONE GROUP PER WAVE. The name used to be the same for every wave, and
+      [*] = ;               // GroupClearGameObjectsByHandle threw out of it those ALREADY MARCHING:
+      [*] = ;               // the first wave lost its group and its order the moment the second one
+      [*] = ;               // left. The numbers show it plainly - 14.09, nine games: 35 waves, 1139
+      [*] = ;               // soldiers sent, zero enemy peasants killed AND zero losses of our own.
+      [*] = ;               // The army went out and never arrived. HANDOFF describes the same thing
+      [*] = ;               // on the AI side, where the cause sat elsewhere.
+      [*] = ;               // Eight names in a circle: no more waves than that live at once.
+      [*] = ;               var hagname : String = 'coss3_wave_' + IntToStr(Round(GetGameTime) mod 8);
+      [*] = ;               var hagr : Integer = _misc_GetOrCreateGroupByName(haph, hagname);
       [*] = ;               GroupClearGameObjectsByHandle(hagr);
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               GroupAddGameObjectByHandle(hagr, gIntegerList.Get(hak));
