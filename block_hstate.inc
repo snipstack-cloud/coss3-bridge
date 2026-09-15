@@ -244,10 +244,16 @@
       [*] = ;         // So the name now says what it measures. How many are still ALIVE is
       [*] = ;         // a different question and needs a different way to count - the group
       [*] = ;         // cannot answer it.
-      [*] = ;         var hswg : String = 'coss3_bridge_wave';
-      [*] = ;         var hswave : Integer = _misc_GetOrCreateGroupByName(hsph, hswg);
-      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wave_sent',
-      [*] = ;                                        GetGroupCountGameObjectsByHandle(hswave));
+      [*] = ;         // We read exactly what block_hcmd writes when a wave leaves. Before,
+      [*] = ;         // this counted the group 'coss3_bridge_wave', but since 14.09 waves go
+      [*] = ;         // into coss3_wave_0..7 - the old group is empty forever, so wave_sent
+      [*] = ;         // lied zero in every run since, and the model was told 'no waves' right
+      [*] = ;         // after sending one. Writer and reader must name the same thing.
+      [*] = ;         var hswp : Integer = ParserSelectByKey('br_hwave');
+      [*] = ;         var hswave : Integer = 0;
+      [*] = ;         if (hswp <> 0) then
+      [*] = ;         hswave := ParserGetIntValueByKeyByHandle(hswp, 'sent');
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wave_sent', hswave);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'objects',   hscount);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'peasants',  hspea);
       [*] = ;         // No town centre yet means no position, and en_near_dist is measured

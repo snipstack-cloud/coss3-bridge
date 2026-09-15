@@ -733,6 +733,16 @@
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_attack);
       [*] = ;                  Log('bridge-human: ATTACK ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
       [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                  // Wave size goes into a NAMED PARSER, not into a group. 14.09 the
+      [*] = ;                  // 'one group per wave' fix renamed the groups to coss3_wave_0..7,
+      [*] = ;                  // and block_hstate went on counting the old coss3_bridge_wave -
+      [*] = ;                  // empty forever. wave_sent was zero in EVERY run since, and the
+      [*] = ;                  // model read 'no waves at all' right after sending one.
+      [*] = ;                  // A named parser lives between ticks and knows nothing of groups.
+      [*] = ;                  var hawp : Integer = ParserSelectByKey('br_hwave');
+      [*] = ;                  if (hawp = 0) then
+      [*] = ;                  hawp := ParserCreate('br_hwave');
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
       [*] = ;               end;
       [*] = ;            end
       [*] = ;            else
