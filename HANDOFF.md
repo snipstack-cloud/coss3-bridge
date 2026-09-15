@@ -1883,7 +1883,7 @@ ExecuteState('DoNewGame');
 | блок | флаг | что делает | размер |
 |---|---|---|---|
 | `block_human.inc` | `--human-probe` | зонд: только читает и пишет файл | 72 строки |
-| `block_hstate.inc` | `--human-state` | состояние: один проход по объектам → `coss3_eco_P<n>.dat` | **660** |
+| `block_hstate.inc` | `--human-state` | состояние: один проход по объектам → `coss3_eco_P<n>.dat` | **693** |
 | `block_hcmd.inc` | `--human-cmd` | BUILD, TRAIN, BALANCE (шахты — по каждой отдельно), UPGRADE, ATTACK, **MOVE**, BUILDERS | **838** |
 | `block_gameloop.inc` | ставится всегда | пульс и команды живой партии: `NEW`, `END`, условия партии включая `balloon` | **157** |
 | `block_endgame.inc` | `--endgame` | конец партии: исход наружу и `NEW` с экрана поражения | 109 |

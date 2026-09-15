@@ -95,8 +95,41 @@
       [*] = ;                     if (hsrole = gc_ai_unit_minegold) then hswn := 'minegold';
       [*] = ;                     if (hsrole = gc_ai_unit_mineiron) then hswn := 'mineiron';
       [*] = ;                     if (hsrole = gc_ai_unit_minecoal) then hswn := 'minecoal';
+      [*] = ;                     // How many ACTUALLY build it and how far it has come. A player sees
+      [*] = ;                     // both: he counts the workers around the site with his eyes, and the
+      [*] = ;                     // bar shows readiness - for an unfinished building that bar IS hp
+      [*] = ;                     // growing to maxhp, which is how the engine itself decides that more
+      [*] = ;                     // building is possible (hp < maxhp, menu.inc/doupdatecursor.inc:93).
+      [*] = ;                     // Without these two numbers the model could not learn what one extra
+      [*] = ;                     // builder is worth.
+      [*] = ;                     var hsbcnt : Integer = 0;
+      [*] = ;                     var hsbuid : Integer = GetGameObjectUniqueIdByHandle(hsgo);
+      [*] = ;                     var hsbk : Integer;
+      [*] = ;                     for hsbk := 0 to hscount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hsbgo : Integer = GetGameObjectHandleByIndex(hsbk, hsph);
+      [*] = ;                        var hsbpo : Pointer = _unit_GetTObj(hsbgo);
+      [*] = ;                        if (hsbpo<>nil) then
+      [*] = ;                        if (gObjProp[TObj(hsbpo).cid][TObj(hsbpo).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                        begin
+      [*] = ;                           var hsbot : Integer = TObj(hsbpo).orders[0].itype;
+      [*] = ;                           if (hsbot = gc_obj_order_type_build) or (hsbot = gc_obj_order_type_repair) then
+      [*] = ;                           begin
+      [*] = ;                              // The order target comes as a handle in some paths and as a
+      [*] = ;                              // unique id in others - compare with both instead of guessing.
+      [*] = ;                              var hsbtrg : Integer = TObj(hsbpo).orders[0].info.trg;
+      [*] = ;                              if (hsbtrg = hsgo) or (hsbtrg = hsbuid) then
+      [*] = ;                              hsbcnt := hsbcnt + 1;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     var hspct : Integer = 0;
+      [*] = ;                     var hsmax : Integer = gPlayer[plind].objbase[hsuc][hsui].maxhp;
+      [*] = ;                     if (hsmax > 0) then
+      [*] = ;                     hspct := Round((TObj(hspo).hp * 100) / hsmax);
       [*] = ;                     if (hswip <> '') then hswip := hswip + ',';
-      [*] = ;                     hswip := hswip + hswn + '/' + IntToStr(gCustomObjPoints[hsuc, hsui].builderCount);
+      [*] = ;                     hswip := hswip + hswn + '/' + IntToStr(gCustomObjPoints[hsuc, hsui].builderCount) +
+      [*] = ;                          '/' + IntToStr(hsbcnt) + '/' + IntToStr(hspct);
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  begin
