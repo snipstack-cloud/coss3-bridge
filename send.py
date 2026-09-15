@@ -35,7 +35,8 @@ import re
 import time
 
 from coss3_bridge import (Bridge, ROLE, BUILDABLE, UPGRADES, RESOURCE,
-                           build, train, upgrade, mode, balance, seed)
+                           build, train, upgrade, mode, balance, seed,
+                           builders)
 
 # роль -> ключ состояния, чтобы показывать прогресс
 ROLE_KEY = {
@@ -152,6 +153,15 @@ def parse_targets(tokens: list[str]):
             continue
         if tok == "seed":
             cmds.append(seed())
+            continue
+        if tok.startswith("builders:"):
+            # Потолок крестьян на ОДНУ стройку. Без него шахта закладывается и
+            # ползёт одним человеком, а строка прогресса показывает 18
+            # «свободных» — 15.09 на это ушла проверка целиком.
+            чис = tok[9:]
+            if not чис.isdigit() or int(чис) <= 0:
+                raise SystemExit("нужно builders:ЧИСЛО > 0")
+            cmds.append(builders(int(чис)))
             continue
         if tok.startswith("balance:"):
             # BALANCE на человеческом слоте — это ЧИСЛО ЛЮДЕЙ на ресурсе, и без
@@ -366,7 +376,15 @@ def main() -> int:
                 return int(float(st.get(k, 0) or 0))
             except (TypeError, ValueError):
                 return 0
-        своб = max(0, ц("peasants") - ц("on_food") - ц("on_wood") - ц("on_stone"))
+        # Свободные: только те, у кого НЕТ приказа. Прежняя формула вычитала
+        # лишь добытчиков, поэтому строители и шахтёры считались свободными —
+        # отсюда «своб=18» при стройке, которая не двигается.
+        своб = (ц("idle_pea") if "idle_pea" in st else
+                max(0, ц("peasants") - ц("on_food") - ц("on_wood")
+                    - ц("on_stone") - ц("on_mine") - ц("on_build")))
+        занятия = f" стройка={ц('on_build')} шахты={ц('on_mine')}"
+        if "on_gold" in st:
+            занятия += f" (з{ц('on_gold')}/ж{ц('on_iron')}/у{ц('on_coal')})"
         места = (f"  мест={ц('my_farmused')}/{ц('my_farm')}"
                  if st.get("my_farm") is not None else "")
         print(f"  t={st.get('gametime'):>5}s  {progress(st)}  "
@@ -378,8 +396,8 @@ def main() -> int:
               f" ({st.get('building_now', '?')})  "
               f"еда={st.get('food')}  дерево={st.get('wood')}  "
               f"камень={st.get('stone')}  "
-              f"на еде/дер/кам={ц('on_food')}/{ц('on_wood')}/{ц('on_stone')} "
-              f"своб={своб}{места}")
+              f"на еде/дер/кам={ц('on_food')}/{ц('on_wood')}/{ц('on_stone')}"
+              f"{занятия} своб={своб}{места}")
         if done and goals:
             print(f"\nГОТОВО: цель достигнута, команд отправлено {sent}.")
             return 0
