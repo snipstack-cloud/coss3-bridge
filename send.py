@@ -104,6 +104,41 @@ def find_ai_plind(d: str, fresh: float = 60) -> int | None:
     return человек if человек is not None else комп
 
 
+def почему_нет_слота(d: str, fresh: float = 60) -> str:
+    """Почему слот не нашёлся — по файлам, а не по догадке.
+
+    Прежний текст спрашивал про компьютерного оппонента — наследство прежней
+    конструкции. С 11.09 бот играет ЧЕЛОВЕЧЕСКИМ слотом, и настоящих причин
+    три: партия не идёт (в главном меню состояние не пишется), блок состояния
+    не стоит, либо в папке лежит протухший файл от прошлого запуска. Правило 1
+    проекта: молчаливый отброс неотличим от бездействия — пусть команда
+    называет причину сама.
+    """
+    сейчас = time.time()
+    найдено = []
+    for name in sorted(os.listdir(d)):
+        m = re.fullmatch(r"coss3_eco_P(\d+)\.dat", name)
+        if not m:
+            continue
+        возраст = сейчас - os.path.getmtime(os.path.join(d, name))
+        найдено.append((name, возраст))
+    if not найдено:
+        return ("файлов состояния coss3_eco_P*.dat в папке игры НЕТ.\n"
+                "  Состояние пишется только ВО ВРЕМЯ ПАРТИИ и только если стоит\n"
+                "  блок --human-state. В главном меню его не будет: начните бой\n"
+                "  тем же send.py с ключом --new.")
+    строки = "\n".join(f"    {n}: {в:.0f} с назад" for n, в in найдено)
+    свежие = [n for n, в in найдено if в <= fresh]
+    if not свежие:
+        return (f"все файлы состояния ПРОТУХЛИ (старше {fresh:.0f} с) — партия "
+                f"не идёт или тик встал:\n{строки}\n"
+                "  Залежь от прошлого запуска слотом не считается: 15.09 именно\n"
+                "  из-за неё приказ ушёл в чужой файл, и час искали поломку в блоке.")
+    return ("файлы свежие, но ни один не назвался ни человеком, ни ИИ:\n"
+            f"{строки}\n  Похоже, блок состояния пишет не то — смотрите поля "
+            "human и bai в самом файле.")
+
+
 def parse_targets(tokens: list[str]):
     """'store=3' -> BUILD, 'train:musk17=20' -> TRAIN, 'upg:food140' -> UPGRADE."""
     cmds, goals, upgs = [], {}, []
@@ -215,7 +250,7 @@ def main() -> int:
     if a.mode is not None:
         plind = a.plind if a.plind is not None else find_ai_plind(d)
         if plind is None:
-            print("не нашёл слот с bai=True")
+            print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
         clear_stale(d)
@@ -256,7 +291,7 @@ def main() -> int:
         # запрещает, ходьбу нет.
         plind = a.plind if a.plind is not None else find_ai_plind(d)
         if plind is None:
-            print("не нашёл слот игрока")
+            print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
         ушло = br.attack(a.move, a.move_target, mode="move")
@@ -267,7 +302,7 @@ def main() -> int:
     if a.attack:
         plind = a.plind if a.plind is not None else find_ai_plind(d)
         if plind is None:
-            print("не нашёл слот с bai=True")
+            print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
         st = br.read_state() or {}
@@ -282,7 +317,7 @@ def main() -> int:
 
     plind = a.plind if a.plind is not None else find_ai_plind(d)
     if plind is None:
-        print("не нашёл слот с bai=True. В матче есть компьютерный оппонент?")
+        print("слот не найден: " + почему_нет_слота(d))
         return 1
 
     br = Bridge(d, plind)
