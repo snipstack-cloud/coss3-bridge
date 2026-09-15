@@ -417,35 +417,51 @@
       [*] = ;               end;
       [*] = ;               if (hccmd = 'BALANCE') and (hca1 >= 3) and (hca1 <= 5) and (hca2 > 0) then
       [*] = ;               begin
-      [*] = ;                  // Mines: gold, iron, coal. A peasant works a mine from INSIDE,
-      [*] = ;                  // so this is not a gather order but a go-inside order. Without
-      [*] = ;                  // iron the barracks will not hire a single soldier, and on the
-      [*] = ;                  // AI side that quietly cost us whole episodes.
+      [*] = ;                  // Mines: gold, iron, coal. A peasant works a mine from INSIDE, so this is
+      [*] = ;                  // not a gather order but a go-inside order.
+      [*] = ;                  //
+      [*] = ;                  // 15.09: this branch had two blind spots, both found by counting traces.
+      [*] = ;                  // 'Already inside' counted peasants inside ANY building, so three men in the
+      [*] = ;                  // iron mine turned 'BALANCE gold 3' into a silent no-op. And only the FIRST
+      [*] = ;                  // mine of the kind was ever filled - a second gold mine stayed empty forever.
+      [*] = ;                  // Now both the counting and the filling go mine by mine, the way the engine
+      [*] = ;                  // fills them itself in _ai_FillMines (progresseconomicai.inc:1305).
       [*] = ;                  var hmrole : Integer = gc_ai_unit_minegold;
       [*] = ;                  if (hca1 = 4) then hmrole := gc_ai_unit_mineiron;
       [*] = ;                  if (hca1 = 5) then hmrole := gc_ai_unit_minecoal;
+      [*] = ;                  var hmk, hmk2 : Integer;
       [*] = ;                  var hmine : Integer = 0;
-      [*] = ;                  var hminside : Integer;
-      [*] = ;                  gTmpIntList.Clear;
-      [*] = ;                  for hck := 0 to hcobjn-1 do
+      [*] = ;                  var hminside : Integer = 0;
+      [*] = ;                  var hmfree : Integer = 0;
+      [*] = ;                  // First pass: mines of this kind built, men already inside THEM, and men
+      [*] = ;                  // free to be sent at all.
+      [*] = ;                  for hmk := 0 to hcobjn-1 do
       [*] = ;                  begin
-      [*] = ;                     var hmgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                     var hmgo : Integer = GetGameObjectHandleByIndex(hmk, hcph);
       [*] = ;                     var hmpo : Pointer = _unit_GetTObj(hmgo);
       [*] = ;                     if (hmpo<>nil) then
       [*] = ;                     begin
       [*] = ;                        if (gObjProp[TObj(hmpo).cid][TObj(hmpo).id].airole = hmrole) then
-      [*] = ;                        if (TObj(hmpo).bbuilt) and (hmine = 0) then
-      [*] = ;                        hmine := hmgo;
+      [*] = ;                        if (TObj(hmpo).bbuilt) then
+      [*] = ;                        hmine := hmine + 1;
       [*] = ;                        if (gObjProp[TObj(hmpo).cid][TObj(hmpo).id].usage = gc_obj_usage_peasant) then
       [*] = ;                        begin
       [*] = ;                           if (TObj(hmpo).insideofuid <> 0) then
-      [*] = ;                           hminside := hminside + 1
+      [*] = ;                           begin
+      [*] = ;                              var hmih : Integer = GetGameObjectHandleByUniqueId(TObj(hmpo).insideofuid);
+      [*] = ;                              var hmip : Pointer = _unit_GetTObj(hmih);
+      [*] = ;                              if (hmip<>nil) then
+      [*] = ;                              if (gObjProp[TObj(hmip).cid][TObj(hmip).id].airole = hmrole) then
+      [*] = ;                              hminside := hminside + 1;
+      [*] = ;                           end
       [*] = ;                           else
       [*] = ;                           if (TObj(hmpo).orders[0].itype = gc_obj_order_type_none) then
-      [*] = ;                           gTmpIntList.Add(hmgo);
+      [*] = ;                           hmfree := hmfree + 1;
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
+      [*] = ;                  // Silence is indistinguishable from doing nothing: every refusal says why,
+      [*] = ;                  // and the reason goes back into the next request.
       [*] = ;                  if (hmine = 0) then
       [*] = ;                  begin
       [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
@@ -453,15 +469,83 @@
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no mine built');
       [*] = ;                  end
       [*] = ;                  else
-      [*] = ;                  if (gTmpIntList.GetCount > 0) and (hminside < hca2) then
+      [*] = ;                  if (hminside >= hca2) then
       [*] = ;                  begin
-      [*] = ;                     var hmneed : Integer = hca2 - hminside;
-      [*] = ;                     while (gTmpIntList.GetCount > hmneed) do
-      [*] = ;                     gTmpIntList.Delete(gTmpIntList.GetCount-1);
-      [*] = ;                     gPtrList.Clear;
-      [*] = ;                     _player_OrderUnitsToGoInside(plind, gTmpIntList, gPtrList, hmine, True, False);
-      [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' sent ' +
-      [*] = ;                         IntToStr(gTmpIntList.GetCount) + ' peasants inside, had ' + IntToStr(hminside));
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                          ': ' + IntToStr(hminside) + ' already work that mine, asked for ' + IntToStr(hca2));
+      [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - already inside ' + IntToStr(hminside));
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  if (hmfree = 0) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                          ': no idle peasant to send, and a busy one is not taken away');
+      [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no idle peasants');
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     var hmsent : Integer = 0;
+      [*] = ;                     var hmroom : Integer = 0;
+      [*] = ;                     // Second pass: fill mine by mine, each up to its OWN free places. The
+      [*] = ;                     // formula is the engine's: places minus those inside minus those already
+      [*] = ;                     // on their way (insidereserved).
+      [*] = ;                     for hmk := 0 to hcobjn-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hmbo : Integer = GetGameObjectHandleByIndex(hmk, hcph);
+      [*] = ;                        var hmbp : Pointer = _unit_GetTObj(hmbo);
+      [*] = ;                        if (hmbp<>nil) then
+      [*] = ;                        if (gObjProp[TObj(hmbp).cid][TObj(hmbp).id].airole = hmrole) then
+      [*] = ;                        if (TObj(hmbp).bbuilt) then
+      [*] = ;                        if (hminside + hmsent < hca2) then
+      [*] = ;                        begin
+      [*] = ;                           var hmuid : Integer = GetGameObjectUniqueIdByHandle(hmbo);
+      [*] = ;                           var hmthis : Integer = 0;
+      [*] = ;                           for hmk2 := 0 to hcobjn-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hmgo2 : Integer = GetGameObjectHandleByIndex(hmk2, hcph);
+      [*] = ;                              var hmpo2 : Pointer = _unit_GetTObj(hmgo2);
+      [*] = ;                              if (hmpo2<>nil) then
+      [*] = ;                              if (gObjProp[TObj(hmpo2).cid][TObj(hmpo2).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                              if (TObj(hmpo2).insideofuid = hmuid) then
+      [*] = ;                              hmthis := hmthis + 1;
+      [*] = ;                           end;
+      [*] = ;                           hmroom := gObjProp[TObj(hmbp).cid][TObj(hmbp).id].peasantabsorber +
+      [*] = ;                                TObj(hmbp).individual.addpeasantabsorber - hmthis - TObj(hmbp).insidereserved;
+      [*] = ;                           var hmneed : Integer = hca2 - hminside - hmsent;
+      [*] = ;                           if (hmroom > hmneed) then
+      [*] = ;                           hmroom := hmneed;
+      [*] = ;                           if (hmroom > 0) then
+      [*] = ;                           begin
+      [*] = ;                              gTmpIntList.Clear;
+      [*] = ;                              for hmk2 := 0 to hcobjn-1 do
+      [*] = ;                              if (gTmpIntList.GetCount < hmroom) then
+      [*] = ;                              begin
+      [*] = ;                                 var hmgo3 : Integer = GetGameObjectHandleByIndex(hmk2, hcph);
+      [*] = ;                                 var hmpo3 : Pointer = _unit_GetTObj(hmgo3);
+      [*] = ;                                 if (hmpo3<>nil) then
+      [*] = ;                                 if (gObjProp[TObj(hmpo3).cid][TObj(hmpo3).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                                 if (TObj(hmpo3).insideofuid = 0) then
+      [*] = ;                                 if (TObj(hmpo3).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                                 gTmpIntList.Add(hmgo3);
+      [*] = ;                              end;
+      [*] = ;                              if (gTmpIntList.GetCount > 0) then
+      [*] = ;                              begin
+      [*] = ;                                 gPtrList.Clear;
+      [*] = ;                                 _player_OrderUnitsToGoInside(plind, gTmpIntList, gPtrList, hmbo, True, False);
+      [*] = ;                                 hmsent := hmsent + gTmpIntList.GetCount;
+      [*] = ;                                 Log('bridge-human: MINE res' + IntToStr(hca1) + ' sent ' +
+      [*] = ;                                     IntToStr(gTmpIntList.GetCount) + ' into one mine, had inside ' +
+      [*] = ;                                     IntToStr(hmthis));
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (hmsent = 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                             ': every mine of that kind is full, build one more');
+      [*] = ;                        Log('bridge-human: MINE res' + IntToStr(hca1) + ' - all mines full');
+      [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;               // SEED: order one more field at every mill.

@@ -1611,6 +1611,32 @@ def _ресурсы_изменение(было: dict | None, стало: dict) 
     return строки
 
 
+def _шахты_строкой(st) -> str:
+    """Шахты по отдельности: сколько работает и сколько в них мест.
+
+    До 15.09 состояние отдавало одно число on_mine на золото, железо и уголь
+    вместе, и ни модель, ни мост не знали, где именно сидят крестьяне. Человек
+    видит каждую шахту и её места, поэтому числа тут честные. Старый мост этих
+    полей не отдаёт — тогда печатаем как раньше, без выдумок.
+    """
+    def ч(k):
+        v = st.get(k)
+        return None if v in (None, "", -1, "-1") else int(v)
+    куски = []
+    for имя, шахт, внутри, мест in (("золото", "mines_gold", "on_gold", "cap_gold"),
+                                    ("железо", "mines_iron", "on_iron", "cap_iron"),
+                                    ("уголь",  "mines_coal", "on_coal", "cap_coal")):
+        n = ч(шахт) or 0
+        кусок = f"{имя}={n}"
+        в, м = ч(внутри), ч(мест)
+        if n and в is not None and м:
+            кусок += f" (работает {в} из {м} мест)"
+        elif n and в is not None:
+            кусок += f" (работает {в})"
+        куски.append(кусок)
+    return "  шахты: " + " ".join(куски)
+
+
 def _свободных(st: dict) -> int:
     """Крестьяне, не занятые добычей. От них зависит, подействует ли BALANCE:
     игра перераспределяет только свободных (_ai_GainResourcesByPeasants)."""
@@ -1787,8 +1813,7 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         + (str(st.get("idle_pea")) if "idle_pea" in st else str(_свободных(st))) + ")",
         f"  центров={st.get('centers')} кузниц={st.get('smiths')} казарм17={st.get('ba17')} "
         f"мельниц={st.get('mills')} складов={st.get('my_stores')} домов={st.get('houses')}",
-        f"  шахты: золото={st.get('mines_gold')} железо={st.get('mines_iron')} "
-        f"уголь={st.get('mines_coal')}",
+        _шахты_строкой(st),
         f"  армия: пехота={st.get('mil_inf')} стрелки={st.get('mil_shooters')} "
         f"конница={st.get('mil_cav')}; свободных бойцов={st.get('my_freewar')}, "
         + (f"ударный пул={st.get('my_agressors')} (стоят у базы, это НЕ поход)"
@@ -3248,7 +3273,9 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 f"крест={_ц('peasants')} своб={_ц('idle_pea')} "
                 f"еда/дер/кам/шахта/стройка="
                 f"{_ц('on_food')}/{_ц('on_wood')}/{_ц('on_stone')}/"
-                f"{_ц('on_mine')}/{_ц('on_build')} | "
+                f"{_ц('on_mine')}/{_ц('on_build')} "
+                f"(в шахтах з{_ц('on_gold')}/ж{_ц('on_iron')}/у{_ц('on_coal')} "
+                f"мест з{_ц('cap_gold')}/ж{_ц('cap_iron')}/у{_ц('cap_coal')}) | "
                 f"мест={_ц('my_farmused')}/{_ц('my_farm')} | "
                 f"ратуш={_ц('centers')} мельн={_ц('mills')} "
                 f"кузн={_ц('smiths')} казарм={_ц('ba17')} склад={_ц('my_stores')} "
@@ -3288,6 +3315,10 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         # Судьба волны: без неё по трассе снова нельзя отличить
                         # «погибли по дороге» от «дошли и не справились».
                         "wave_sent", "mil_away", "mil_hurt", "mil_far",
+                        # Кто в какой шахте и сколько там мест: без этого
+                        # BALANCE gold нечем проверить задним числом.
+                        "on_gold", "on_iron", "on_coal",
+                        "cap_gold", "cap_iron", "cap_coal",
                         "mil_near", "mil_side",
                         "can_now", "cant_now", "fighters",
                         "wood_slots_near", "wood_slots_free",

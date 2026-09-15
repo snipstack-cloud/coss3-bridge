@@ -42,6 +42,13 @@
       [*] = ;         // --- one pass over our objects: everything below comes from it ---
       [*] = ;         var hspea, hsidle, hsbuildp, hsunfin : Integer;
       [*] = ;         var hsonf, hsonw, hsons, hsonmine : Integer;
+      [*] = ;         // Mines split by kind. on_mine was one number for gold, iron and coal
+      [*] = ;         // together, and a human sees each mine separately - how many work it and
+      [*] = ;         // how many places are left. 15.09: BALANCE gold was issued 3 times in 6
+      [*] = ;         // games and nothing observable happened, because nobody could see where
+      [*] = ;         // the miners actually were.
+      [*] = ;         var hsong, hsoni, hsonc : Integer;
+      [*] = ;         var hscapg, hscapi, hscapc : Integer;
       [*] = ;         var hsinf, hsshoot, hscav, hsfree : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
@@ -109,6 +116,13 @@
       [*] = ;                     if (hsrole = gc_ai_unit_minegold) then hsmg   := hsmg + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_mineiron) then hsmi   := hsmi + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_minecoal) then hsmc   := hsmc + 1;
+      [*] = ;                     // How many peasants the mine HOLDS: the same sum the engine
+      [*] = ;                     // uses in _ai_FillMines (progresseconomicai.inc:1315). An
+      [*] = ;                     // upgrade adds places through individual.addpeasantabsorber.
+      [*] = ;                     var hscap : Integer = gObjProp[hsuc][hsui].peasantabsorber + TObj(hspo).individual.addpeasantabsorber;
+      [*] = ;                     if (hsrole = gc_ai_unit_minegold) then hscapg := hscapg + hscap;
+      [*] = ;                     if (hsrole = gc_ai_unit_mineiron) then hscapi := hscapi + hscap;
+      [*] = ;                     if (hsrole = gc_ai_unit_minecoal) then hscapc := hscapc + hscap;
       [*] = ;                     if (hsrole = gc_ai_unit_tower)    then hstow  := hstow + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_market)   then hsmark := hsmark + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_academi)  then hsacad := hsacad + 1;
@@ -124,7 +138,21 @@
       [*] = ;                     // current one; a peasant inside a building is in a mine.
       [*] = ;                     var hsot : Integer = TObj(hspo).orders[0].itype;
       [*] = ;                     if (TObj(hspo).insideofuid <> 0) then
-      [*] = ;                     hsonmine := hsonmine + 1
+      [*] = ;                     begin
+      [*] = ;                        hsonmine := hsonmine + 1;
+      [*] = ;                        // Which mine he is in. insideofuid is a UNIQUE id, not a
+      [*] = ;                        // handle: the engine resolves it with
+      [*] = ;                        // GetGameObjectHandleByUniqueId (misc/projectile.inc).
+      [*] = ;                        var hsinh : Integer = GetGameObjectHandleByUniqueId(TObj(hspo).insideofuid);
+      [*] = ;                        var hsinp : Pointer = _unit_GetTObj(hsinh);
+      [*] = ;                        if (hsinp<>nil) then
+      [*] = ;                        begin
+      [*] = ;                           var hsinr : Integer = gObjProp[TObj(hsinp).cid][TObj(hsinp).id].airole;
+      [*] = ;                           if (hsinr = gc_ai_unit_minegold) then hsong := hsong + 1;
+      [*] = ;                           if (hsinr = gc_ai_unit_mineiron) then hsoni := hsoni + 1;
+      [*] = ;                           if (hsinr = gc_ai_unit_minecoal) then hsonc := hsonc + 1;
+      [*] = ;                        end;
+      [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     if (hsot = gc_obj_order_type_build) or (hsot = gc_obj_order_type_repair) then
       [*] = ;                     hsbuildp := hsbuildp + 1
@@ -269,6 +297,12 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_wood',   hsonw);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_stone',  hsons);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_mine',   hsonmine);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_gold',   hsong);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_iron',   hsoni);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_coal',   hsonc);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_gold',  hscapg);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_iron',  hscapi);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_coal',  hscapc);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_build',  hsbuildp);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'idle_pea',  hsidle);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'centers',   hscen);

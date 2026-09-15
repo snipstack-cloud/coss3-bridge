@@ -44,6 +44,11 @@ for _s in (sys.stdout, sys.stderr):
 РЕСУРСЫ = ["food", "wood", "stone", "gold", "iron", "coal"]
 
 
+# Мест в одной шахте — ЧИСЛО МОКА, не игры: в игре это peasantabsorber
+# плюс individual.addpeasantabsorber от апгрейда, и оно лежит в данных движка.
+МЕСТ_В_ШАХТЕ = 5
+
+
 class Мир:
     def __init__(self, d: str, plind: int = 1):
         self.d, self.plind, self.t = d, plind, 0.0
@@ -227,6 +232,17 @@ class Мир:
                         self.отказ = f"BALANCE {р}: {шахта} is not built"
                         print("mock-human: " + self.отказ, flush=True)
                         continue
+                    # У шахты есть ВМЕСТИМОСТЬ: в игре это peasantabsorber плюс
+                    # прибавка от апгрейда, число лежит в данных движка. Мок берёт
+                    # своё МЕСТ_В_ШАХТЕ — не чтобы угадать игру, а чтобы ветка
+                    # «шахты полны» вообще проверялась.
+                    мест = self.здания.get(шахта, 0) * МЕСТ_В_ШАХТЕ
+                    if self.на[р] >= мест:
+                        self.отказ = (f"BALANCE {р}: every mine of that kind is full "
+                                      f"({self.на[р]} of {мест})")
+                        print("mock-human: " + self.отказ, flush=True)
+                        continue
+                    a2 = min(a2, мест)
                 if р == "food" and self.здания.get("mill", 0) <= 0:
                     self.отказ = "BALANCE food: no mill, nobody will gather food"
                     print("mock-human: " + self.отказ, flush=True)
@@ -280,7 +296,16 @@ class Мир:
              "objects": self.peasants + self.армия + sum(self.здания.values()),
              "peasants": self.peasants,
              "on_food": self.на["food"], "on_wood": self.на["wood"],
-             "on_stone": self.на["stone"], "on_mine": 0,
+             "on_stone": self.на["stone"],
+             # Шахты по отдельности — как их с 15.09 отдаёт настоящий мост.
+             # on_mine остаётся суммой: раньше тут стоял ноль, и мок врал в ту
+             # сторону, где у игры число всегда было больше.
+             "on_mine": self.на["gold"] + self.на["iron"] + self.на["coal"],
+             "on_gold": self.на["gold"], "on_iron": self.на["iron"],
+             "on_coal": self.на["coal"],
+             "cap_gold": self.здания.get("minegold", 0) * МЕСТ_В_ШАХТЕ,
+             "cap_iron": self.здания.get("mineiron", 0) * МЕСТ_В_ШАХТЕ,
+             "cap_coal": self.здания.get("minecoal", 0) * МЕСТ_В_ШАХТЕ,
              "on_build": sum(с["рабочих"] for с in self.стройки),
              "idle_pea": self.свободно(),
              "centers": self.здания.get("center", 0), "mills": self.здания.get("mill", 0),
