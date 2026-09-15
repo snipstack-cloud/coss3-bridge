@@ -43,6 +43,27 @@ for _s in (sys.stdout, sys.stderr):
                "house": 15, "mineiron": 30, "minegold": 30, "minecoal": 30}
 РЕСУРСЫ = ["food", "wood", "stone", "gold", "iron", "coal"]
 
+# Апгрейды. Место (первая часть имени) -> здание мока; имена и ПОРЯДОК такие же,
+# как отдаёт игра, потому что порядок и был причиной провала серии `upgrades`
+# 15.09: игра кладёт список так, что первыми идут мусорное имя, ратуша, мельница
+# и три десятка академических, а военные начинаются глубоко за сороковым.
+ЗДАНИЕ_АПГРЕЙДА = {"cen": "center", "mil": "mill", "bla": "smith", "bar": "ba17"}
+# Цены НАСТОЯЩИЕ, Нидерланды (country.script): мельница 750 еды + 250 золота
+# (:3453), пикинёр атака 900+150 и защита 250+150 (:952 и :988). Остальные —
+# правдоподобные, мок проверяет форму и ветки, а не экономику.
+АПГРЕЙДЫ = {"cen.1": (2000, 1000), "mil.1": (750, 250), "mil.2": (25600, 3350)}
+АПГРЕЙДЫ.update({f"aca.{i}": (200, 325) for i in range(1, 37)})
+АПГРЕЙДЫ.update({f"bla.{i}": (300, 200) for i in range(1, 6)})
+for _ур, _ц in enumerate(((900, 150), (700, 400), (3100, 250),
+                          (6700, 1950), (16030, 2000)), 1):
+    АПГРЕЙДЫ[f"bar.pikeman.1.{_ур}"] = _ц
+for _ур, _ц in enumerate(((250, 150), (800, 275), (4200, 100),
+                          (9305, 707), (17890, 2850)), 1):
+    АПГРЕЙДЫ[f"bar.pikeman.2.{_ур}"] = _ц
+# 'l' — не описка: блок режет у sid первые три буквы нации, и у одного имени в
+# игре после этого остаётся один символ. Модель однажды его и заказала.
+СПИСОК_АПГРЕЙДОВ_МОКА = ["l"] + list(АПГРЕЙДЫ)
+
 
 # Мест в одной шахте — ЧИСЛО МОКА, не игры: в игре это peasantabsorber
 # плюс individual.addpeasantabsorber от апгрейда, и оно лежит в данных движка.
@@ -221,6 +242,26 @@ class Мир:
                     print("mock-human: " + self.отказ, flush=True)
                 else:
                     print(f"mock-human: TRAIN {имя} x{пущено}", flush=True)
+            elif cmd == "UPGRADE":
+                # Три отказа — ровно те, что называет block_hcmd.inc, и теми же
+                # словами: по ним мост узнаёт свою команду в `last_fail`.
+                у = str(пары.get(f"{i}_upg", "") or "").strip()
+                здание = ЗДАНИЕ_АПГРЕЙДА.get(у.split(".")[0], "")
+                if у not in АПГРЕЙДЫ:
+                    self.отказ = (f"UPGRADE {у}: no upgrade with this name "
+                                  f"for our nation")
+                elif self.здания.get(здание, 0) <= 0:
+                    self.отказ = f"UPGRADE {у}: host building missing"
+                elif (self.res["food"] < АПГРЕЙДЫ[у][0]
+                      or self.res["gold"] < АПГРЕЙДЫ[у][1]):
+                    self.отказ = f"UPGRADE {у}: not enough resources"
+                else:
+                    self.res["food"] -= АПГРЕЙДЫ[у][0]
+                    self.res["gold"] -= АПГРЕЙДЫ[у][1]
+                    print(f"mock-human: UPGRADE {у} started", flush=True)
+                    continue
+                print("mock-human: " + self.отказ, flush=True)
+                continue
             elif cmd == "BALANCE":
                 р = {0: "food", 1: "wood", 2: "stone",
                      3: "gold", 4: "iron", 5: "coal"}.get(a1)
@@ -340,6 +381,8 @@ class Мир:
              "fighters": ("infantry17=pikeman,hp120,food30,gold5,iron10,coal5 "
                           "musk17=musketeernet,hp95,food40,gold15,iron20,coal10 "
                           "officer17=officer,hp110,food50,gold40,iron0,coal0"),
+             # Список апгрейдов нации — тем же порядком, что отдаёт игра.
+             "upg_avail": ",".join(СПИСОК_АПГРЕЙДОВ_МОКА),
              "mil_inf": self.армия, "mil_shooters": 0, "mil_cav": 0,
              # Судьба волны: ушедшие, раненые и дальность самого дальнего.
              # Числа грубые (мок не водит бойцов по карте), важна ФОРМА и то,
