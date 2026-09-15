@@ -20,6 +20,17 @@ import re
 import sys
 
 
+# Windows печатает в cp1252, и первая же кириллица в выводе роняет скрипт ДО
+# того, как скопирован хоть один файл: чтение файлов тут с явным encoding, а
+# поток вывода забыли. 15.09 из-за этого `git pull && python install_skills.py`
+# — команда прямо из RESUME — не работала на Windows вообще. Переключаем поток,
+# а не вычищаем кириллицу из сообщений.
+for _поток in (sys.stdout, sys.stderr):
+    try:
+        _поток.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError):
+        pass
+
 КОРЕНЬ = os.path.dirname(os.path.abspath(__file__))
 
 
