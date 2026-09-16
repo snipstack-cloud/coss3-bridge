@@ -37,6 +37,7 @@ for _s in (_sys.stdout, _sys.stderr):
 import argparse
 import json
 import os
+import configparser
 import re
 import subprocess
 import threading
@@ -803,6 +804,38 @@ def взятые_апгрейды(st: dict) -> set[str]:
 
 def идущие_апгрейды(st: dict) -> set[str]:
     return _апгрейды_из(st, "upg_doing")
+
+
+def уже_проверено(путь: str = "") -> str:
+    """Итоги отыгранных идей — одной строкой каждая, для критика.
+
+    Критику дают дневник ТЕКУЩЕЙ партии и больше ничего: ни world.md, ни
+    прошлых серий. Поэтому 16.09 он предложил ставить шахту золота раньше
+    казармы — ровно ту идею, что серия gold_first2 отыграла 15.09 и
+    опровергла: механика сработала (шахта на 188-й секунде против 358-й), а
+    цель стала 0 из 9 против 2 из 9. Гипотеза стоит серии, и тратить её на уже
+    отвеченный вопрос — потеря дня.
+
+    Берём поле «итог» из experiments.ini: там результаты и так записаны.
+    """
+    путь = путь or os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "docker", "experiments.ini")
+    if not os.path.exists(путь):
+        return ""
+    cfg = configparser.ConfigParser()
+    try:
+        cfg.read(путь, encoding="utf-8")
+    except configparser.Error:
+        return ""
+    строки = []
+    for имя in cfg.sections():
+        итог = " ".join((cfg[имя].get("итог", "") or "").split())
+        if итог:
+            строки.append(f"  {имя}: {итог[:220]}")
+    if not строки:
+        return ""
+    return ("\n\nУЖЕ ОТЫГРАНО СЕРИЯМИ — не предлагай это снова как новое:\n"
+            + "\n".join(строки[:12]))
 
 
 def карта_открыта(st: dict) -> bool:
@@ -4161,7 +4194,7 @@ def разбор_партии(a, client, номер: int, итог: str, дне�
     ответ = {}
     try:
         прежний = SYSTEM
-        globals()["SYSTEM"] = SYSTEM_CRITIC
+        globals()["SYSTEM"] = SYSTEM_CRITIC + уже_проверено()
         try:
             ответ = ask(client, a.model, запрос, a.think, retry=1,
                         max_tokens=3000)
