@@ -609,6 +609,91 @@
       [*] = ;                     Log('bridge-human: SEED ordered at ' + IntToStr(gTmpIntList.GetCount) + ' mills');
       [*] = ;                  end;
       [*] = ;               end;
+      [*] = ;               if (hccmd = 'FORMATION') then
+      [*] = ;               begin
+      [*] = ;                  // A formation is the last term of the readiness the player
+      [*] = ;                  // named, and the only one the bridge could not touch at all.
+      [*] = ;                  // The engine gives the bonus ONLY to an officer squad: both an
+      [*] = ;                  // officer and a drummer are required (_ai_CreateOfficerSquad,
+      [*] = ;                  // progresswarai.inc:3597), and the 'NB' shapes in formations.cfg
+      [*] = ;                  // carry zeroes. The set of shapes belongs to the officer type,
+      [*] = ;                  // so we ask the country table, exactly as the native AI does,
+      [*] = ;                  // and take the most compact one by width+height.
+      [*] = ;                  var hfoff : Integer = 0;
+      [*] = ;                  var hfdrum : Integer = 0;
+      [*] = ;                  gIntegerList.Clear;
+      [*] = ;                  for hck := 0 to hcobjn-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hfgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                     var hfp : Pointer = _unit_GetTObj(hfgo);
+      [*] = ;                     if (hfp<>nil) then
+      [*] = ;                     begin
+      [*] = ;                        var hfrole : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].airole;
+      [*] = ;                        var hfu : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].usage;
+      [*] = ;                        if (hfoff = 0) and (hfrole = gc_ai_unit_officer17) then
+      [*] = ;                        hfoff := hfgo;
+      [*] = ;                        if (hfdrum = 0) and (hfrole = gc_ai_unit_drummer17) then
+      [*] = ;                        hfdrum := hfgo;
+      [*] = ;                        if (hfu = gc_obj_usage_lightinfantry) or (hfu = gc_obj_usage_weak) or
+      [*] = ;                           (hfu = gc_obj_usage_grenadier) or (hfu = gc_obj_usage_shooter) or
+      [*] = ;                           (hfu = gc_obj_usage_archer) then
+      [*] = ;                        gIntegerList.Add(hfgo);
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hfoff = 0) or (hfdrum = 0) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: a bonus ' +
+      [*] = ;                          'formation needs BOTH an officer and a drummer. Have ' +
+      [*] = ;                          'officers: ' + IntToStr(hfoff) + ', drummers: ' + IntToStr(hfdrum) +
+      [*] = ;                          ' (0 means none free). Train officer17 and drummer17 first');
+      [*] = ;                     Log('bridge-human: FORMATION - no officer or no drummer');
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     var hfsid : String = GetGameObjectBaseNameByHandle(hfoff);
+      [*] = ;                     var hfoi : Integer = _country_GetOfficersIndexByOfficerSID(hccid, hfsid);
+      [*] = ;                     var hfform : Integer = -1;
+      [*] = ;                     var hfbest : Integer = 1000000;
+      [*] = ;                     if (hfoi >= 0) then
+      [*] = ;                     for hcj := 0 to gc_country_maxformationcount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hfms : String = gCountry[hccid].officers[hfoi].formations[hcj].masks[0];
+      [*] = ;                        if (hfms <> '') then
+      [*] = ;                        begin
+      [*] = ;                           var hffi : Integer = _misc_GetFormationIndexBySID(hfms);
+      [*] = ;                           if (hffi >= 0) then
+      [*] = ;                           begin
+      [*] = ;                              var hfwh : Integer = gFormation[hffi].width + gFormation[hffi].height;
+      [*] = ;                              if (hfwh < hfbest) then
+      [*] = ;                              begin
+      [*] = ;                                 hfbest := hfwh;
+      [*] = ;                                 hfform := hffi;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (hfform < 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: this ' +
+      [*] = ;                             'officer has no formation of his own in the country table');
+      [*] = ;                        Log('bridge-human: FORMATION - officer has no formations');
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     begin
+      [*] = ;                        var hfsq : Pointer = _player_CreateSquad(hcph, hfform, hfoff,
+      [*] = ;                             hfdrum, gIntegerList, True, True);
+      [*] = ;                        if (hfsq = nil) then
+      [*] = ;                        begin
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: the ' +
+      [*] = ;                                'game refused to build the squad');
+      [*] = ;                           Log('bridge-human: FORMATION - CreateSquad returned nil');
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        Log('bridge-human: FORMATION ' + gFormation[hfform].sid +
+      [*] = ;                             ' built of ' + IntToStr(gIntegerList.GetCount) + ' men');
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
       [*] = ;               if (hccmd = 'UPGRADE') then
       [*] = ;               begin
       [*] = ;                  // Upgrades without a single _ai_ call. The sid of an upgrade is

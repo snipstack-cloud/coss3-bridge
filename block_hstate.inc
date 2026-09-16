@@ -50,6 +50,7 @@
       [*] = ;         var hsong, hsoni, hsonc : Integer;
       [*] = ;         var hscapg, hscapi, hscapc : Integer;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
+      [*] = ;         var hsoffn, hsdrumn : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
       [*] = ;         var hsba18, hsstab : Integer;
@@ -218,6 +219,13 @@
       [*] = ;                     if (hsusage = gc_obj_usage_cannon) or (hsusage = gc_obj_usage_mcannon) or
       [*] = ;                        (hsusage = gc_obj_usage_mortar) or (hsusage = gc_obj_usage_supermortar) then
       [*] = ;                     hsgun := hsgun + 1;
+      [*] = ;                     // Officer and drummer are counted APART: a formation with a
+      [*] = ;                     // bonus needs BOTH (_ai_CreateOfficerSquad demands offHnd<>0
+      [*] = ;                     // and drumHnd<>0), and the 'NB' formations carry zeroes.
+      [*] = ;                     if (hsrole = gc_ai_unit_officer17) then
+      [*] = ;                     hsoffn := hsoffn + 1;
+      [*] = ;                     if (hsrole = gc_ai_unit_drummer17) then
+      [*] = ;                     hsdrumn := hsdrumn + 1;
       [*] = ;                     if (hsusage <> gc_obj_usage_none) and (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
       [*] = ;                     hsfree := hsfree + 1;
       [*] = ;                  end;
@@ -359,6 +367,36 @@
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'wip', hswip);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_inf',      hsinf);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_guns',     hsgun);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_officers', hsoffn);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_drummers', hsdrumn);
+      [*] = ;         // Squads and the formation they stand in. The bonus lives in
+      [*] = ;         // gFormation and differs on the move and at a halt: LINE15 gives
+      [*] = ;         // +2/+2 walking and +7/+7 standing (formations.cfg). Without this
+      [*] = ;         // the model cannot tell whether the formation it built is worth
+      [*] = ;         // anything at all.
+      [*] = ;         var hssq : Integer = gPlayer[plind].squads.GetCount;
+      [*] = ;         var hssqu, hssqi : Integer;
+      [*] = ;         var hssqf : Integer = -1;
+      [*] = ;         for hssqi := 0 to hssq-1 do
+      [*] = ;         begin
+      [*] = ;            var hspsq : Pointer = gPlayer[plind].squads.Get(hssqi);
+      [*] = ;            if (hspsq<>nil) then
+      [*] = ;            if (TSquad(hspsq).GetCount > hssqu) then
+      [*] = ;            begin
+      [*] = ;               hssqu := TSquad(hspsq).GetCount;
+      [*] = ;               hssqf := TSquad(hspsq).fFormation;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squads',      hssq);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_units', hssqu);
+      [*] = ;         if (hssqf >= 0) then
+      [*] = ;         begin
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'squad_form', gFormation[hssqf].sid);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'squad_dmg',  gFormation[hssqf].bonusdamage);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'squad_def',  gFormation[hssqf].bonusshield);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'squad_hdmg', gFormation[hssqf].bonusdamagehold);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'squad_hdef', gFormation[hssqf].bonusshieldhold);
+      [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_shooters', hsshoot);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_cav',      hscav);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
@@ -374,16 +412,23 @@
       [*] = ;         //
       [*] = ;         // No aiforce here on purpose: that number lives inside the AI and a human
       [*] = ;         // never sees it. Price and health he does see, by clicking the unit.
-      [*] = ;         var hsfr : array [0..4] of Integer;
-      [*] = ;         var hsfn : array [0..4] of String;
+      [*] = ;         var hsfr : array [0..5] of Integer;
+      [*] = ;         var hsfn : array [0..5] of String;
       [*] = ;         hsfr[0] := gc_ai_unit_infantry17;  hsfn[0] := 'infantry17';
       [*] = ;         hsfr[1] := gc_ai_unit_musk17;      hsfn[1] := 'musk17';
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
       [*] = ;         hsfr[3] := gc_ai_unit_officer17;   hsfn[3] := 'officer17';
       [*] = ;         hsfr[4] := gc_ai_unit_dragoon17;   hsfn[4] := 'dragoon17';
+      [*] = ;         // Drummer. Without him a formation gives NOTHING: the engine
+      [*] = ;         // builds an officer squad only when officer AND drummer are both
+      [*] = ;         // there (_ai_CreateOfficerSquad, progresswarai.inc:3597), and the
+      [*] = ;         // 'NB' formations in formations.cfg carry zero bonuses. Until
+      [*] = ;         // 16.09 the bridge did not show the drummer at all, so the model
+      [*] = ;         // could not have a formation even in principle.
+      [*] = ;         hsfr[5] := gc_ai_unit_drummer17;   hsfn[5] := 'drummer17';
       [*] = ;         var hsftxt : String = '';
       [*] = ;         var hsfi : Integer;
-      [*] = ;         for hsfi := 0 to 4 do
+      [*] = ;         for hsfi := 0 to 5 do
       [*] = ;         begin
       [*] = ;            var hsfid : Integer = -1;
       [*] = ;            var hsfj : Integer;

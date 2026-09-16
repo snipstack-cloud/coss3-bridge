@@ -144,4 +144,7 @@ section.begin
 section.end
    mil_guns = 0
    p1_guns = 2
+   my_officers = 1
+   my_drummers = 0
+   squads = 0
 
