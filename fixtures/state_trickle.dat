@@ -147,4 +147,7 @@ section.end
    my_officers = 1
    my_drummers = 0
    squads = 0
+   can_pea = True
+   can_inf = False
+   famine = True
 

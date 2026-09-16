@@ -427,6 +427,7 @@
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
       [*] = ;         hsfr[3] := gc_ai_unit_dragoon17;   hsfn[3] := 'dragoon17';
       [*] = ;         var hsftxt : String = '';
+      [*] = ;         var hsinfid : Integer = -1;   // id of the line infantry, for can_inf
       [*] = ;         var hsfi : Integer;
       [*] = ;         for hsfi := 0 to 3 do
       [*] = ;         begin
@@ -437,6 +438,8 @@
       [*] = ;            hsfid := hsfj;
       [*] = ;            if (hsfid >= 0) then
       [*] = ;            begin
+      [*] = ;               if (hsfi = 0) then
+      [*] = ;               hsinfid := hsfid;
       [*] = ;               var hsff, hsfw, hsfs, hsfg, hsfir, hsfc : Integer;
       [*] = ;               _unit_GetCostByID(hscid, hsfid, plind, hsff, hsfw, hsfs, hsfg, hsfir, hsfc);
       [*] = ;               hsftxt := hsftxt + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
@@ -468,6 +471,24 @@
       [*] = ;         if (hsftxt = '') then
       [*] = ;         hsftxt := 'none-found';
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsftxt);
+      [*] = ;         // WHY THE HIRING STOPPED, in the engine's own words. Below a food
+      [*] = ;         // floor the game halts production SILENTLY, and the bridge kept
+      [*] = ;         // reporting 'TRAIN ordered in 1 buildings' as if all was well. The
+      [*] = ;         // computer slot has had these three fields since the start
+      [*] = ;         // (block_state.inc:33-35) and the prompt already knows how to read
+      [*] = ;         // them - the human slot simply never wrote them. Series base12,
+      [*] = ;         // 16.09: the ten games that never took the goal spent 14.5 ticks
+      [*] = ;         // under the food floor AFTER minute five, the five that took it
+      [*] = ;         // spent 1.2, and nothing in the state said why.
+      [*] = ;         // bfamine is the engine's own flag: it goes up when the player
+      [*] = ;         // could not pay the food upkeep this tick (player.script:304).
+      [*] = ;         if (hspeaid >= 0) then
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'can_pea',
+      [*] = ;              _unit_CanApplyCountCostByID(hscid, hspeaid, plind, 1));
+      [*] = ;         if (hsinfid >= 0) then
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'can_inf',
+      [*] = ;              _unit_CanApplyCountCostByID(hscid, hsinfid, plind, 1));
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'famine', gPlayer[plind].bfamine);
       [*] = ;         // --- wood and stone on the ground, within reach --------------------
       [*] = ;         //
       [*] = ;         // The model wrote this urok itself (14.09): '15 men on stone gave +0, it must
