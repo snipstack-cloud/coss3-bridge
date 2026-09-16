@@ -653,16 +653,34 @@
       [*] = ;                        Log('bridge-human: UPGRADE ' + hupg + ' - host building missing');
       [*] = ;                     end
       [*] = ;                     else
+      [*] = ;                     // The price, so a refusal names a NUMBER. Read straight from the
+      [*] = ;                     // nation table by OUR index: _country_GetUpgradeCostBySID skips the
+      [*] = ;                     // lookup for index 0 (country.script:760 tests upgid>0).
+      [*] = ;                     //
+      [*] = ;                     // The check itself stays the engine's. 16.09 I replaced it with my own
+      [*] = ;                     // comparison, reading gPlayer[].res as a plain number - and mil.1, worth
+      [*] = ;                     // 750 food at 3733 in store, was refused. In this language these fields
+      [*] = ;                     // are read through 'not' (block_hstate does exactly that for 'food'),
+      [*] = ;                     // so the engine's 'not res >= cost' is correct and mine was not.
+      [*] = ;                     var hucf : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_food];
+      [*] = ;                     var hucw : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_wood];
+      [*] = ;                     var hucs : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_stone];
+      [*] = ;                     var hucg : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_gold];
+      [*] = ;                     var huci : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_iron];
+      [*] = ;                     var hucc : Integer = gCountry[hccid].upgrade[huid].price[gc_resource_type_coal];
+      [*] = ;                     var huprice : String = 'food=' + IntToStr(hucf) + ' wood=' + IntToStr(hucw) +
+      [*] = ;                          ' stone=' + IntToStr(hucs) + ' gold=' + IntToStr(hucg) +
+      [*] = ;                          ' iron=' + IntToStr(huci) + ' coal=' + IntToStr(hucc);
       [*] = ;                     if (not _unit_CanApplyUpgradeCostBySID(hcph, hccid, husid)) then
       [*] = ;                     begin
       [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'UPGRADE ' + hupg +
-      [*] = ;                             ': not enough resources');
-      [*] = ;                        Log('bridge-human: UPGRADE ' + hupg + ' - cannot pay');
+      [*] = ;                             ': NOT ENOUGH RESOURCES. It costs ' + huprice);
+      [*] = ;                        Log('bridge-human: UPGRADE ' + hupg + ' - cannot pay, costs ' + huprice);
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin
       [*] = ;                        _unit_MakeUpgrade(hcph, gIntegerList, huid, True, True);
-      [*] = ;                        Log('bridge-human: UPGRADE ' + husid + ' started');
+      [*] = ;                        Log('bridge-human: UPGRADE ' + husid + ' started, costs ' + huprice);
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
