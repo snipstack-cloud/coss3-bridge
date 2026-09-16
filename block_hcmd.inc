@@ -653,7 +653,17 @@
       [*] = ;                     var hfsid : String = GetGameObjectBaseNameByHandle(hfoff);
       [*] = ;                     var hfoi : Integer = _country_GetOfficersIndexByOfficerSID(hccid, hfsid);
       [*] = ;                     var hfform : Integer = -1;
-      [*] = ;                     var hfbest : Integer = 1000000;
+      [*] = ;                     var hfbest : Integer = -1;
+      [*] = ;                     var hfneed : Integer = 1000000;
+      [*] = ;                     var hfmen : Integer = gIntegerList.GetCount;
+      [*] = ;                     // Choose a USEFUL shape that FITS, not the most compact one.
+      [*] = ;                     // Live game 16.09: 'most compact' picked the degenerate
+      [*] = ;                     // 'none' formation - squad built, bonuses all zero. A shape
+      [*] = ;                     // with no bonus at all (the 'NB' family and 'none') is worth
+      [*] = ;                     // nothing, and a shape needing more men than we brought
+      [*] = ;                     // cannot form. So: skip the zero ones, keep those that fit,
+      [*] = ;                     // and among them take the one asking for the MOST men - the
+      [*] = ;                     // wider line is the stronger one.
       [*] = ;                     if (hfoi >= 0) then
       [*] = ;                     for hcj := 0 to gc_country_maxformationcount-1 do
       [*] = ;                     begin
@@ -663,10 +673,16 @@
       [*] = ;                           var hffi : Integer = _misc_GetFormationIndexBySID(hfms);
       [*] = ;                           if (hffi >= 0) then
       [*] = ;                           begin
-      [*] = ;                              var hfwh : Integer = gFormation[hffi].width + gFormation[hffi].height;
-      [*] = ;                              if (hfwh < hfbest) then
+      [*] = ;                              var hfbon : Integer = gFormation[hffi].bonusdamage +
+      [*] = ;                                   gFormation[hffi].bonusshield +
+      [*] = ;                                   gFormation[hffi].bonusdamagehold +
+      [*] = ;                                   gFormation[hffi].bonusshieldhold;
+      [*] = ;                              var hfcnt : Integer = gFormation[hffi].countunits;
+      [*] = ;                              if (hfbon > 0) and (hfcnt < hfneed) then
+      [*] = ;                              hfneed := hfcnt;
+      [*] = ;                              if (hfbon > 0) and (hfcnt <= hfmen) and (hfcnt > hfbest) then
       [*] = ;                              begin
-      [*] = ;                                 hfbest := hfwh;
+      [*] = ;                                 hfbest := hfcnt;
       [*] = ;                                 hfform := hffi;
       [*] = ;                              end;
       [*] = ;                           end;
@@ -674,9 +690,23 @@
       [*] = ;                     end;
       [*] = ;                     if (hfform < 0) then
       [*] = ;                     begin
-      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: this ' +
-      [*] = ;                             'officer has no formation of his own in the country table');
-      [*] = ;                        Log('bridge-human: FORMATION - officer has no formations');
+      [*] = ;                        // Two different reasons, and they must not be confused:
+      [*] = ;                        // 'too few men' is fixable this very tick, 'no formations'
+      [*] = ;                        // is not fixable at all.
+      [*] = ;                        if (hfneed < 1000000) then
+      [*] = ;                        begin
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: too ' +
+      [*] = ;                                'few men. The smallest formation with a bonus needs ' +
+      [*] = ;                                IntToStr(hfneed) + ', you brought ' + IntToStr(hfmen));
+      [*] = ;                           Log('bridge-human: FORMATION - need ' + IntToStr(hfneed) +
+      [*] = ;                                ' men, have ' + IntToStr(hfmen));
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: this ' +
+      [*] = ;                                'officer has no formation of his own in the country table');
+      [*] = ;                           Log('bridge-human: FORMATION - officer has no formations');
+      [*] = ;                        end;
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin
@@ -689,8 +719,19 @@
       [*] = ;                           Log('bridge-human: FORMATION - CreateSquad returned nil');
       [*] = ;                        end
       [*] = ;                        else
-      [*] = ;                        Log('bridge-human: FORMATION ' + gFormation[hfform].sid +
-      [*] = ;                             ' built of ' + IntToStr(gIntegerList.GetCount) + ' men');
+      [*] = ;                        begin
+      [*] = ;                           // CreateSquad DOES NOT set the formation: it only takes
+      [*] = ;                           // the size and the facing out of it (player.script:960).
+      [*] = ;                           // The shape itself is applied separately, and without
+      [*] = ;                           // this call the squad stands in 'none' with zero bonuses
+      [*] = ;                           // - live game 16.09, 54 men in a squad and +0 to
+      [*] = ;                           // everything. The engine's own code does the same:
+      [*] = ;                           // progresseconomicai.inc:1110.
+      [*] = ;                           _player_SetSquadFormation(hcph, TSquad(hfsq).fIndex,
+      [*] = ;                                hfform, True, False);
+      [*] = ;                           Log('bridge-human: FORMATION ' + gFormation[hfform].sid +
+      [*] = ;                                ' built of ' + IntToStr(gIntegerList.GetCount) + ' men');
+      [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
