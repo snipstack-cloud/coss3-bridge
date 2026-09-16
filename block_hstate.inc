@@ -412,23 +412,23 @@
       [*] = ;         //
       [*] = ;         // No aiforce here on purpose: that number lives inside the AI and a human
       [*] = ;         // never sees it. Price and health he does see, by clicking the unit.
-      [*] = ;         var hsfr : array [0..5] of Integer;
-      [*] = ;         var hsfn : array [0..5] of String;
+      [*] = ;         // OFFICER AND DRUMMER ARE NOT LISTED, on purpose. Both are made
+      [*] = ;         // in the academy only (country.script:3047,3051 - the requirement
+      [*] = ;         // is csid+'aca'), and the academy is forbidden by a HACKATHON
+      [*] = ;         // RULE, not by a setting we could change. Listing them would be
+      [*] = ;         // the same lie the bridge told three times on 16.09: naming as
+      [*] = ;         // available something that can never be had. They were shown here
+      [*] = ;         // for two days and the model never ordered them once in 1339
+      [*] = ;         // ticks - no harm done, but no reason to keep it either.
+      [*] = ;         var hsfr : array [0..3] of Integer;
+      [*] = ;         var hsfn : array [0..3] of String;
       [*] = ;         hsfr[0] := gc_ai_unit_infantry17;  hsfn[0] := 'infantry17';
       [*] = ;         hsfr[1] := gc_ai_unit_musk17;      hsfn[1] := 'musk17';
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
-      [*] = ;         hsfr[3] := gc_ai_unit_officer17;   hsfn[3] := 'officer17';
-      [*] = ;         hsfr[4] := gc_ai_unit_dragoon17;   hsfn[4] := 'dragoon17';
-      [*] = ;         // Drummer. Without him a formation gives NOTHING: the engine
-      [*] = ;         // builds an officer squad only when officer AND drummer are both
-      [*] = ;         // there (_ai_CreateOfficerSquad, progresswarai.inc:3597), and the
-      [*] = ;         // 'NB' formations in formations.cfg carry zero bonuses. Until
-      [*] = ;         // 16.09 the bridge did not show the drummer at all, so the model
-      [*] = ;         // could not have a formation even in principle.
-      [*] = ;         hsfr[5] := gc_ai_unit_drummer17;   hsfn[5] := 'drummer17';
+      [*] = ;         hsfr[3] := gc_ai_unit_dragoon17;   hsfn[3] := 'dragoon17';
       [*] = ;         var hsftxt : String = '';
       [*] = ;         var hsfi : Integer;
-      [*] = ;         for hsfi := 0 to 5 do
+      [*] = ;         for hsfi := 0 to 3 do
       [*] = ;         begin
       [*] = ;            var hsfid : Integer = -1;
       [*] = ;            var hsfj : Integer;
