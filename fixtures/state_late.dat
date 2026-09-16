@@ -142,4 +142,6 @@ section.begin
    upg_doing = 
    victory = none
 section.end
+   mil_guns = 0
+   p1_guns = 0
 

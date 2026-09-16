@@ -49,7 +49,7 @@
       [*] = ;         // the miners actually were.
       [*] = ;         var hsong, hsoni, hsonc : Integer;
       [*] = ;         var hscapg, hscapi, hscapc : Integer;
-      [*] = ;         var hsinf, hsshoot, hscav, hsfree : Integer;
+      [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
       [*] = ;         var hsba18, hsstab : Integer;
@@ -215,6 +215,9 @@
       [*] = ;                     if (hsusage = gc_obj_usage_fasthorse) or (hsusage = gc_obj_usage_hardhorse) or
       [*] = ;                        (hsusage = gc_obj_usage_horseshooter) then
       [*] = ;                     hscav := hscav + 1;
+      [*] = ;                     if (hsusage = gc_obj_usage_cannon) or (hsusage = gc_obj_usage_mcannon) or
+      [*] = ;                        (hsusage = gc_obj_usage_mortar) or (hsusage = gc_obj_usage_supermortar) then
+      [*] = ;                     hsgun := hsgun + 1;
       [*] = ;                     if (hsusage <> gc_obj_usage_none) and (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
       [*] = ;                     hsfree := hsfree + 1;
       [*] = ;                  end;
@@ -355,6 +358,7 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'building_now', hsunfin);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'wip', hswip);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_inf',      hsinf);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_guns',     hsgun);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_shooters', hsshoot);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_cav',      hscav);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
@@ -643,7 +647,7 @@
       [*] = ;            var hseph : Integer = GetPlayerHandleByIndex(hspl);
       [*] = ;            var hsec : Integer = GetPlayerGameObjectsCountByHandle(hseph);
       [*] = ;            var hsepea, hsebld, hsemil, hsemin, hsj : Integer;
-      [*] = ;            var hsxinf, hsxsh, hsxcav : Integer;
+      [*] = ;            var hsxinf, hsxsh, hsxcav, hsegun : Integer;
       [*] = ;            var hsxmg, hsxmi, hsxmc : Integer;
       [*] = ;            var hsxcen, hsxmill, hsxsm, hsxba, hsxba18 : Integer;
       [*] = ;            var hsxstab, hsxstor, hsxho, hsxtow, hsxmar, hsxaca : Integer;
@@ -673,6 +677,13 @@
       [*] = ;                     (hseu = gc_obj_usage_archer) or (hseu = gc_obj_usage_fasthorse) or
       [*] = ;                     (hseu = gc_obj_usage_hardhorse) or (hseu = gc_obj_usage_horseshooter) then
       [*] = ;                  hsefight := True;
+      [*] = ;                  // Artillery counted APART from the rest: in the readiness the
+      [*] = ;                  // player asked for it stands with a MINUS, and a battery of
+      [*] = ;                  // four is not the same threat as four musketeers. The engine
+      [*] = ;                  // knows four kinds, all of them guns.
+      [*] = ;                  if (hseu = gc_obj_usage_cannon) or (hseu = gc_obj_usage_mcannon) or
+      [*] = ;                     (hseu = gc_obj_usage_mortar) or (hseu = gc_obj_usage_supermortar) then
+      [*] = ;                  hsegun := hsegun + 1;
       [*] = ;                  if (hsefight) then
       [*] = ;                  hsemil := hsemil + 1;
       [*] = ;                  if (hsenemy) and (hsefight) then
@@ -731,6 +742,7 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_inf',      hsxinf);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_shoot',    hsxsh);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_cav',      hsxcav);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_guns',     hsegun);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mgold',    hsxmg);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_miron',    hsxmi);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mcoal',    hsxmc);
