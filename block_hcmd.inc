@@ -246,6 +246,19 @@
       [*] = ;                           if (gObjProp[TObj(hwpo).cid][TObj(hwpo).id].usage = gc_obj_usage_peasant) then
       [*] = ;                           if (TObj(hwpo).insideofuid = 0) then
       [*] = ;                           if ((hwpass = 1) or (TObj(hwpo).orders[0].itype = gc_obj_order_type_none)) then
+      [*] = ;                           // NEVER take a man off an unfinished building. The second
+      [*] = ;                           // pass used to grab anyone at all, and a new foundation
+      [*] = ;                           // stripped the previous one bare: in base10 (16.09) that
+      [*] = ;                           // happened in 4 of the 5 stalled builds - a town hall sat
+      [*] = ;                           // at 92% for twelve minutes, a mill at 59% for thirteen,
+      [*] = ;                           // each losing its 3 builders on the very tick after the
+      [*] = ;                           // next BUILD. Parallel building is the WINNING tactic here
+      [*] = ;                           // and it is measured: three stores with one builder each
+      [*] = ;                           // went up in the same 38 seconds as one. So the answer is
+      [*] = ;                           // not "do not start another", it is "do not rob the one
+      [*] = ;                           // already standing". Gatherers may still be taken.
+      [*] = ;                           if (TObj(hwpo).orders[0].itype <> gc_obj_order_type_build) then
+      [*] = ;                           if (TObj(hwpo).orders[0].itype <> gc_obj_order_type_repair) then
       [*] = ;                           gIntegerList.Add(hwgo);
       [*] = ;                        end;
       [*] = ;                        if (gIntegerList.GetCount > 0) then

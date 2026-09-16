@@ -1884,7 +1884,7 @@ ExecuteState('DoNewGame');
 |---|---|---|---|
 | `block_human.inc` | `--human-probe` | зонд: только читает и пишет файл | 72 строки |
 | `block_hstate.inc` | `--human-state` | состояние: один проход по объектам → `coss3_eco_P<n>.dat` | **888** |
-| `block_hcmd.inc` | `--human-cmd` | BUILD, TRAIN, BALANCE (шахты — по каждой отдельно), UPGRADE (отказ и успех называют цену), ATTACK, **MOVE**, BUILDERS | **856** |
+| `block_hcmd.inc` | `--human-cmd` | BUILD (закладка НЕ снимает строителей с недостроя), TRAIN, BALANCE (шахты — по каждой отдельно), UPGRADE (отказ и успех называют цену), ATTACK, **MOVE**, BUILDERS | **869** |
 | `block_gameloop.inc` | ставится всегда | пульс и команды живой партии: `NEW`, `END`, условия партии включая `balloon` | **157** |
 | `block_endgame.inc` | `--endgame` | конец партии: исход наружу и `NEW` с экрана поражения | 109 |
 
