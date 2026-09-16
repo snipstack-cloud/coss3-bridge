@@ -3908,6 +3908,13 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         # мегабайты за серию. Кладём метки — по ним видно, была
                         # ли карта в запросе и где стояла наша база.
                         "grid_n", "my_cx", "my_cy",
+                        # Слагаемые готовности к удару. Без них по трассе
+                        # нельзя ответить на главный вопрос: с чем модель
+                        # посылала волну и был ли строй — а значит нельзя и
+                        # сравнить идею с базой.
+                        "mil_guns", "my_officers", "my_drummers",
+                        "squads", "squad_units", "squad_form",
+                        "squad_dmg", "squad_def", "squad_hdmg", "squad_hdef",
                         "can_pea", "can_inf", "famine", "en_near_dist")
                         if st.get(k) is not None}
                     # Всё, что состояние знает о чужих слотах: их имена вида
