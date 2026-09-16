@@ -10,6 +10,13 @@
 """
 import re, sys, os
 
+# Windows печатает в cp1252, и первая же кириллица в выводе роняет проверку
+# ЦЕЛИКОМ — а её запускают именно на Windows, перед установкой блока в игру.
+# 16.09 verify_blocks так и падал, не показав ни строки отчёта.
+for _s in (sys.stdout, sys.stderr):
+    try: _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
+
 ВСТРОЕННЫЕ = {
     "IntToStr","FloatToStr","BoolToStr","Round","Min","Max","Abs","Sqr","Floor",
     "StrLength","SameText","Cos","Sin","TObj","TRes","TArmy","TSquad","TObjProp",

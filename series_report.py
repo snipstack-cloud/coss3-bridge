@@ -19,6 +19,13 @@ import json
 import os
 import sys
 
+# Windows печатает в cp1252, и первая же кириллица в выводе роняет отчёт. Разбор
+# серии идёт и на Windows, и в WSL, а таблица тут вся на русском: без этой
+# строки инструмент, ради которого всё считается, там просто не работает.
+for _s in (sys.stdout, sys.stderr):
+    try: _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception: pass
+
 # a1 в команде TRAIN — движковая роль. Числа из dmscript.global:362-366.
 РОЛИ = {1: "peasant", 23: "infantry17", 25: "musk17"}
 
