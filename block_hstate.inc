@@ -660,12 +660,22 @@
       [*] = ;                  // (mil_inf/mil_shooters/mil_cav above). The player said 16.09 he
       [*] = ;                  // sees the enemy base, army, peasants and mines on an open map,
       [*] = ;                  // so this is not a head start - it is what the human already has.
+      [*] = ;                  // ONE flag for both counters below. It used to be a bare
+      [*] = ;                  // single-statement if guarding hsemil only, and the force
+      [*] = ;                  // grid right after it ran for EVERY enemy object - peasants
+      [*] = ;                  // and buildings included. Live game 16.09 caught it by
+      [*] = ;                  // arithmetic: p1_army = 0 while the grid showed 7+5+9 = 21,
+      [*] = ;                  // and the enemy had exactly 19 peasants and 2 buildings.
+      [*] = ;                  // The map is labelled "enemy soldiers" - it must count those.
+      [*] = ;                  var hsefight : Boolean = False;
       [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
       [*] = ;                     (hseu = gc_obj_usage_grenadier) or (hseu = gc_obj_usage_shooter) or
       [*] = ;                     (hseu = gc_obj_usage_archer) or (hseu = gc_obj_usage_fasthorse) or
       [*] = ;                     (hseu = gc_obj_usage_hardhorse) or (hseu = gc_obj_usage_horseshooter) then
+      [*] = ;                  hsefight := True;
+      [*] = ;                  if (hsefight) then
       [*] = ;                  hsemil := hsemil + 1;
-      [*] = ;                  if (hsenemy) then
+      [*] = ;                  if (hsenemy) and (hsefight) then
       [*] = ;                  begin
       [*] = ;                     var hmux : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
       [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
