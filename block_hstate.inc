@@ -392,6 +392,24 @@
       [*] = ;               _unit_GetCostByID(hscid, hsfid, plind, hsff, hsfw, hsfs, hsfg, hsfir, hsfc);
       [*] = ;               hsftxt := hsftxt + hsfn[hsfi] + '=' + gCountry[hscid].members[hsfid];
       [*] = ;               hsftxt := hsftxt + ',hp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].maxhp);
+      [*] = ;               // Attack and defence AS THEY ARE NOW, upgrades included: the engine
+      [*] = ;               // keeps them per player in objbase, and an upgrade adds right there
+      [*] = ;               // (player.script:1798). A human reads the same numbers off the unit
+      [*] = ;               // card in the barracks, so this is not a head start - and without it
+      [*] = ;               // the model cannot tell what an upgrade bought her.
+      [*] = ;               // Attack is the BEST of the weapon slots, not slot 0. Caught on a live
+      [*] = ;               // game 16.09: the musketeer reported atk0, because his shot sits in
+      [*] = ;               // another slot - lib/unit.script sets it at a variable weapInd, and
+      [*] = ;               // slots 0..2 are all in use across the roster. A human reads one
+      [*] = ;               // attack figure off the unit card, and that figure is this one.
+      [*] = ;               var hsfa, hsfwi : Integer;
+      [*] = ;               for hsfwi := 0 to gc_obj_MaxWeapon-1 do
+      [*] = ;               if (gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwi].damage > hsfa) then
+      [*] = ;               hsfa := gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwi].damage;
+      [*] = ;               hsftxt := hsftxt + ',atk' + IntToStr(hsfa);
+      [*] = ;               hsftxt := hsftxt + ',dpike' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_pike]);
+      [*] = ;               hsftxt := hsftxt + ',dsword' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_sword]);
+      [*] = ;               hsftxt := hsftxt + ',dbullet' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_bullet]);
       [*] = ;               hsftxt := hsftxt + ',food' + IntToStr(hsff) + ',gold' + IntToStr(hsfg);
       [*] = ;               hsftxt := hsftxt + ',iron' + IntToStr(hsfir) + ',coal' + IntToStr(hsfc) + ' ';
       [*] = ;            end;
@@ -722,18 +740,41 @@
       [*] = ;         // are the nation, so they are cut off. Comma separated, ready to be
       [*] = ;         // shown to the model as is.
       [*] = ;         var hsupg : String;
+      [*] = ;         // Which upgrades are ALREADY TAKEN and which are being paid for right now.
+      [*] = ;         // The engine keeps both in gPlayer[pl].upgstate[cid][i] - the same pair the
+      [*] = ;         // native AI asks about in _ai_IsUpgradeInProgressOrDone
+      [*] = ;         // (progresseconomicai.inc:1429). Calling that function from here is not
+      [*] = ;         // allowed - it lives in another script state - so we read the fields.
+      [*] = ;         // ONLY OUR OWN: the player said 16.09 he does not see the enemy upgrades,
+      [*] = ;         // so the bridge must not know them either.
+      [*] = ;         var hsupgd, hsupgp : String;
       [*] = ;         var hsui : Integer;
       [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
       [*] = ;            var hsus : String = gCountry[hscid].upgrade[hsui].id;
       [*] = ;            if (StrLength(hsus) > 3) then
       [*] = ;            begin
+      [*] = ;               var hsun : String = SubStr(hsus, 4, StrLength(hsus)-3);
       [*] = ;               if (StrLength(hsupg) > 0) then
       [*] = ;               hsupg := hsupg + ',';
-      [*] = ;               hsupg := hsupg + SubStr(hsus, 4, StrLength(hsus)-3);
+      [*] = ;               hsupg := hsupg + hsun;
+      [*] = ;               if (gPlayer[plind].upgstate[hscid][hsui].done) then
+      [*] = ;               begin
+      [*] = ;                  if (StrLength(hsupgd) > 0) then
+      [*] = ;                  hsupgd := hsupgd + ',';
+      [*] = ;                  hsupgd := hsupgd + hsun;
+      [*] = ;               end;
+      [*] = ;               if (gPlayer[plind].upgstate[hscid][hsui].inprogress) then
+      [*] = ;               begin
+      [*] = ;                  if (StrLength(hsupgp) > 0) then
+      [*] = ;                  hsupgp := hsupgp + ',';
+      [*] = ;                  hsupgp := hsupgp + hsun;
+      [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_avail', hsupg);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_done', hsupgd);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'upg_doing', hsupgp);
       [*] = ;         // How the match ended, in the same file the policy already reads every
       [*] = ;         // tick. The engine pauses the simulation the moment it sets victorystate,
       [*] = ;         // so this block is about to freeze - and this is the last line it writes.

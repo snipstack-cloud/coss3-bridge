@@ -82,6 +82,9 @@ class Мир:
         self.стройки = []                               # [{роль, осталось, рабочих}]
         self.армия = 0
         self.волна = 0                                  # ушедших в поход
+        self.апгрейды: set = set()   # ВЗЯТЫЕ апгрейды: в игре это upgstate.done
+        self.апгрейд_идёт = ""       # оплачиваемый сейчас: upgstate.inprogress
+        self.апгрейд_срок = 0.0      # когда он станет взятым
         self.wave_sent = 0         # размер ПОСЛЕДНЕЙ ушедшей волны. В игре он
                                    # живёт в парсере br_hwave и переживает конец
                                    # партии — мок обязан врать так же, иначе
@@ -128,6 +131,11 @@ class Мир:
     # --- ход времени ---
     def тик(self, dt):
         self.t += dt
+        if self.апгрейд_идёт and self.t >= self.апгрейд_срок:
+            self.апгрейды.add(self.апгрейд_идёт)
+            print(f"mock-human: апгрейд {self.апгрейд_идёт} ВЗЯТ "
+                  f"(теперь их {len(self.апгрейды)})", flush=True)
+            self.апгрейд_идёт = ""
         # добыча: только от посланных, по 6 единиц в игровую секунду на человека
         for р in ("food", "wood", "stone"):
             self.res[р] += self.на[р] * 6 * dt
@@ -262,6 +270,11 @@ class Мир:
                 else:
                     self.res["food"] -= АПГРЕЙДЫ[у][0]
                     self.res["gold"] -= АПГРЕЙДЫ[у][1]
+                    # Апгрейд не мгновенный: сперва он inprogress, потом done —
+                    # как в игре. Без этого мост не проверить: в состоянии не
+                    # было бы ни одной строки upg_doing.
+                    self.апгрейд_идёт = у
+                    self.апгрейд_срок = self.t + 30
                     print(f"mock-human: UPGRADE {у} started", flush=True)
                     continue
                 print("mock-human: " + self.отказ, flush=True)
@@ -383,9 +396,19 @@ class Мир:
              # pikeman, musketeernet, officer), ЧИСЛА ПРАВДОПОДОБНЫЕ, а не
              # замеренные: цены лежат в бинарнике. Мок проверяет форму и разбор,
              # а не экономику.
-             "fighters": ("infantry17=pikeman,hp120,food30,gold5,iron10,coal5 "
-                          "musk17=musketeernet,hp95,food40,gold15,iron20,coal10 "
-                          "officer17=officer,hp110,food50,gold40,iron0,coal0"),
+             # atk/dpike/dsword/dbullet растут от взятых апгрейдов — по 2 за
+             # каждый, как это делает игра прибавкой в objbase. Числа условные,
+             # важно, что они МЕНЯЮТСЯ: иначе ветка «что дал апгрейд» слепая.
+             "fighters": (f"infantry17=pikeman,hp120,food30,gold5,iron10,coal5,"
+                          f"atk{12 + 2 * len(self.апгрейды)},dpike{5 + 2 * len(self.апгрейды)},"
+                          f"dsword{5 + 2 * len(self.апгрейды)},dbullet0 "
+                          f"musk17=musketeernet,hp95,food40,gold15,iron20,coal10,"
+                          f"atk{18 + 2 * len(self.апгрейды)},dpike3,dsword3,dbullet2 "
+                          f"officer17=officer,hp110,food50,gold40,iron0,coal0,atk10,dpike4,dsword4,dbullet1"),
+             # Свои апгрейды человек знает: взятые и оплачиваемые. Чужих НЕТ —
+             # их не видит ни человек, ни блок.
+             "upg_done": ",".join(sorted(self.апгрейды)),
+             "upg_doing": self.апгрейд_идёт,
              # Список апгрейдов нации — тем же порядком, что отдаёт игра.
              "upg_avail": ",".join(СПИСОК_АПГРЕЙДОВ_МОКА),
              "mil_inf": self.армия, "mil_shooters": 0, "mil_cav": 0,
