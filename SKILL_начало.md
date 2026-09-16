@@ -11,7 +11,11 @@ description: С чего начинать новую сессию по Cossacks 
 
 ## Шаг 1. Прочитать ровно два файла
 
-1. **`~/coss3-bridge/RESUME.md`** — источник правды: состояние дел, контрольные
+**Где репозиторий, зависит от машины:** на маке `~/coss3-bridge`, на Windows
+`C:/Users/LapSt/Downloads/coss3-git`, в WSL `~/coss3-git`. Дальше он зовётся
+просто «репозиторий».
+
+1. **`RESUME.md`** — источник правды: состояние дел, контрольные
    числа установки, команды запуска, что делать дальше. В нём же таблица «какому
    документу что верить».
 2. **память проекта** (`MEMORY.md` и `coss3-stop-*.md`) — где остановились и
@@ -32,12 +36,17 @@ description: С чего начинать новую сессию по Cossacks 
 Документы отстают от кода — код отстаёт от живой игры. Пять команд, две минуты:
 
 ```bash
-cd ~/coss3-bridge
+cd <репозиторий>
 git log --oneline -3                     # что сделано последним
 git log --oneline -1 verified            # какая версия проверена живой игрой
 git status --short                       # есть ли незакоммиченное
+# последние прогоны. На маке — через gh:
 gh api "repos/snipstack-cloud/coss3-results/commits?sha=results&per_page=3" \
    --jq '.[] | "\(.commit.committer.date)  \(.commit.message | split("\n")[0])"'
+# НА WINDOWS gh НЕ УСТАНОВЛЕН — 16.09 на это ушло время. Там результаты
+# берут из клона в WSL, тем же ключом, которым ходят контейнеры:
+#   wsl -e bash -c 'cd ~/coss3-results && git pull -q && git log --oneline -3'
+#   (ключ подставляется через GIT_SSH_COMMAND с ~/.ssh/coss3_results)
 grep -n "^\[" docker/experiments.ini | tail -5   # последние заведённые идеи
 ```
 
