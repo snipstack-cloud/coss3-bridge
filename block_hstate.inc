@@ -602,18 +602,58 @@
       [*] = ;            ParserSetBoolValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_enemy', hsenemy);
       [*] = ;            var hseph : Integer = GetPlayerHandleByIndex(hspl);
       [*] = ;            var hsec : Integer = GetPlayerGameObjectsCountByHandle(hseph);
-      [*] = ;            var hsepea, hsebld, hsj : Integer;
+      [*] = ;            var hsepea, hsebld, hsemil, hsemin, hsj : Integer;
+      [*] = ;            var hsxinf, hsxsh, hsxcav : Integer;
+      [*] = ;            var hsxmg, hsxmi, hsxmc : Integer;
+      [*] = ;            var hsxcen, hsxmill, hsxsm, hsxba, hsxba18 : Integer;
+      [*] = ;            var hsxstab, hsxstor, hsxho, hsxtow, hsxmar, hsxaca : Integer;
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
       [*] = ;               var hsep : Pointer = _unit_GetTObj(hseg);
       [*] = ;               if (hsep<>nil) then
       [*] = ;               begin
-      [*] = ;                  if (gObjProp[TObj(hsep).cid][TObj(hsep).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                  var hseu : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].usage;
+      [*] = ;                  if (hseu = gc_obj_usage_peasant) then
       [*] = ;                  hsepea := hsepea + 1;
+      [*] = ;                  // Army of the enemy, counted by the SAME usage marks as our own
+      [*] = ;                  // (mil_inf/mil_shooters/mil_cav above). The player said 16.09 he
+      [*] = ;                  // sees the enemy base, army, peasants and mines on an open map,
+      [*] = ;                  // so this is not a head start - it is what the human already has.
+      [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
+      [*] = ;                     (hseu = gc_obj_usage_grenadier) or (hseu = gc_obj_usage_shooter) or
+      [*] = ;                     (hseu = gc_obj_usage_archer) or (hseu = gc_obj_usage_fasthorse) or
+      [*] = ;                     (hseu = gc_obj_usage_hardhorse) or (hseu = gc_obj_usage_horseshooter) then
+      [*] = ;                  hsemil := hsemil + 1;
+      [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
+      [*] = ;                     (hseu = gc_obj_usage_grenadier) then
+      [*] = ;                  hsxinf := hsxinf + 1;
+      [*] = ;                  if (hseu = gc_obj_usage_shooter) or (hseu = gc_obj_usage_archer) then
+      [*] = ;                  hsxsh := hsxsh + 1;
+      [*] = ;                  if (hseu = gc_obj_usage_fasthorse) or (hseu = gc_obj_usage_hardhorse) or
+      [*] = ;                     (hseu = gc_obj_usage_horseshooter) then
+      [*] = ;                  hsxcav := hsxcav + 1;
       [*] = ;                  if (gObjProp[TObj(hsep).cid][TObj(hsep).id].bbuilding) then
       [*] = ;                  begin
       [*] = ;                     hsebld := hsebld + 1;
+      [*] = ;                     var hsear : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].airole;
+      [*] = ;                     if (hsear = gc_ai_unit_minegold) or (hsear = gc_ai_unit_mineiron) or
+      [*] = ;                        (hsear = gc_ai_unit_minecoal) then
+      [*] = ;                     hsemin := hsemin + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_minegold) then hsxmg   := hsxmg + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_mineiron) then hsxmi   := hsxmi + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_minecoal) then hsxmc   := hsxmc + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_center)   then hsxcen  := hsxcen + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_mill)     then hsxmill := hsxmill + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_smith)    then hsxsm   := hsxsm + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_ba17)     then hsxba   := hsxba + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_ba18)     then hsxba18 := hsxba18 + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_stable)   then hsxstab := hsxstab + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_store)    then hsxstor := hsxstor + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_house)    then hsxho   := hsxho + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_tower)    then hsxtow  := hsxtow + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_market)   then hsxmar  := hsxmar + 1;
+      [*] = ;                     if (hsear = gc_ai_unit_academi)  then hsxaca  := hsxaca + 1;
       [*] = ;                     if (hsenemy) and (hscen > 0) then
       [*] = ;                     begin
       [*] = ;                        var hsd : Float = VectorDistance(GetGameObjectPositionXByHandle(hseg), 0,
@@ -629,6 +669,25 @@
       [*] = ;            end;
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_peasants', hsepea);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_bldgs',    hsebld);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_army',     hsemil);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mines',    hsemin);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_inf',      hsxinf);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_shoot',    hsxsh);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_cav',      hsxcav);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mgold',    hsxmg);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_miron',    hsxmi);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mcoal',    hsxmc);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_center',   hsxcen);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mill',     hsxmill);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_smith',    hsxsm);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_ba17',     hsxba);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_ba18',     hsxba18);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_stable',   hsxstab);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_store',    hsxstor);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_house',    hsxho);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_tower',    hsxtow);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_market',   hsxmar);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_academi',  hsxaca);
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
