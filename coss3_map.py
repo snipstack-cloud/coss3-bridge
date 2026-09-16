@@ -139,7 +139,7 @@ def lines(state: dict, mapstate: dict | None = None, prev: dict | None = None) -
     if frows and any(c != "." for row in frows for c in row):
         out.append("")
         out += _grid(frows, "## Enemy forces    "
-                            "(digit = army strength in that cell, 1 = weak ... 9 = very strong)",
+                            "(digit = enemy soldiers standing in that cell, 9 = nine or more)",
                      my_cx, my_cy)
 
     # --- добыча ---

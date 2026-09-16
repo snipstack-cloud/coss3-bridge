@@ -3621,6 +3621,10 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
                         "map_open", "upg_done", "upg_doing",
+                        # Сами сетки в трассу не кладём: 32 строки на такт это
+                        # мегабайты за серию. Кладём метки — по ним видно, была
+                        # ли карта в запросе и где стояла наша база.
+                        "grid_n", "my_cx", "my_cy",
                         "can_pea", "can_inf", "famine", "en_near_dist")
                         if st.get(k) is not None}
                     # Всё, что состояние знает о чужих слотах: их имена вида

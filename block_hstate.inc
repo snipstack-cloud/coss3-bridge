@@ -610,6 +610,28 @@
       [*] = ;         else
       [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'cost_ok', False);
       [*] = ;         // --- enemies: who they are and how many peasants they still have ---
+      [*] = ;         // --- MINIMAP ----------------------------------------------------
+      [*] = ;         // A human sees the minimap at all times, and on an open map it shows
+      [*] = ;         // everything on it. Until 16.09 the model had distances and compass
+      [*] = ;         // words only ('nearest enemy 180', 'gold to the north-east'): where
+      [*] = ;         // to walk around, and where the enemy army stands, was unsayable.
+      [*] = ;         // The shape is taken from block_state.inc of the computer slot where
+      [*] = ;         // it worked; its 'case' is replaced by 'if' - one-line case branches
+      [*] = ;         // have brought the tick down in this language before.
+      [*] = ;         const cHmGrid = 16;
+      [*] = ;         var hmbase : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmforce : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
+      [*] = ;         for hmi := 0 to cHmGrid-1 do
+      [*] = ;         for hmj := 0 to cHmGrid-1 do
+      [*] = ;         begin
+      [*] = ;            hmbase[hmi][hmj] := 0;
+      [*] = ;            hmforce[hmi][hmj] := 0;
+      [*] = ;         end;
+      [*] = ;         var hmw : Integer = GetMapWidth;
+      [*] = ;         var hmh : Integer = GetMapHeight;
+      [*] = ;         var hmhw : Integer = hmw div 2;
+      [*] = ;         var hmhh : Integer = hmh div 2;
       [*] = ;         var hspl, hsbest : Integer;
       [*] = ;         var hsbestd : Float = 1000000;
       [*] = ;         hsbest := -1;
@@ -643,6 +665,13 @@
       [*] = ;                     (hseu = gc_obj_usage_archer) or (hseu = gc_obj_usage_fasthorse) or
       [*] = ;                     (hseu = gc_obj_usage_hardhorse) or (hseu = gc_obj_usage_horseshooter) then
       [*] = ;                  hsemil := hsemil + 1;
+      [*] = ;                  if (hsenemy) then
+      [*] = ;                  begin
+      [*] = ;                     var hmux : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
+      [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
+      [*] = ;                     if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
+      [*] = ;                     hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
+      [*] = ;                  end;
       [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
       [*] = ;                     (hseu = gc_obj_usage_grenadier) then
       [*] = ;                  hsxinf := hsxinf + 1;
@@ -709,6 +738,72 @@
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
+      [*] = ;         // Buildings of every player, binned into cells. The engine keeps a
+      [*] = ;         // ready list per player, which is cheaper than walking all objects.
+      [*] = ;         for hmpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;         if (gPlayer[hmpl].bexists) then
+      [*] = ;         begin
+      [*] = ;            var hmcode : Integer = 1;
+      [*] = ;            if (hmpl = plind) then
+      [*] = ;            hmcode := 2
+      [*] = ;            else
+      [*] = ;            if ((gPlayer[plind].enemyPlMask and gPlayer[hmpl].myPlMask) <> 0) then
+      [*] = ;            hmcode := 3;
+      [*] = ;            for hmk := 0 to gPlayer[hmpl].lists.buildings.GetCount-1 do
+      [*] = ;            begin
+      [*] = ;               var hmbh : Integer = gPlayer[hmpl].lists.buildings.Get(hmk);
+      [*] = ;               var hmbcx : Integer = floor((GetGameObjectPositionXByHandle(hmbh)+hmhw)*cHmGrid/hmw);
+      [*] = ;               var hmbcy : Integer = floor((GetGameObjectPositionZByHandle(hmbh)+hmhh)*cHmGrid/hmh);
+      [*] = ;               if (hmbcx>=0) and (hmbcx<cHmGrid) and (hmbcy>=0) and (hmbcy<cHmGrid) then
+      [*] = ;               if (hmbase[hmbcx][hmbcy] < hmcode) then
+      [*] = ;               hmbase[hmbcx][hmbcy] := hmcode;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         // The grid goes out ONLY when a town center exists: without it there
+      [*] = ;         // is no anchor and the 'my base' cell would be a lie. No grid_n key
+      [*] = ;         // means python says nothing about the map at all.
+      [*] = ;         if (hscen > 0) then
+      [*] = ;         begin
+      [*] = ;            var hmcx : Integer = floor((hscx+hmhw)*cHmGrid/hmw);
+      [*] = ;            var hmcy : Integer = floor((hscz+hmhh)*cHmGrid/hmh);
+      [*] = ;            if (hmcx<0) then hmcx := 0;
+      [*] = ;            if (hmcx>cHmGrid-1) then hmcx := cHmGrid-1;
+      [*] = ;            if (hmcy<0) then hmcy := 0;
+      [*] = ;            if (hmcy>cHmGrid-1) then hmcy := cHmGrid-1;
+      [*] = ;            hmbase[hmcx][hmcy] := 4;
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_w',  hmw);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_h',  hmh);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'grid_n', cHmGrid);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cx',  hmcx);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cy',  hmcy);
+      [*] = ;            var hmrow : String;
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmv : Integer = hmbase[hmi][hmj];
+      [*] = ;                  if (hmv = 1) then hmrow := hmrow + 'a';
+      [*] = ;                  if (hmv = 2) then hmrow := hmrow + 'b';
+      [*] = ;                  if (hmv = 3) then hmrow := hmrow + 'e';
+      [*] = ;                  if (hmv = 4) then hmrow := hmrow + 'H';
+      [*] = ;                  if (hmv = 0) then hmrow := hmrow + '.';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'brow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmf : Integer = hmforce[hmi][hmj];
+      [*] = ;                  if (hmf > 9) then hmf := 9;
+      [*] = ;                  if (hmf > 0) then hmrow := hmrow + IntToStr(hmf);
+      [*] = ;                  if (hmf = 0) then hmrow := hmrow + '.';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'frow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
+      [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
       [*] = ;         // player.script:456). It decides what the bridge may honestly
