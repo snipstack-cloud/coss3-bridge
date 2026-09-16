@@ -2886,6 +2886,58 @@ def json_objects(text: str) -> list[dict]:
     return out
 
 
+# --- СХЕМА ОТВЕТА (нативный structured output) ---------------------------
+#
+# До 16.09 мост ПРОСИЛ вернуть JSON словами и разбирал что придёт: ловил
+# огрызки, синонимы полей ('count' вместо 'total', 'building' вместо 'role')
+# и куски текста вокруг скобок. Сколько такого было, видно в отчёте: строка
+# «команд отвергнуто» и блок «Команды, которые НЕ УШЛИ В ИГРУ».
+#
+# Схема описывает РОВНО то, что мост и так разбирает, и ничего сверх: имена
+# полей канонические, число у BUILD/TRAIN/BALANCE/BUILDERS это total, у
+# ATTACK/MOVE — count, у UPGRADE имя лежит в role. Разбор остаётся прежним:
+# схема сужает вход, а не заменяет проверку. Провайдер, который схемы не
+# знает, ответит отказом — тогда мост снимает её, говорит об этом вслух и
+# доигрывает как раньше.
+_КОМАНДА_СХЕМА = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "cmd": {"type": "string",
+                "enum": ["BUILD", "TRAIN", "BALANCE", "BUILDERS",
+                         "SEED", "UPGRADE", "ATTACK", "MOVE"]},
+        "role": {"type": ["string", "null"],
+                 "description": "роль здания/юнита/ресурса; для UPGRADE — имя апгрейда"},
+        "total": {"type": ["integer", "null"],
+                  "description": "желаемый ИТОГ для BUILD/TRAIN/BALANCE/BUILDERS; -1 — без счёта"},
+        "count": {"type": ["integer", "null"],
+                  "description": "сколько бойцов для ATTACK и MOVE"},
+        "target": {"type": ["string", "null"],
+                   "enum": ["peasants", "base", "army", "home", None]},
+    },
+    "required": ["cmd", "role", "total", "count", "target"],
+}
+
+СХЕМА_ОТВЕТА = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "why": {"type": "string", "description": "что делаешь сейчас и зачем, одно предложение"},
+        "ok": {"type": "string", "description": "что получается; пусто, если сказать нечего"},
+        "stuck": {"type": "string", "description": "что НЕ получается; пусто, если всё идёт"},
+        "cause": {"type": "string", "description": "почему не получается"},
+        "lesson": {"type": "string", "description": "вывод из СЛУЧИВШЕГОСЯ; пусто, если ничего не произошло"},
+        "idea": {"type": "string", "description": "гипотеза об устройстве игры; пусто, если нет"},
+        "question": {"type": "string", "description": "один вопрос человеку; пусто, если нет"},
+        "commands": {"type": "array", "items": _КОМАНДА_СХЕМА},
+    },
+    "required": ["why", "ok", "stuck", "cause", "lesson", "idea",
+                 "question", "commands"],
+}
+
+СХЕМОЙ = False         # --schema включает; отказ провайдера снимает обратно
+
+
 def ask(client, model: str, prompt: str, think: bool = False,
         retry: int = 1, max_tokens: int = 0) -> dict:
     if REPLAY:                              # --replay: модель не зовём вовсе
@@ -2897,6 +2949,12 @@ def ask(client, model: str, prompt: str, think: bool = False,
         temperature=0.4,
         max_tokens=max_tokens or MAX_TOKENS,
     )
+    if СХЕМОЙ:
+        kw["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": "coss3_move", "strict": True,
+                            "schema": СХЕМА_ОТВЕТА},
+        }
     extra: dict = {}
     if ONLY:
         extra["provider"] = {"order": list(ONLY), "allow_fallbacks": False}
@@ -2948,15 +3006,29 @@ def ask(client, model: str, prompt: str, think: bool = False,
                 f"        сверьтесь с openrouter.ai/models и задайте другую: "
                 f"--model <id> или COSS3_MODEL\n"
                 f"        Ответ сервера: {msg[:300]}") from e
-        # Откат делаем ТОЛЬКО на отказ разобрать запрос. На таймауте и обрыве
-        # повторять нельзя: вторая попытка удвоит и без того съеденный такт.
-        отказ = any(w in msg.lower() for w in
-                    ("400", "422", "extra", "not permitted", "unexpected",
-                     "unrecognized", "invalid"))
-        if "extra_body" not in kw or not отказ:
-            raise
-        kw.pop("extra_body")                # ключ рассуждений понимают не все
-        r = client.chat.completions.create(**kw)
+        # Схему понимают не все провайдеры. Снимаем её НАВСЕГДА для этого
+        # прогона и говорим вслух: молчаливый откат неотличим от того, что
+        # схема работает, и в отчёте потом не понять, что именно проверялось.
+        if "response_format" in kw and any(
+                w in msg.lower() for w in
+                ("response_format", "json_schema", "structured output",
+                 "schema", "json mode")):
+            globals()["СХЕМОЙ"] = False
+            kw.pop("response_format")
+            print("        провайдер не принял СХЕМУ ОТВЕТА — снимаю её до конца "
+                  "прогона, дальше как раньше: просьбой вернуть JSON")
+            return_r = client.chat.completions.create(**kw)
+            r = return_r
+        else:
+            # Откат делаем ТОЛЬКО на отказ разобрать запрос. На таймауте и обрыве
+            # повторять нельзя: вторая попытка удвоит и без того съеденный такт.
+            отказ = any(w in msg.lower() for w in
+                        ("400", "422", "extra", "not permitted", "unexpected",
+                         "unrecognized", "invalid"))
+            if "extra_body" not in kw or not отказ:
+                raise
+            kw.pop("extra_body")            # ключ рассуждений понимают не все
+            r = client.chat.completions.create(**kw)
     global LAST_TOKENS, LAST_PROVIDER
     LAST_TOKENS = getattr(getattr(r, "usage", None), "completion_tokens", 0) or 0
     LAST_PROVIDER = str(getattr(r, "provider", "") or "")
@@ -3092,6 +3164,15 @@ def одна_партия(a, client, br: Bridge, plind: int,
                   "([код]/[игрок]/[замер]) — модель не отличит проверенное от слов")
     print()
 
+    globals()["СХЕМОЙ"] = bool(a.schema)
+    if a.schema:
+        print("ответ по СХЕМЕ (нативный structured output): поля и команды "
+              "описаны json-схемой, а не просьбой вернуть JSON.")
+        print("  провайдер без схемы — мост скажет и доиграет по-старому "
+              "(--no-schema — выключить заранее)")
+    else:
+        print("схема ответа не просится (умолчание): JSON просим словами, как "
+              "играли base9-base11. Включить: --schema")
     globals()["ЧЕСТНО"] = bool(a.fair)
     if a.fair:
         print("честная игра: числа противника в запрос не идут, ПОКА карта "
@@ -4047,13 +4128,22 @@ def main() -> int:
                     metavar="файл",
                     help="файл знаний о мире: уходит в промпт ЦЕЛИКОМ, и туда же "
                          "модель пишет свой вопрос человеку. Пусто — канал выключен")
+    ap.add_argument("--schema", dest="schema", action="store_true",
+                    help="нативный structured output: форма ответа задаётся "
+                         "json-схемой, а не просьбой. Провайдер без схемы — "
+                         "мост скажет и доиграет по-старому")
+    ap.add_argument("--no-schema", dest="schema", action="store_false",
+                    help="не просить нативный structured output. Схему снимают, "
+                         "когда провайдер её не держит или когда надо сравнить "
+                         "с прежним поведением: доля разобранного брака видна "
+                         "в отчёте")
     ap.add_argument("--unfair", dest="fair", action="store_false",
                     help="разрешить мосту подсказывать то, чего человек не "
                          "видит: числа противника сквозь туман войны. По "
                          "умолчанию запрещено — правило игрока от 13.09. На "
                          "открытой карте (--balloon 2) запрет ничего не "
                          "меняет: там эти числа видит и человек")
-    ap.set_defaults(fair=True)
+    ap.set_defaults(fair=True, schema=False)
     ap.add_argument("--critic", default="", metavar="файл",
                     help="разбор партии ПОСЛЕ её конца: один вызов модели на "
                          "дневник партии, ответ дописывается в файл. Нужен "
