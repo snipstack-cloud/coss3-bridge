@@ -2079,6 +2079,79 @@ def цена_бойца(role: str, st: dict) -> dict:
     return {}
 
 
+ПОСТРОЙКИ_РУС = {"center": "ратуша", "mill": "мельница", "smith": "кузница",
+                 "ba17": "казарма", "store": "склад", "house": "дом",
+                 "minegold": "золотая шахта", "mineiron": "железная шахта",
+                 "minecoal": "угольная шахта"}
+
+
+def цена_построек(st: dict) -> dict:
+    """{роль: {ресурс: цена}} из поля build_cost. Цена — за СЛЕДУЮЩУЮ такую же:
+    движок считает её для этого игрока с его нынешним числом зданий, а
+    costpercent=500 (unit.script:2472) делает каждую следующую впятеро дороже."""
+    из_блока = {}
+    for кусок in str(st.get("build_cost") or "").split():
+        роль, _, хвост = кусок.partition("=")
+        цена = {}
+        for поле in хвост.split(","):
+            м = re.fullmatch(r"([a-z]+)(\d+)", поле)
+            if м and м.group(1) in РЕСУРС_РУС and int(м.group(2)) > 0:
+                цена[м.group(1)] = int(м.group(2))
+        if цена:
+            из_блока[роль] = цена
+    return из_блока
+
+
+def постройки(st: dict, было: dict | None) -> list[str]:
+    """Что стоит следующая постройка и через сколько на неё хватит.
+
+    Появилось 17.09: до этого мост говорил только «можно сейчас» списком, и
+    модель не знала ЦЕНЫ. Из-за этого вторая казарма за 2500 золота выглядела
+    такой же покупкой, как первая за 500, а критик объяснял пустую казну
+    добычей золота, хотя дело было в расходе.
+    """
+    цены = цена_построек(st)
+    if not цены:
+        return []
+    можно = set(str(st.get("can_now") or "").split())
+    порядок = [р for р in ("mill", "smith", "ba17", "minegold", "mineiron",
+                           "minecoal", "center", "store", "house") if р in цены]
+    показ = []
+    for р in порядок:
+        текст = ", ".join(f"{ц} {РЕСУРС_РУС.get(к, к)}" for к, ц in цены[р].items())
+        показ.append(f"{ПОСТРОЙКИ_РУС.get(р, р)} ({р}) — {текст}")
+    стр = ["## Цена СЛЕДУЮЩЕЙ постройки",
+           "  " + "; ".join(показ),
+           "  Каждое следующее здание того же вида ВПЯТЕРО дороже предыдущего —"
+           " цены выше уже с этим учётом."]
+    # Через сколько хватит на то, чего сейчас купить нельзя.
+    if было:
+        try:
+            dt = float(st.get("gametime") or 0) - float(было.get("gametime") or 0)
+        except (TypeError, ValueError):
+            dt = 0
+        if dt > 0:
+            for р in порядок:
+                if р in можно:
+                    continue
+                сроки = []
+                for к, ц in цены[р].items():
+                    try:
+                        есть = float(st.get(к, 0) or 0)
+                        рост = (есть - float(было.get(к, 0) or 0)) / dt
+                    except (TypeError, ValueError):
+                        continue
+                    if есть >= ц:
+                        continue
+                    if рост > 0.05:
+                        сроки.append(f"{РЕСУРС_РУС.get(к, к)} хватит через ~{int((ц - есть) / рост)} с")
+                    else:
+                        сроки.append(f"{РЕСУРС_РУС.get(к, к)} не растёт — пока так, не накопится")
+                if сроки:
+                    стр.append(f"  {ПОСТРОЙКИ_РУС.get(р, р)}: " + ", ".join(сроки))
+    return стр
+
+
 def выполнимость(st: dict, было: dict | None,
                  горизонты=(30, 60, 90)) -> list[str]:
     """Плановая выполнимость: на сколько бойцов хватит сейчас и через 30/60/90 с.
@@ -2174,6 +2247,7 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         f"золото={st.get('gold')} железо={st.get('iron')} уголь={st.get('coal')}",
         *_ресурсы_изменение(было, st),
         *выполнимость(st, было),
+        *постройки(st, было),
         "## Моё",
         f"  крестьян={st.get('peasants')} (еда {st.get('on_food')}, дерево {st.get('on_wood')}, "
         f"камень {st.get('on_stone')}"
@@ -3979,7 +4053,12 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 f"мест з{_ц('cap_gold')}/ж{_ц('cap_iron')}/у{_ц('cap_coal')}) | "
                 f"мест={_ц('my_farmused')}/{_ц('my_farm')} | "
                 f"ратуш={_ц('centers')} мельн={_ц('mills')} "
-                f"кузн={_ц('smiths')} казарм={_ц('ba17')} склад={_ц('my_stores')} "
+                f"кузн={_ц('smiths')} казарм={_ц('ba17')}"
+                # Цена СЛЕДУЮЩЕЙ казармы — тот самый расход, который критик
+                # 16.09 принял за нехватку добычи: вторая стоит впятеро дороже.
+                + (f"(следующая {цена_построек(st).get('ba17', {}).get('gold', 0)} зол)"
+                   if цена_построек(st).get("ba17", {}).get("gold") else "")
+                + f" склад={_ц('my_stores')} "
                 f"шахты з{_ц('mines_gold')}/ж{_ц('mines_iron')}/у{_ц('mines_coal')} | "
                 f"пехота={_ц('mil_inf')} стрелки={_ц('mil_shooters')} "
                 f"свободбойц={_ц('my_freewar')} волна={_ц('wave_sent')} "
@@ -4024,7 +4103,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "on_gold", "on_iron", "on_coal",
                         "cap_gold", "cap_iron", "cap_coal",
                         "mil_near", "mil_side",
-                        "can_now", "cant_now", "fighters",
+                        "can_now", "cant_now", "fighters", "build_cost",
                         "wood_slots_near", "wood_slots_free",
                         "stone_slots_near", "stone_slots_free",
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
