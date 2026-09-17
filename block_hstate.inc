@@ -952,8 +952,8 @@
       [*] = ;            for hmi := 0 to cHmGrid-1 do
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            hmown[hmi][hmj] := 0;
-      [*] = ;            var hmfx, hmfy, hmfn : Integer;   sum of cells and count of FREE fighters
-      [*] = ;            var hmwx, hmwy, hmwn : Integer;   the same for those already marching
+      [*] = ;            var hmfx, hmfy, hmfn : Integer;   // sum of cells and count of FREE fighters
+      [*] = ;            var hmwx, hmwy, hmwn : Integer;   // the same for those already marching
       [*] = ;            var hmok : Integer;
       [*] = ;            for hmok := 0 to hscount-1 do
       [*] = ;            begin

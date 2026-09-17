@@ -1040,7 +1040,7 @@
       [*] = ;            // The cell resolves to the CENTRE of its square, else the squad walks to a corner.
       [*] = ;            if (hatrg = 'cell') then
       [*] = ;            begin
-      [*] = ;               var hacn : Integer = 16;   cHmGrid in the state block; the two grids must match
+      [*] = ;               var hacn : Integer = 16;   // cHmGrid in the state block; grids must match
       [*] = ;               var hacx : Integer = ParserGetIntValueByKeyByHandle(hah, 'cx');
       [*] = ;               var hacy : Integer = ParserGetIntValueByKeyByHandle(hah, 'cy');
       [*] = ;               if (hacx < 0) then hacx := 0;
