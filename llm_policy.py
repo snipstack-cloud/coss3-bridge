@@ -2317,7 +2317,23 @@ def созревание(st: dict) -> list[str]:
         ПОЛЕ["созрело"] = True
     if мельниц > 0 and "мельница" not in ПОЛЕ:
         ПОЛЕ["мельница"] = сейчас
+    # Поле, посчитанное МОСТОМ тем же поиском, что делает команда: сколько
+    # созревших участков еды видно вокруг мельницы. Пока его нет, приходится
+    # гадать по сроку; когда есть - гадать не нужно.
+    готово = st.get("food_ready")
+    try:
+        готово = int(float(готово)) if готово is not None else None
+    except (TypeError, ValueError):
+        готово = None
+    if мельниц > 0 and готово is not None and готово > 0 and на_еде == 0:
+        return ["## Поле СОЗРЕЛО",
+                f"  у мельницы готовых участков: {готово}, а на еде НИКОГО."
+                f" Ставь людей прямо сейчас: BALANCE food. Каждый такт простоя"
+                f" здесь - это такт без найма, потому что ниже 500 еды не"
+                f" нанимается никто."]
     if мельниц <= 0 or ПОЛЕ.get("созрело") or "мельница" not in ПОЛЕ:
+        return []
+    if готово is not None and готово > 0:
         return []
     ждём = int(сейчас - ПОЛЕ["мельница"])
     осталось = СОЗРЕВАНИЕ_С - ждём
@@ -4399,7 +4415,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
-                        "map_open", "upg_done", "upg_doing", "train_now", "ba_queues",
+                        "map_open", "upg_done", "upg_doing", "train_now", "ba_queues", "food_ready",
                         # Сами сетки в трассу не кладём: 32 строки на такт это
                         # мегабайты за серию. Кладём метки — по ним видно, была
                         # ли карта в запросе и где стояла наша база.

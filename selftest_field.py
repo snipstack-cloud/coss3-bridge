@@ -19,8 +19,12 @@ def проверка(имя, условие, пояснение=""):
         print("  ПЛОХО " + имя + (" — " + пояснение if пояснение else ""))
 
 
-def текст(t, mills=1, on_food=0):
-    return "\n".join(L.созревание(dict(gametime=t, mills=mills, on_food=on_food)))
+def текст(t, mills=1, on_food=0, food_ready=None):
+    сост = dict(gametime=t, mills=mills, on_food=on_food)
+    if food_ready is not None:
+        сост["food_ready"] = food_ready
+    return chr(10).join(L.созревание(сост))
+
 
 
 L.ПОЛЕ.clear()
@@ -42,6 +46,18 @@ L.ПОЛЕ.clear()
 
 L.ПОЛЕ.clear()
 проверка("между партиями память пуста", L.ПОЛЕ == {})
+
+# Поле food_ready: мост сам видит созревшие участки, гадать по сроку не нужно.
+L.ПОЛЕ.clear()
+текст(70, food_ready=0)
+т9 = текст(140, food_ready=2)
+проверка("созревшее поле названо вслух", "Поле СОЗРЕЛО" in т9)
+проверка("сказано, сколько участков", "готовых участков: 2" in т9)
+проверка("зовёт ставить людей", "BALANCE food" in т9)
+проверка("когда люди встали — молчит", текст(160, on_food=12, food_ready=2) == "")
+
+L.ПОЛЕ.clear()
+проверка("при food_ready=0 говорит, что зреет", "ещё зреет" in текст(80, food_ready=0))
 
 print()
 print("ПРОВАЛОВ:", len(беды))

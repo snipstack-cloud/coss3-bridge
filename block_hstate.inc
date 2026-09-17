@@ -582,6 +582,48 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         // IS THE FIELD RIPE? The model could not know. The bridge said 'wait'
+      [*] = ;         // while the field grew and then simply fell silent - and silence is not
+      [*] = ;         // a signal. Measured 17.09 on parallel_start: the mill was ready at 29 s,
+      [*] = ;         // the field ripe around 134 s, and the first peasant went to food only at
+      [*] = ;         // 230 s. A hundred seconds of the win from an early mill were eaten by
+      [*] = ;         // the model not noticing the moment.
+      [*] = ;         //
+      [*] = ;         // Counted EXACTLY as the BALANCE command counts it - same search, same
+      [*] = ;         // filter (brised), same radius, around the MILL - so the state and the
+      [*] = ;         // command can never disagree.
+      [*] = ;         var hsfrd : Integer = 0;
+      [*] = ;         var hsmx : Float = hscx;
+      [*] = ;         var hsmz : Float = hscz;
+      [*] = ;         var hsmfound : Integer = 0;
+      [*] = ;         var hsmk : Integer;
+      [*] = ;         for hsmk := 0 to hscount-1 do
+      [*] = ;         begin
+      [*] = ;            var hsmgo : Integer = GetGameObjectHandleByIndex(hsmk, hsph);
+      [*] = ;            var hsmpo : Pointer = _unit_GetTObj(hsmgo);
+      [*] = ;            if (hsmpo<>nil) and (hsmfound = 0) then
+      [*] = ;            if (gObjProp[TObj(hsmpo).cid][TObj(hsmpo).id].airole = gc_ai_unit_mill) then
+      [*] = ;            if (TObj(hsmpo).bbuilt) then
+      [*] = ;            begin
+      [*] = ;               hsmfound := hsmgo;
+      [*] = ;               hsmx := GetGameObjectPositionXByHandle(hsmgo);
+      [*] = ;               hsmz := GetGameObjectPositionZByHandle(hsmgo);
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         if (hsmfound <> 0) then
+      [*] = ;         begin
+      [*] = ;            gIntegerList.Clear;
+      [*] = ;            _misc_MakeListEnvironmentInRadius(hsmx, hsmz, 40, True, True, False, False, False, gIntegerList);
+      [*] = ;            var hsfk : Integer;
+      [*] = ;            for hsfk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;            begin
+      [*] = ;               var hsfp : Pointer = _res_GetTRes(gIntegerList.Get(hsfk));
+      [*] = ;               if (hsfp<>nil) then
+      [*] = ;               if (TRes(hsfp).brised) and (TRes(hsfp).itype = gc_resource_type_food) then
+      [*] = ;               hsfrd := hsfrd + 1;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'food_ready', hsfrd);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_near', hswn);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_free', hswf);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_near', hssn);
