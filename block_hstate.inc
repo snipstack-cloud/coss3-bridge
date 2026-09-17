@@ -771,6 +771,11 @@
       [*] = ;         var hmbase : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmforce : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
+      [*] = ;         // Counters of OUR army, declared at THIS level on purpose - see the
+      [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
+      [*] = ;         // only because it is an array.
+      [*] = ;         var hmfx, hmfy, hmfn : Integer;
+      [*] = ;         var hmwx, hmwy, hmwn : Integer;
       [*] = ;         for hmi := 0 to cHmGrid-1 do
       [*] = ;         for hmj := 0 to cHmGrid-1 do
       [*] = ;         begin
@@ -952,17 +957,18 @@
       [*] = ;            for hmi := 0 to cHmGrid-1 do
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            hmown[hmi][hmj] := 0;
-      [*] = ;            // EXPLICIT zeros. Live game 17.09: these six were declared without
-      [*] = ;            // an initial value, the way the neighbouring counters are, and they
-      [*] = ;            // came out as garbage - at 12 soldiers on the grid both counters were
-      [*] = ;            // non-positive and neither key went out, while a tick earlier wave_n
-      [*] = ;            // read 2. The hmown array was zeroed by hand and was correct all along.
-      [*] = ;            var hmfx : Integer = 0;   // sum of cell x of FREE fighters
-      [*] = ;            var hmfy : Integer = 0;
-      [*] = ;            var hmfn : Integer = 0;   // how many of them
-      [*] = ;            var hmwx : Integer = 0;   // the same for those already marching
-      [*] = ;            var hmwy : Integer = 0;
-      [*] = ;            var hmwn : Integer = 0;
+      [*] = ;            // Zeroed HERE, declared OUTSIDE (next to hmbase/hmforce). Live game
+      [*] = ;            // 17.09 showed why: declared inside this block they never accumulated
+      [*] = ;            // - 208 soldiers stood in the grid and both counters read zero, while
+      [*] = ;            // the hmown ARRAY, declared in the very same place, was correct all
+      [*] = ;            // along. An array survives by reference, a scalar does not; hsfree
+      [*] = ;            // works because it is declared at the top of the block, like these now.
+      [*] = ;            hmfx := 0;
+      [*] = ;            hmfy := 0;
+      [*] = ;            hmfn := 0;
+      [*] = ;            hmwx := 0;
+      [*] = ;            hmwy := 0;
+      [*] = ;            hmwn := 0;
       [*] = ;            var hmok : Integer;
       [*] = ;            for hmok := 0 to hscount-1 do
       [*] = ;            begin
