@@ -448,7 +448,39 @@
       [*] = ;                        // and stone could not find a deposit at all, and the model spent eight
       [*] = ;                        // ticks writing that the order goes out but nobody starts gathering.
       [*] = ;                        // The itype filter below picks the right kind, so include all three.
-      [*] = ;                        _misc_MakeListEnvironmentInRadius(hcx, hcz, 40, True, True, True, True, False, gIntegerList);
+      [*] = ;                        // FOOD IS SEARCHED AROUND THE MILL, not around the town
+      [*] = ;                        // hall. That is what the game itself does:
+      [*] = ;                        // _ai_SendFreePeasantsToGainFood takes the mill from
+      [*] = ;                        // milllist, reads ITS position and calls the same search
+      [*] = ;                        // with radius 30 (progresseconomicai.inc:709+). Ours looked
+      [*] = ;                        // 40 around the hall, and when the mill stood further out the
+      [*] = ;                        // field simply was not in the list: the bridge answered 'no
+      [*] = ;                        // deposit of this kind within 40 of the base' and nobody ever
+      [*] = ;                        // went to food. Measured 17.09 on 15 games of base15: in the
+      [*] = ;                        // window 1:00-3:30 the model gave BALANCE food 94 times in 100
+      [*] = ;                        // ticks and on_food stayed at ZERO in 68 of them, with the mill
+      [*] = ;                        // already built in 67. The refusal was printed 29 times.
+      [*] = ;                        var hbfx : Float = hcx;
+      [*] = ;                        var hbfz : Float = hcz;
+      [*] = ;                        if (hbres = gc_resource_type_food) then
+      [*] = ;                        begin
+      [*] = ;                           var hbmk : Integer;
+      [*] = ;                           var hbmill : Integer = 0;
+      [*] = ;                           for hbmk := 0 to hcobjn-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hbmgo : Integer = GetGameObjectHandleByIndex(hbmk, hcph);
+      [*] = ;                              var hbmpo : Pointer = _unit_GetTObj(hbmgo);
+      [*] = ;                              if (hbmpo<>nil) and (hbmill = 0) then
+      [*] = ;                              if (gObjProp[TObj(hbmpo).cid][TObj(hbmpo).id].airole = gc_ai_unit_mill) then
+      [*] = ;                              if (TObj(hbmpo).bbuilt) then
+      [*] = ;                              begin
+      [*] = ;                                 hbmill := hbmgo;
+      [*] = ;                                 hbfx := GetGameObjectPositionXByHandle(hbmgo);
+      [*] = ;                                 hbfz := GetGameObjectPositionZByHandle(hbmgo);
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        _misc_MakeListEnvironmentInRadius(hbfx, hbfz, 40, True, True, True, True, False, gIntegerList);
       [*] = ;                        var hbtrg : Integer = 0;
       [*] = ;                        var hbbest : Float = 1000000;
       [*] = ;                        for hck := 0 to gIntegerList.GetCount-1 do
@@ -486,7 +518,9 @@
       [*] = ;                        else
       [*] = ;                        begin
       [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'GATHER res' + IntToStr(hca1) +
-      [*] = ;                             ': no deposit of this kind within 40 of the base');
+      [*] = ;                             ': no deposit of this kind within 40. Food is searched around the ' +
+      [*] = ;                             'MILL, wood and stone around the town hall. Sow a field (SEED) or ' +
+      [*] = ;                             'build closer to the deposit');
       [*] = ;                        Log('bridge-human: GATHER res' + IntToStr(hca1) + ' - no deposit within 40 of base');
       [*] = ;                        end;
       [*] = ;                     end;
