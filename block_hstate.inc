@@ -952,8 +952,17 @@
       [*] = ;            for hmi := 0 to cHmGrid-1 do
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            hmown[hmi][hmj] := 0;
-      [*] = ;            var hmfx, hmfy, hmfn : Integer;   // sum of cells and count of FREE fighters
-      [*] = ;            var hmwx, hmwy, hmwn : Integer;   // the same for those already marching
+      [*] = ;            // EXPLICIT zeros. Live game 17.09: these six were declared without
+      [*] = ;            // an initial value, the way the neighbouring counters are, and they
+      [*] = ;            // came out as garbage - at 12 soldiers on the grid both counters were
+      [*] = ;            // non-positive and neither key went out, while a tick earlier wave_n
+      [*] = ;            // read 2. The hmown array was zeroed by hand and was correct all along.
+      [*] = ;            var hmfx : Integer = 0;   // sum of cell x of FREE fighters
+      [*] = ;            var hmfy : Integer = 0;
+      [*] = ;            var hmfn : Integer = 0;   // how many of them
+      [*] = ;            var hmwx : Integer = 0;   // the same for those already marching
+      [*] = ;            var hmwy : Integer = 0;
+      [*] = ;            var hmwn : Integer = 0;
       [*] = ;            var hmok : Integer;
       [*] = ;            for hmok := 0 to hscount-1 do
       [*] = ;            begin
