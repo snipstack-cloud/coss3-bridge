@@ -319,7 +319,18 @@
       [*] = ;                        // unit, and the bridge reported that as a bare refusal. That
       [*] = ;                        // is the whole of the '89 percent of TRAIN orders are
       [*] = ;                        // redundant' finding from series base14.
+      [*] = ;                        // Count the buildings that ALREADY carry the infinite order,
+      [*] = ;                        // do not just note that ONE of them does. Measured live on
+      [*] = ;                        // 17.09: one barracks with a plain order gives +20 fighters in
+      [*] = ;                        // 95 game seconds, two give +36 in 84 - the second barracks
+      [*] = ;                        // DOUBLES the flow. But the model orders with TRAIN -1, and
+      [*] = ;                        // this guard skipped that order as soon as the FIRST barracks
+      [*] = ;                        // had it, so the second one stood empty and 2500 gold were
+      [*] = ;                        // thrown away. The critic asked for a second barracks in 21
+      [*] = ;                        // write-ups out of 62 and was right; our own bridge made his
+      [*] = ;                        // advice useless.
       [*] = ;                        var hcalready : Boolean = False;
+      [*] = ;                        var hcalreadyn : Integer;
       [*] = ;                        for hck := 0 to gIntegerList.GetCount-1 do
       [*] = ;                        begin
       [*] = ;                           var hcbo : Pointer = _unit_GetTObj(gIntegerList.Get(hck));
@@ -331,9 +342,11 @@
       [*] = ;                              if (TOrder(hcpo).itype = gc_obj_order_type_produce) then
       [*] = ;                              if (TOrder(hcpo).info.produceid = hcid) then
       [*] = ;                              if (TOrder(hcpo).info.amount = gc_obj_order_produce_infinite) then
-      [*] = ;                              hcalready := True;
+      [*] = ;                              hcalreadyn := hcalreadyn + 1;
       [*] = ;                           end;
       [*] = ;                        end;
+      [*] = ;                        if (hcalreadyn >= gIntegerList.GetCount) then
+      [*] = ;                        hcalready := True;
       [*] = ;                        if (hcalready) and (hca2 <= gc_obj_order_produce_infinite) then
       [*] = ;                        begin
       [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
