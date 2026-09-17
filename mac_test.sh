@@ -117,7 +117,7 @@ while [ "$n" -le "$COPIES" ]; do
     --env-file "$ENV_FILE" ${EXTRA[@]+"${EXTRA[@]}"} \
     -e COSS3_VNC=1 -e COSS3_KEEP_ALIVE=1 \
     -e COSS3_EPISODES="$EPISODES" \
-    -e COSS3_HB_TIMEOUT=900 -e COSS3_NEW_TIMEOUT=300 \
+    -e COSS3_HB_TIMEOUT=900 -e COSS3_NEW_TIMEOUT=600 \
     -p "$vnc":5900 \
     -v "$io":/io -v "$prof":/profile \
     "$IMAGE" >/dev/null || die "копия $n не поднялась"
