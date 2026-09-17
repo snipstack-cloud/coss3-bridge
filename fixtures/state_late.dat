@@ -147,4 +147,5 @@ section.end
    my_officers = 0
    my_drummers = 0
    squads = 0
+   train_now = 
 

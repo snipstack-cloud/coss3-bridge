@@ -306,9 +306,25 @@
       [*] = ;                     end;
       [*] = ;                     if (gIntegerList.GetCount > 0) then
       [*] = ;                     begin
-      [*] = ;                        _unit_ProduceUnit(hcph, gIntegerList, hccid, hcid, hca2, True, True, True);
+      [*] = ;                        // The engine ANSWERS whether it took the order, and until
+      [*] = ;                        // 17.09 the bridge threw that answer away: it logged the
+      [*] = ;                        // order and called it a day. Series base14: 345 of 348
+      [*] = ;                        // TRAIN orders were infinite, and a refused one looked
+      [*] = ;                        // exactly like a working conveyor.
+      [*] = ;                        var hctok : Boolean = _unit_ProduceUnit(hcph, gIntegerList,
+      [*] = ;                             hccid, hcid, hca2, True, True, True);
+      [*] = ;                        if (hctok) then
       [*] = ;                        Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] + ' x' +
-      [*] = ;                            IntToStr(hca2) + ' in ' + IntToStr(gIntegerList.GetCount) + ' buildings');
+      [*] = ;                            IntToStr(hca2) + ' in ' + IntToStr(gIntegerList.GetCount) + ' buildings')
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
+      [*] = ;                                gCountry[hccid].members[hcid] + ': THE GAME DID NOT TAKE ' +
+      [*] = ;                                'THE ORDER. The building is there, so look at the queue ' +
+      [*] = ;                                '(train_now) and at the food');
+      [*] = ;                           Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] +
+      [*] = ;                                ' - REFUSED by the game');
+      [*] = ;                        end;
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin

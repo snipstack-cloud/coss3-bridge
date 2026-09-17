@@ -150,4 +150,5 @@ section.end
    can_pea = True
    can_inf = False
    famine = True
+   train_now = pikeman:inf
 

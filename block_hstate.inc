@@ -55,6 +55,7 @@
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
       [*] = ;         var hsba18, hsstab : Integer;
       [*] = ;         var hswip : String;
+      [*] = ;         var hstq : String;   // training queue: who and how many
       [*] = ;         var hscx, hscz : Float;
       [*] = ;         var hspeaid : Integer = -1;
       [*] = ;         var hsk : Integer;
@@ -134,6 +135,32 @@
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  begin
+      [*] = ;                     // WHAT THIS BUILDING IS MAKING RIGHT NOW. Until 17.09 the
+      [*] = ;                     // bridge reported the ORDER ('TRAIN pikeman x-1 in 1
+      [*] = ;                     // buildings') and never what came of it: no acceptance, no
+      [*] = ;                     // queue, no count. Series base14: of 348 TRAIN orders 345
+      [*] = ;                     // were infinite, so the model could not tell a running
+      [*] = ;                     // conveyor from a stalled one. The queue lives in the
+      [*] = ;                     // building's own orders (unit.script:10386-10406): type
+      [*] = ;                     // produce, info.produceid is the unit, info.amount is the
+      [*] = ;                     // count or the infinite mark.
+      [*] = ;                     var hstk : Integer;
+      [*] = ;                     for hstk := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hstp : Pointer = TObj(hspo).orders[hstk];
+      [*] = ;                        if (hstp<>nil) then
+      [*] = ;                        if (TOrder(hstp).itype = gc_obj_order_type_produce) then
+      [*] = ;                        begin
+      [*] = ;                           var hstid : Integer = TOrder(hstp).info.produceid;
+      [*] = ;                           var hstam : Integer = TOrder(hstp).info.amount;
+      [*] = ;                           if (hstq <> '') then hstq := hstq + ',';
+      [*] = ;                           hstq := hstq + gCountry[hscid].members[hstid] + ':';
+      [*] = ;                           if (hstam = gc_obj_order_produce_infinite) then
+      [*] = ;                           hstq := hstq + 'inf'
+      [*] = ;                           else
+      [*] = ;                           hstq := hstq + IntToStr(hstam);
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                     if (hsrole = gc_ai_unit_center) then
       [*] = ;                     begin
       [*] = ;                        hscen := hscen + 1;
@@ -470,6 +497,7 @@
       [*] = ;         // same from Python, and 14.09 we spent a round guessing which it was.
       [*] = ;         if (hsftxt = '') then
       [*] = ;         hsftxt := 'none-found';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'train_now', hstq);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsftxt);
       [*] = ;         // WHY THE HIRING STOPPED, in the engine's own words. Below a food
       [*] = ;         // floor the game halts production SILENTLY, and the bridge kept
