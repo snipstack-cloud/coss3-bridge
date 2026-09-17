@@ -56,6 +56,13 @@
       [*] = ;         var hsba18, hsstab : Integer;
       [*] = ;         var hswip : String;
       [*] = ;         var hstq : String;   // training queue: who and how many
+      [*] = ;         // Per-BUILDING queue. train_now above is the whole player in one
+      [*] = ;         // line, and that hid the defect of 17.09: the second barracks stood
+      [*] = ;         // empty for 2500 gold because the ALREADY ORDERED guard skipped the
+      [*] = ;         // infinite order as soon as the FIRST one had it. Neither the model
+      [*] = ;         // nor we could see it - the state said only 'ba17 = 2'.
+      [*] = ;         var hsbq : String;   // barracks queues: 1:pikeman:inf,2:none
+      [*] = ;         var hsbn : Integer;  // barracks counter for the line above
       [*] = ;         var hscx, hscz : Float;
       [*] = ;         var hspeaid : Integer = -1;
       [*] = ;         var hsk : Integer;
@@ -160,6 +167,27 @@
       [*] = ;                           else
       [*] = ;                           hstq := hstq + IntToStr(hstam);
       [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (hsrole = gc_ai_unit_ba17) then
+      [*] = ;                     begin
+      [*] = ;                        hsbn := hsbn + 1;
+      [*] = ;                        var hsbwhat : String = 'none';
+      [*] = ;                        var hsbk : Integer;
+      [*] = ;                        for hsbk := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hsbp : Pointer = TObj(hspo).orders[hsbk];
+      [*] = ;                           if (hsbp<>nil) then
+      [*] = ;                           if (TOrder(hsbp).itype = gc_obj_order_type_produce) then
+      [*] = ;                           begin
+      [*] = ;                              hsbwhat := gCountry[hscid].members[TOrder(hsbp).info.produceid];
+      [*] = ;                              if (TOrder(hsbp).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                              hsbwhat := hsbwhat + ':inf'
+      [*] = ;                              else
+      [*] = ;                              hsbwhat := hsbwhat + ':' + IntToStr(TOrder(hsbp).info.amount);
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hsbq <> '') then hsbq := hsbq + ',';
+      [*] = ;                        hsbq := hsbq + IntToStr(hsbn) + ':' + hsbwhat;
       [*] = ;                     end;
       [*] = ;                     if (hsrole = gc_ai_unit_center) then
       [*] = ;                     begin
@@ -498,6 +526,9 @@
       [*] = ;         if (hsftxt = '') then
       [*] = ;         hsftxt := 'none-found';
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'train_now', hstq);
+      [*] = ;         if (hsbq = '') then
+      [*] = ;         hsbq := 'none-built';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'ba_queues', hsbq);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsftxt);
       [*] = ;         // WHY THE HIRING STOPPED, in the engine's own words. Below a food
       [*] = ;         // floor the game halts production SILENTLY, and the bridge kept

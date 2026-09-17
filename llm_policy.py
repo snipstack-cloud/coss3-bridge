@@ -2724,6 +2724,24 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
     # для найма её не было: мост говорил «заказ ушёл» и умолкал. По серии
     # base14 из 348 заказов 345 были бесконечными — отличить работающий
     # конвейер от вставшего было нечем.
+    _каз = str(st.get("ba_queues", "") or "").strip()
+    if _каз and _каз != "none-built":
+        # Очередь КАЖДОЙ казармы отдельно. Раньше в состоянии стояло только их
+        # число, и 17.09 это стоило 2500 золота: вторая казарма простояла пустой
+        # всю партию, потому что страж ALREADY ORDERED пропускал бесконечный
+        # заказ, увидев его в первой. Ни модель, ни разбор этого не видели.
+        _чит = []
+        for _к in _каз.split(","):
+            _ном, _, _что = _к.partition(":")
+            if _что in ("", "none"):
+                _чит.append(f"№{_ном} ПУСТА")
+            else:
+                _имя, _, _скл = _что.partition(":")
+                _чит.append(f"№{_ном} {_имя} " + ("без счёта" if _скл == "inf" else f"x{_скл}"))
+        lines.append("  очередь по казармам: " + ", ".join(_чит)
+                     + (". ПУСТАЯ КАЗАРМА НЕ ДЕЛАЕТ НИКОГО — отдай TRAIN ещё раз,"
+                        " он уйдёт во все казармы сразу"
+                        if "ПУСТА" in " ".join(_чит) else ""))
     _оч = str(st.get("train_now", "") or "").strip()
     if "train_now" in st:
         if _оч:
@@ -4303,7 +4321,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
-                        "map_open", "upg_done", "upg_doing", "train_now",
+                        "map_open", "upg_done", "upg_doing", "train_now", "ba_queues",
                         # Сами сетки в трассу не кладём: 32 строки на такт это
                         # мегабайты за серию. Кладём метки — по ним видно, была
                         # ли карта в запросе и где стояла наша база.
