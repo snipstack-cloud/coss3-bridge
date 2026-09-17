@@ -9,6 +9,7 @@ VM=x86
 IMAGE=coss3:2
 PROFILE_SRC="$HOME/profile-mac"
 ENV_FILE="$HOME/coss3.env"
+DEPLOY_KEY="${COSS3_DEPLOY_KEY:-$HOME/.ssh/coss3_deploy}"
 RUNLOG="$HOME/io-mac-runner.log"
 
 say() { printf '[мак-тест %s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a "$RUNLOG"; }
@@ -82,6 +83,21 @@ while [ "$n" -le "$COPIES" ]; do
   vnc=$((5899 + n))
   EXTRA=()
   [ -n "${COSS3_EXTRA_FLAGS:-}" ] && EXTRA=(-e "COSS3_EXTRA_FLAGS=$COSS3_EXTRA_FLAGS")
+  # Мост из git — документированный путь (docker/README.md). Без него контейнер
+  # берёт мост, запечённый в образ: для проверки машины годится, для опыта нет.
+  # Приватный репозиторий открывается deploy key, и ключ ТОЛЬКО монтируется —
+  # в образ он не попадает, иначе слой с ключом остался бы в истории навсегда.
+  if [ -n "${COSS3_BRIDGE_GIT:-}" ]; then
+    EXTRA+=(-e "COSS3_BRIDGE_GIT=$COSS3_BRIDGE_GIT")
+    EXTRA+=(-e "COSS3_BRIDGE_REF=${COSS3_BRIDGE_REF:-verified}")
+    case "$COSS3_BRIDGE_GIT" in
+      git@*|ssh://*)
+        [ -f "$DEPLOY_KEY" ] || die "мост просят из git по ssh ($COSS3_BRIDGE_GIT),
+     а ключа нет: $DEPLOY_KEY. Указать свой — COSS3_DEPLOY_KEY=/путь/к/ключу."
+        EXTRA+=(-v "$DEPLOY_KEY:/ssh/deploy_key:ro") ;;
+    esac
+    [ "$n" = 1 ] && say "мост из git: $COSS3_BRIDGE_GIT @ ${COSS3_BRIDGE_REF:-verified}"
+  fi
   # Правка моста в python проверяется ЗДЕСЬ: подкладываем местный файл поверх
   # запечённого в образ. Для .inc это не годится — те живут в игре и
   # проверяются на Windows.
@@ -98,10 +114,10 @@ while [ "$n" -le "$COPIES" ]; do
     [ "$n" = 1 ] && say "мост python берётся МЕСТНЫЙ из ~/coss3-bridge (COSS3_BRIDGE_LOCAL=1)"
   fi
   docker --context "$CTX" run -d --name "coss3-mac-$n" \
-    --env-file "$ENV_FILE" "${EXTRA[@]}" \
+    --env-file "$ENV_FILE" ${EXTRA[@]+"${EXTRA[@]}"} \
     -e COSS3_VNC=1 -e COSS3_KEEP_ALIVE=1 \
     -e COSS3_EPISODES="$EPISODES" \
-    -e COSS3_HB_TIMEOUT=900 -e COSS3_NEW_TIMEOUT=300 \
+    -e COSS3_HB_TIMEOUT=900 -e COSS3_NEW_TIMEOUT=600 \
     -p "$vnc":5900 \
     -v "$io":/io -v "$prof":/profile \
     "$IMAGE" >/dev/null || die "копия $n не поднялась"
