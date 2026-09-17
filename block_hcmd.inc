@@ -311,6 +311,40 @@
       [*] = ;                        // order and called it a day. Series base14: 345 of 348
       [*] = ;                        // TRAIN orders were infinite, and a refused one looked
       [*] = ;                        // exactly like a working conveyor.
+      [*] = ;                        // IS IT ALREADY ORDERED? Live game 17.09: all sixteen
+      [*] = ;                        // refusals in one match were for a unit that already had an
+      [*] = ;                        // INFINITE order standing in the same building - food, gold
+      [*] = ;                        // and housing were all fine, can_inf was true. The engine
+      [*] = ;                        // simply will not take a second infinite order for the same
+      [*] = ;                        // unit, and the bridge reported that as a bare refusal. That
+      [*] = ;                        // is the whole of the '89 percent of TRAIN orders are
+      [*] = ;                        // redundant' finding from series base14.
+      [*] = ;                        var hcalready : Boolean = False;
+      [*] = ;                        for hck := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hcbo : Pointer = _unit_GetTObj(gIntegerList.Get(hck));
+      [*] = ;                           if (hcbo<>nil) then
+      [*] = ;                           for hcjj := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hcpo : Pointer = TObj(hcbo).orders[hcjj];
+      [*] = ;                              if (hcpo<>nil) then
+      [*] = ;                              if (TOrder(hcpo).itype = gc_obj_order_type_produce) then
+      [*] = ;                              if (TOrder(hcpo).info.produceid = hcid) then
+      [*] = ;                              if (TOrder(hcpo).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                              hcalready := True;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hcalready) and (hca2 <= gc_obj_order_produce_infinite) then
+      [*] = ;                        begin
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
+      [*] = ;                                gCountry[hccid].members[hcid] + ': ALREADY ORDERED without ' +
+      [*] = ;                                'count and still running. The conveyor works, the order is ' +
+      [*] = ;                                'not needed - spend the tick on something else');
+      [*] = ;                           Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] +
+      [*] = ;                                ' - already ordered, skipped');
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
       [*] = ;                        var hctok : Boolean = _unit_ProduceUnit(hcph, gIntegerList,
       [*] = ;                             hccid, hcid, hca2, True, True, True);
       [*] = ;                        if (hctok) then
@@ -324,6 +358,7 @@
       [*] = ;                                '(train_now) and at the food');
       [*] = ;                           Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] +
       [*] = ;                                ' - REFUSED by the game');
+      [*] = ;                        end;
       [*] = ;                        end;
       [*] = ;                     end
       [*] = ;                     else
