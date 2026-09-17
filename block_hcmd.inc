@@ -1032,6 +1032,27 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // 'cell' is a COORDINATE target: the model names a cell of the same 16x16
+      [*] = ;            // grid that reaches it in the state as frow lines. There were four targets
+      [*] = ;            // before (peasants, base, army, home), and every one means 'go to the
+      [*] = ;            // nearest such thing'; taking the fist around, or massing it away from the
+      [*] = ;            // base, was impossible, and the map stayed mute: 0 cells named in 644 ticks.
+      [*] = ;            // The cell resolves to the CENTRE of its square, else the squad walks to a corner.
+      [*] = ;            if (hatrg = 'cell') then
+      [*] = ;            begin
+      [*] = ;               var hacn : Integer = 16;   cHmGrid in the state block; the two grids must match
+      [*] = ;               var hacx : Integer = ParserGetIntValueByKeyByHandle(hah, 'cx');
+      [*] = ;               var hacy : Integer = ParserGetIntValueByKeyByHandle(hah, 'cy');
+      [*] = ;               if (hacx < 0) then hacx := 0;
+      [*] = ;               if (hacy < 0) then hacy := 0;
+      [*] = ;               if (hacx > hacn-1) then hacx := hacn-1;
+      [*] = ;               if (hacy > hacn-1) then hacy := hacn-1;
+      [*] = ;               var hacw : Integer = GetMapWidth;
+      [*] = ;               var hach : Integer = GetMapHeight;
+      [*] = ;               hatx := (hacx + 0.5) * hacw / hacn - hacw div 2;
+      [*] = ;               hatz := (hacy + 0.5) * hach / hacn - hach div 2;
+      [*] = ;               hafound := True;
+      [*] = ;            end;
       [*] = ;            // 'home' is our own anchor: the only target that needs no enemy at all.
       [*] = ;            if (hatrg = 'home') then
       [*] = ;            begin

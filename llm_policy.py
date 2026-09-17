@@ -230,7 +230,16 @@ SYSTEM = """\
                                      охрана, зато цель не убегает;
                                    army — отдать выбор движку: он пойдёт на
                                      ближайшую вражескую армию, а если её нет
-                                     поблизости — не пойдёт никуда.
+                                     поблизости — не пойдёт никуда;
+                                   cell — КЛЕТКА мини-карты, и тогда нужны поля
+                                     "cx" и "cy" от 0 до 15. Отряд идёт в центр
+                                     клетки. Три цели выше — «иди к ближайшему
+                                     такому-то», и выбирает их движок; клетку
+                                     выбираешь ты. Ею можно обойти армию сбоку,
+                                     собрать кулак в стороне от базы врага или
+                                     встать между его армией и его крестьянами.
+                                     Свой кулак и своя волна есть в состоянии
+                                     полями my_army_cx/cy и wave_cx/cy.
                                  Без "target" считается base.
                                  Если свободных меньше запрошенного, приказ
                                  отвергается ЦЕЛИКОМ — никто не пойдёт. Число
@@ -342,6 +351,7 @@ infantry17, musk17.
     total — это ЛЮДИ. Парной команды не требуется, сумма ничего не значит.
   людей на еду (ЧИСЛО):   {"cmd":"BALANCE","role":"food","total":16}
   волна из трёх на крестьян: {"cmd":"ATTACK","count":3,"target":"peasants"}
+  волна в клетку 7,9: {"cmd":"ATTACK","count":30,"target":"cell","cx":7,"cy":9}
   отвести пятерых домой БЕЗ боя: {"cmd":"MOVE","count":5,"target":"home"}
     MOVE двигает и не ищет врага по дороге; цели home, peasants, base, army.
     Цели разбираются так же, как у ATTACK: к людям ведёт только peasants.
@@ -817,8 +827,8 @@ def _мои_бойцы(st: dict) -> list[str]:
     "команды": ("BUILD", "TRAIN", "BALANCE", "BUILDERS", "SEED", "UPGRADE",
                 "ATTACK", "MOVE"),
     "команд_за_такт": 7,          # лишние НЕ молчат: мост называет отброшенные
-    "цели_ATTACK": ("peasants", "base", "army"),
-    "цели_MOVE": ("home", "peasants", "base", "army"),
+    "цели_ATTACK": ("peasants", "base", "army", "cell"),
+    "цели_MOVE": ("home", "peasants", "base", "army", "cell"),
     # чего мост не делает никогда
     "нельзя": ("водить отдельного юнита", "выбирать точку постройки",
                "давать числа врага при закрытой карте"),
@@ -3314,6 +3324,22 @@ def нормализовать(item: dict) -> tuple[str, str, int]:
     return c, роль, число
 
 
+def _клетка_из(item):
+    """cx/cy из ответа модели. Принимаем и пару полей, и список [x, y]:
+    модель пишет то так, то так, а браковать за форму — терять такт."""
+    c = item.get("cell", item.get("cxcy"))
+    if isinstance(c, (list, tuple)) and len(c) == 2:
+        пара = c
+    else:
+        пара = (item.get("cx"), item.get("cy"))
+    try:
+        cx, cy = int(пара[0]), int(пара[1])
+    except (TypeError, ValueError):
+        return None
+    if 0 <= cx <= 15 and 0 <= cy <= 15:
+        return (cx, cy)
+    return None
+
 def to_commands(data: dict, доступные: set[str] | None = None
                 ) -> tuple[list, int, str, list[str], str, int, str]:
     """JSON модели -> команды моста. Что не разобралось — возвращаем строками.
@@ -3325,6 +3351,8 @@ def to_commands(data: dict, доступные: set[str] | None = None
     cmds, attack, брак = [], 0, []
     цель_атаки = "base"
     движение, цель_движения = 0, "home"
+    # Клетка цели: (-1, -1) означает «модель её не называла».
+    клетка = (-1, -1)
     _все = data.get("commands") or []
     _предел = ПОЛИТИКА["команд_за_такт"]
     if len(_все) > _предел:
@@ -3385,9 +3413,19 @@ def to_commands(data: dict, доступные: set[str] | None = None
                     цель = str(item.get("target", item.get("where", ""))).strip().lower()
                     if цель in ПОЛИТИКА["цели_MOVE"]:
                         цель_движения = цель
+                        if цель == "cell":
+                            кл = _клетка_из(item)
+                            if кл is None:
+                                цель_движения = "home"
+                                брак.append(
+                                    f"MOVE target=cell: нужна клетка сетки, "
+                                    f"поля cx и cy от 0 до 15 (поля: {поля}). "
+                                    f"Иду на home")
+                            else:
+                                клетка = кл
                     elif цель:
                         брак.append(f"MOVE target={цель}: не знаю такой цели; "
-                                    f"можно home, peasants, base, army")
+                                    f"можно home, peasants, base, army, cell")
                 else:
                     брак.append(f"MOVE: нужно число бойцов > 0 в поле count"
                                 f" (поля: {поля})")
@@ -3397,9 +3435,19 @@ def to_commands(data: dict, доступные: set[str] | None = None
                     цель = str(item.get("target", item.get("where", ""))).strip().lower()
                     if цель in ПОЛИТИКА["цели_ATTACK"]:
                         цель_атаки = цель
+                        if цель == "cell":
+                            кл = _клетка_из(item)
+                            if кл is None:
+                                цель_атаки = "peasants"
+                                брак.append(
+                                    f"ATTACK target=cell: нужна клетка сетки, "
+                                    f"поля cx и cy от 0 до 15 (поля: {поля}). "
+                                    f"Иду на peasants")
+                            else:
+                                клетка = кл
                     elif цель:
                         брак.append(f"ATTACK target={цель}: не знаю такой цели; "
-                                    f"можно peasants, base, army")
+                                    f"можно peasants, base, army, cell")
                 else:
                     брак.append(f"ATTACK: нужно число бойцов > 0 в поле count"
                                 f" (поля: {поля})")
@@ -3445,7 +3493,7 @@ def to_commands(data: dict, доступные: set[str] | None = None
                     "движение пропущено — файл приказа один")
         движение = 0
     return (cmds, attack, str(data.get("why", ""))[:200], брак, цель_атаки,
-            движение, цель_движения)
+            движение, цель_движения, клетка)
 
 
 MAX_TOKENS = 1200         # с запасом: обрезанный ответ теряет весь такт
@@ -4144,7 +4192,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                  for x in str(st.get("upg_avail", "") or "").split(",")
                  if x.strip()}
         (cmds, attack, why, брак, цель_атаки,
-         движение, цель_движения) = to_commands(box["data"], _дост)
+         движение, цель_движения, клетка) = to_commands(box["data"], _дост)
         # Заниженная волна. Считаем ЗДЕСЬ, а не у отправки ниже: трасса такта
         # пишется раньше отправки, и вето, посчитанное позже, в неё не попало бы
         # — а именно по трассе потом разбирают партию.
@@ -4515,7 +4563,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
             if св <= 0:
                 print(f"        MOVE {движение} не отправлен: свободных бойцов нет "
                       f"— идущие в походе своего приказа не бросают")
-            elif not br.attack(движение, цель_движения, mode="move"):
+            elif not br.attack(движение, цель_движения, mode="move",
+                               cx=клетка[0], cy=клетка[1]):
                 print(f"        MOVE {движение} не отправлен: прошлый приказ ещё "
                       f"не забран игрой")
             else:
@@ -4536,7 +4585,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 print(f"        ATTACK {attack} урезан до {урезано}: столько сейчас "
                       f"свободно (свободных {св}, в пуле {аг})")
                 attack = урезано
-                if not br.attack(attack, цель_атаки):
+                if not br.attack(attack, цель_атаки,
+                                 cx=клетка[0], cy=клетка[1]):
                     print("        ATTACK не отправлен: прошлый приказ ещё не забран игрой")
                 else:
                     next_attack = gt + a.attack_every
@@ -4565,7 +4615,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 print(f"        ATTACK {attack} не отправлен: прошлая волна ушла "
                        f"{gt - (next_attack - a.attack_every)} игровых секунд назад, "
                        f"жду до {next_attack}")
-            elif not br.attack(attack, цель_атаки):
+            elif not br.attack(attack, цель_атаки,
+                               cx=клетка[0], cy=клетка[1]):
                 print(f"        ATTACK {attack} не отправлен: прошлый приказ "
                       f"ещё не забран игрой")
             else:

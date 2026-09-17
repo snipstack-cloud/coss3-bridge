@@ -943,6 +943,72 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'grid_n', cHmGrid);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cx',  hmcx);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cy',  hmcy);
+      [*] = ;            // OUR OWN fighters on the SAME grid. Until 17.09 the map showed the enemy
+      [*] = ;            // only: the model saw where he stands and not where its own fist is, so
+      [*] = ;            // there was nothing to command with, and in 644 ticks it never mentioned
+      [*] = ;            // a single cell. ONE grid, not two: the minimap already costs about 410
+      [*] = ;            // tokens a tick, a third of the whole state, and a second would double it.
+      [*] = ;            var hmown : array [0..15] of array [0..15] of Integer;
+      [*] = ;            for hmi := 0 to cHmGrid-1 do
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            hmown[hmi][hmj] := 0;
+      [*] = ;            var hmfx, hmfy, hmfn : Integer;   sum of cells and count of FREE fighters
+      [*] = ;            var hmwx, hmwy, hmwn : Integer;   the same for those already marching
+      [*] = ;            var hmok : Integer;
+      [*] = ;            for hmok := 0 to hscount-1 do
+      [*] = ;            begin
+      [*] = ;               var hmog : Integer = GetGameObjectHandleByIndex(hmok, hsph);
+      [*] = ;               var hmop : Pointer = _unit_GetTObj(hmog);
+      [*] = ;               if (hmop<>nil) then
+      [*] = ;               if (not gObjProp[TObj(hmop).cid][TObj(hmop).id].bbuilding) then
+      [*] = ;               begin
+      [*] = ;                  var hmou : Integer = gObjProp[TObj(hmop).cid][TObj(hmop).id].usage;
+      [*] = ;                  var hmof : Boolean = False;
+      [*] = ;                  if (hmou = gc_obj_usage_lightinfantry) or (hmou = gc_obj_usage_weak) or
+      [*] = ;                     (hmou = gc_obj_usage_grenadier) or (hmou = gc_obj_usage_shooter) or
+      [*] = ;                     (hmou = gc_obj_usage_archer) or (hmou = gc_obj_usage_fasthorse) or
+      [*] = ;                     (hmou = gc_obj_usage_hardhorse) or (hmou = gc_obj_usage_horseshooter) then
+      [*] = ;                  hmof := True;
+      [*] = ;                  // The flag is DELIBERATE: nothing may be appended after a one-line if in
+      [*] = ;                  // this language - the statement lands outside the condition. On 16.09 the
+      [*] = ;                  // force grid counted peasants and buildings along with the soldiers that way.
+      [*] = ;                  if (hmof) then
+      [*] = ;                  begin
+      [*] = ;                     var hmoxx : Integer = floor((GetGameObjectPositionXByHandle(hmog)+hmhw)*cHmGrid/hmw);
+      [*] = ;                     var hmoyy : Integer = floor((GetGameObjectPositionZByHandle(hmog)+hmhh)*cHmGrid/hmh);
+      [*] = ;                     if (hmoxx>=0) and (hmoxx<cHmGrid) and (hmoyy>=0) and (hmoyy<cHmGrid) then
+      [*] = ;                     begin
+      [*] = ;                        hmown[hmoxx][hmoyy] := hmown[hmoxx][hmoyy] + 1;
+      [*] = ;                        // The fist at home and the wave in the field are counted APART: only free
+      [*] = ;                        // men can be sent, and the model must see where exactly they stand.
+      [*] = ;                        if (TObj(hmop).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                        begin
+      [*] = ;                           hmfx := hmfx + hmoxx;
+      [*] = ;                           hmfy := hmfy + hmoyy;
+      [*] = ;                           hmfn := hmfn + 1;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           hmwx := hmwx + hmoxx;
+      [*] = ;                           hmwy := hmwy + hmoyy;
+      [*] = ;                           hmwn := hmwn + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmfn > 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'my_army_cx', hmfx div hmfn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'my_army_cy', hmfy div hmfn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'my_army_n',  hmfn);
+      [*] = ;            end;
+      [*] = ;            if (hmwn > 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'wave_cx', hmwx div hmwn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'wave_cy', hmwy div hmwn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'wave_n',  hmwn);
+      [*] = ;            end;
       [*] = ;            var hmrow : String;
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            begin
@@ -969,6 +1035,25 @@
       [*] = ;                  if (hmf = 0) then hmrow := hmrow + '.';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'frow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
+      [*] = ;            // OUR OWN army on its OWN grid, and the enemy grid above is left
+      [*] = ;            // untouched ON PURPOSE. Merging both into one char was tried first
+      [*] = ;            // and rejected: a contact cell would have had to hide the enemy
+      [*] = ;            // count behind a single mark, and coss3_map.py reads frow digits
+      [*] = ;            // to find who stands near us - a merged cell would have dropped a
+      [*] = ;            // fighting enemy out of that analysis altogether. The extra grid
+      [*] = ;            // costs about 300 characters a tick; a silent wrong reader costs more.
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmo : Integer = hmown[hmi][hmj];
+      [*] = ;                  if (hmo > 9) then hmo := 9;
+      [*] = ;                  if (hmo > 0) then hmrow := hmrow + IntToStr(hmo);
+      [*] = ;                  if (hmo = 0) then hmrow := hmrow + '.';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone

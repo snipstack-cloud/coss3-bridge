@@ -6,6 +6,9 @@
                          G/I/C свободная залежь золота/железа/угля, x залежь занята
     brow{y}  базы        H мой центр, b моё здание, a союзник, e враг
     frow{y}  войска      1..9 сила вражеской армии в клетке
+    arow{y}  свои        1..9 наших бойцов в клетке (17.09: до этого
+                         своей армии на карте не было вовсе, и управлять
+                         по клеткам было нечем)
 
 Всё, кроме rrow*, лежит в файле состояния и обновляется каждый тик ИИ.
 Местность пересобирается не чаще раза в 20 игровых секунд — это полный обход
@@ -140,6 +143,13 @@ def lines(state: dict, mapstate: dict | None = None, prev: dict | None = None) -
         out.append("")
         out += _grid(frows, "## Enemy forces    "
                             "(digit = enemy soldiers standing in that cell, 9 = nine or more)",
+                     my_cx, my_cy)
+    arows = [_s(state, f"arow{y}") for y in range(n) if f"arow{y}" in state]
+    if arows and any(c != "." for row in arows for c in row):
+        out.append("")
+        out += _grid(arows, "## My army on the map    "
+                            "(digit = MY soldiers in that cell; ATTACK/MOVE with "
+                            "target=cell and cx,cy sends them to any cell)",
                      my_cx, my_cy)
 
     # --- добыча ---
