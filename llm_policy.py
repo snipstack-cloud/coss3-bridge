@@ -1965,18 +1965,29 @@ def _шахты_строкой(st) -> str:
         v = st.get(k)
         return None if v in (None, "", -1, "-1") else int(v)
     куски = []
-    for имя, шахт, внутри, мест in (("золото", "mines_gold", "on_gold", "cap_gold"),
-                                    ("железо", "mines_iron", "on_iron", "cap_iron"),
-                                    ("уголь",  "mines_coal", "on_coal", "cap_coal")):
+    пустых = 0
+    for имя, шахт, внутри, мест, рабочих in (
+            ("золото", "mines_gold", "on_gold", "cap_gold", "work_gold"),
+            ("железо", "mines_iron", "on_iron", "cap_iron", "work_iron"),
+            ("уголь",  "mines_coal", "on_coal", "cap_coal", "work_coal")):
         n = ч(шахт) or 0
         кусок = f"{имя}={n}"
-        в, м = ч(внутри), ч(мест)
+        в, м, раб = ч(внутри), ч(мест), ч(рабочих)
+        # Шахта, поставленная не на залежь, мест не даёт вовсе. Раньше состояние
+        # показывало только сумму мест, и «золото=3 (работает 5 из 5 мест)»
+        # читалось как «всё занято, строй ещё», хотя две шахты из трёх были
+        # пустым камнем. Замер 17.09 по 15 партиям parallel_start.
+        if n and раб is not None and раб < n:
+            кусок += f" (ИЗ НИХ РАБОЧИХ {раб}: остальные поставлены не на залежь и мест не дают)"
+            пустых += int(n - раб)
         if n and в is not None and м:
             кусок += f" (работает {в} из {м} мест)"
         elif n and в is not None:
             кусок += f" (работает {в})"
         куски.append(кусок)
-    return "  шахты: " + " ".join(куски)
+    хвост = ("" if not пустых else
+             ". ПУСТЫЕ ШАХТЫ НЕ ДАЮТ НИЧЕГО: новая шахта поможет, только если встанет НА ЗАЛЕЖЬ — смотри строку про руду рядом")
+    return "  шахты: " + " ".join(куски) + хвост
 
 
 def _свободных(st: dict) -> int:
@@ -4408,6 +4419,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         # BALANCE gold нечем проверить задним числом.
                         "on_gold", "on_iron", "on_coal",
                         "cap_gold", "cap_iron", "cap_coal",
+                        "work_gold", "work_iron", "work_coal",
                         "mil_near", "mil_side",
                         "can_now", "cant_now", "fighters", "build_cost",
                         "wood_slots_near", "wood_slots_free",

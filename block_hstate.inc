@@ -49,6 +49,15 @@
       [*] = ;         // the miners actually were.
       [*] = ;         var hsong, hsoni, hsonc : Integer;
       [*] = ;         var hscapg, hscapi, hscapc : Integer;
+      [*] = ;         // Mines that actually HOLD someone. A mine built away from the ore
+      [*] = ;         // gives no places at all, and the state showed only the total: 'gold=3
+      [*] = ;         // (5 of 5 places busy)' reads as 'all good, build more', while one of
+      [*] = ;         // the three is empty stone. Measured 17.09 on 15 games of
+      [*] = ;         // parallel_start: three gold mines and five places, that is two mines
+      [*] = ;         // out of three giving nothing.
+      [*] = ;         var hswg : Integer = 0;
+      [*] = ;         var hswi : Integer = 0;
+      [*] = ;         var hswc : Integer = 0;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
       [*] = ;         var hsoffn, hsdrumn : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
@@ -210,6 +219,9 @@
       [*] = ;                     // upgrade adds places through individual.addpeasantabsorber.
       [*] = ;                     var hscap : Integer = gObjProp[hsuc][hsui].peasantabsorber + TObj(hspo).individual.addpeasantabsorber;
       [*] = ;                     if (hsrole = gc_ai_unit_minegold) then hscapg := hscapg + hscap;
+      [*] = ;                     if (hsrole = gc_ai_unit_minegold) and (hscap > 0) then hswg := hswg + 1;
+      [*] = ;                     if (hsrole = gc_ai_unit_mineiron) and (hscap > 0) then hswi := hswi + 1;
+      [*] = ;                     if (hsrole = gc_ai_unit_minecoal) and (hscap > 0) then hswc := hswc + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_mineiron) then hscapi := hscapi + hscap;
       [*] = ;                     if (hsrole = gc_ai_unit_minecoal) then hscapc := hscapc + hscap;
       [*] = ;                     if (hsrole = gc_ai_unit_tower)    then hstow  := hstow + 1;
@@ -400,6 +412,9 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_iron',   hsoni);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_coal',   hsonc);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_gold',  hscapg);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'work_gold', hswg);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'work_iron', hswi);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'work_coal', hswc);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_iron',  hscapi);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_coal',  hscapc);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_build',  hsbuildp);
