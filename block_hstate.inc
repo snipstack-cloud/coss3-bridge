@@ -574,6 +574,15 @@
       [*] = ;         hsroles[8] := gc_ai_unit_minecoal;  hsrname[8] := 'minecoal';
       [*] = ;         var hscan : String = '';
       [*] = ;         var hscant : String = '';
+      [*] = ;         // PRICE of every building, same form as 'fighters'. Without it the
+      [*] = ;         // model knew only WHETHER it can pay, never HOW MUCH - and could not
+      [*] = ;         // see the one price that decides the early game: every next building
+      [*] = ;         // of the same kind costs costpercent=500 per cent of the previous one
+      [*] = ;         // (unit.script:2472), so the second barracks is 2500 gold where the
+      [*] = ;         // first was 500. The engine already applies it - the cost is asked
+      [*] = ;         // for THIS player with his current count, exactly as the build panel
+      [*] = ;         // shows it to a human.
+      [*] = ;         var hsbtxt : String = '';
       [*] = ;         var hsri : Integer;
       [*] = ;         for hsri := 0 to 8 do
       [*] = ;         begin
@@ -588,6 +597,12 @@
       [*] = ;               hscan := hscan + hsrname[hsri] + ' '
       [*] = ;               else
       [*] = ;               hscant := hscant + hsrname[hsri] + ' ';
+      [*] = ;               var hsbf, hsbw, hsbs, hsbg, hsbir, hsbc : Integer;
+      [*] = ;               _unit_GetCostByID(hscid, hsrid, plind, hsbf, hsbw, hsbs, hsbg, hsbir, hsbc);
+      [*] = ;               hsbtxt := hsbtxt + hsrname[hsri] + '=';
+      [*] = ;               hsbtxt := hsbtxt + 'food' + IntToStr(hsbf) + ',wood' + IntToStr(hsbw);
+      [*] = ;               hsbtxt := hsbtxt + ',stone' + IntToStr(hsbs) + ',gold' + IntToStr(hsbg);
+      [*] = ;               hsbtxt := hsbtxt + ',iron' + IntToStr(hsbir) + ',coal' + IntToStr(hsbc) + ' ';
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Units too: the peasant and the 17th-century infantry are the two the bot
@@ -599,6 +614,11 @@
       [*] = ;            else
       [*] = ;            hscant := hscant + 'peasant ';
       [*] = ;         end;
+      [*] = ;         // Always write the key, even empty - a missing line and an empty one
+      [*] = ;         // look the same from Python.
+      [*] = ;         if (hsbtxt = '') then
+      [*] = ;         hsbtxt := 'none-found';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'build_cost', hsbtxt);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'can_now', hscan);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'cant_now', hscant);
       [*] = ;         // --- ore deposits: what a player sees on the map ---------------------

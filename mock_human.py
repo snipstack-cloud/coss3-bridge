@@ -405,6 +405,16 @@ class Мир:
                           f"musk17=musketeernet,hp95,food40,gold15,iron20,coal10,"
                           f"atk{18 + 2 * len(self.апгрейды)},dpike3,dsword3,dbullet2 "
                           f"officer17=officer,hp110,food50,gold40,iron0,coal0,atk10,dpike4,dsword4,dbullet1"),
+             # Цена построек, как её отдаёт block_hstate. ВТОРАЯ казарма стоит
+             # впятеро дороже первой (costpercent=500, unit.script:2472) - мок
+             # обязан это повторять, иначе правка 17.09 проверяется вслепую.
+             "build_cost": " ".join(
+                 роль + "=" + ",".join(
+                     имя + str(ц * (5 ** self.здания.get(роль, 0)))
+                     for имя, ц in zip(("food", "wood", "stone", "gold", "iron", "coal"),
+                                       ЦЕНА[роль]))
+                 for роль in ("center", "mill", "smith", "ba17", "store", "house",
+                              "minegold", "mineiron", "minecoal")),
              # Свои апгрейды человек знает: взятые и оплачиваемые. Чужих НЕТ —
              # их не видит ни человек, ни блок.
              "upg_done": ",".join(sorted(self.апгрейды)),
