@@ -58,6 +58,8 @@ def main() -> int:
     ap.add_argument("--hold", type=float, default=1.3)
     ap.add_argument("--expires", type=int, default=90)
     ap.add_argument("--retreat", type=float, default=0.5)
+    ap.add_argument("--if-held", default="wait", choices=("wait", "retreat", "attack"),
+                    help="что делать, если порог не пройден: ждать до expires, домой, бить")
     ap.add_argument("--min-army", type=int, default=25,
                     help="сколько свободных бойцов ждать перед маршем")
     ap.add_argument("--not-before", type=int, default=300)
@@ -132,7 +134,7 @@ def main() -> int:
                 if br.attack(n, "cell", mode="move", cx=сбор[0], cy=сбор[1]):
                     L.начать_марш(gt, n, "cell", цель,
                                   {"via": сбор, "hold": a.hold, "expires": a.expires,
-                                   "retreat": a.retreat}, st)
+                                   "retreat": a.retreat, "if_held": a.if_held}, st)
                     марш_начат = True
                     print(f"МАРШ {gt}: ОТДАН контракт: {n} бойцов, сбор в {сбор}, цель {цель}, "
                           f"hold {a.hold}, expires {a.expires}, retreat_below {a.retreat} "
