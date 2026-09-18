@@ -9,6 +9,13 @@ VM=x86
 IMAGE=coss3:2
 PROFILE_SRC="$HOME/profile-mac"
 ENV_FILE="$HOME/coss3.env"
+# Память и ядра VM. 10 ГБ - число из первого запуска, а не замер: одна копия
+# игры под Wine берёт обычно 2-3 ГБ. 18.09 хост с 24 ГБ стоял на нуле из-за
+# браузеров, и macOS снимала сторожей прогона, пока VM держала свои десять.
+# Реальное потребление контейнера теперь пишется в лог каждые две минуты -
+# по нему и выбирать. Менять так: COSS3_VM_MEMORY=8 bash mac_test.sh 1 1
+VM_MEMORY="${COSS3_VM_MEMORY:-10}"
+VM_CPU="${COSS3_VM_CPU:-6}"
 DEPLOY_KEY="${COSS3_DEPLOY_KEY:-$HOME/.ssh/coss3_deploy}"
 RUNLOG="$HOME/io-mac-runner.log"
 
@@ -43,9 +50,18 @@ command -v docker >/dev/null || die "нет docker"
        2) DISPLAY=:99 xdotool mousemove 585 549 click 1
        3) docker --context $CTX cp <имя>:/wine/drive_c/users/root/Documents/cossacks/. $PROFILE_SRC/"
 
+VM_YAML="$HOME/.colima/$VM/colima.yaml"
+if [ -f "$VM_YAML" ] && ! colima status "$VM" >/dev/null 2>&1; then
+  # Профиль есть и остановлен: colima start флаги памяти не читает, только yaml.
+  HAD_MEM=$(awk '/^memory:/{print $2}' "$VM_YAML"); HAD_CPU=$(awk '/^cpu:/{print $2}' "$VM_YAML")
+  if [ "$HAD_MEM" != "$VM_MEMORY" ] || [ "$HAD_CPU" != "$VM_CPU" ]; then
+    sed -i '' -e "s/^memory: .*/memory: $VM_MEMORY/" -e "s/^cpu: .*/cpu: $VM_CPU/" "$VM_YAML"
+    say "VM перенастроена: память $HAD_MEM -> $VM_MEMORY ГБ, ядер $HAD_CPU -> $VM_CPU (в $VM_YAML)"
+  fi
+fi
 if ! colima status "$VM" >/dev/null 2>&1; then
   say "VM $VM не поднята — поднимаю (ядро x86_64 под QEMU, это несколько минут)"
-  colima start --profile "$VM" --arch x86_64 --vm-type qemu --cpu 6 --memory 10 --disk 80 >>"$RUNLOG" 2>&1 \
+  colima start --profile "$VM" --arch x86_64 --vm-type qemu --cpu "$VM_CPU" --memory "$VM_MEMORY" --disk 80 >>"$RUNLOG" 2>&1 \
     || die "colima не поднялась, смотри $RUNLOG"
 fi
 docker --context "$CTX" info >/dev/null 2>&1 || die "докер в VM не отвечает (контекст $CTX)"
@@ -127,6 +143,7 @@ done
 
 LIMIT=$(( EPISODES * 40 + 25 ))     # минут, с запасом на загрузку игры
 say "жду до $LIMIT минут; проверяю каждые 2 минуты"
+say "память контейнеров пишу каждые 2 минуты: столбец «память» - сколько реально занято"
 
 min=0
 while [ "$min" -lt "$LIMIT" ]; do
@@ -142,7 +159,8 @@ while [ "$min" -lt "$LIMIT" ]; do
     gt=$(docker --context "$CTX" exec "$name" sh -c \
          "grep -o 'gametime = [0-9]*' /opt/cossacks/coss3_hb.dat 2>/dev/null | head -1" 2>/dev/null)
     last=$(docker --context "$CTX" logs "$name" 2>&1 | grep -E "^[0-9]+:[0-9]+" | tail -1 | cut -c1-90)
-    say "  копия $n: ${gt:-пульса ещё нет} | ${last:-модель ещё не ходила}"
+    mem=$(docker --context "$CTX" stats --no-stream --format '{{.MemUsage}}' "coss3-mac-$n" 2>/dev/null | cut -d/ -f1 | tr -d ' ')
+    say "  копия $n: ${gt:-пульса ещё нет} | память ${mem:-?} | ${last:-модель ещё не ходила}"
     n=$((n+1))
   done
   [ "$done_count" -ge "$COPIES" ] && { say "все копии отыграли"; break; }
