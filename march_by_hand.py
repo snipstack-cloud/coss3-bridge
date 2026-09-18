@@ -29,6 +29,9 @@ def _ц(st, k):
         return 0
 
 
+ДОЛЯ_ПУТИ = 0.5   # где клетка сбора: 0.5 — на полпути, 0.75 — у самого врага (перехват вероятнее)
+
+
 def клетки(st):
     """(цель, сбор): ближайшее к нам здание врага по сетке brow и середина пути."""
     n = _ц(st, "grid_n")
@@ -46,7 +49,7 @@ def клетки(st):
         лучшая = L._клетка_волны({**st, **{f"arow{y}": st.get(f"frow{y}", "") for y in range(n)}})
     if лучшая is None:
         return None, None
-    сбор = (round((mx + лучшая[0]) / 2), round((my + лучшая[1]) / 2))
+    сбор = (round(mx + (лучшая[0] - mx) * ДОЛЯ_ПУТИ), round(my + (лучшая[1] - my) * ДОЛЯ_ПУТИ))
     return лучшая, сбор
 
 
@@ -58,13 +61,18 @@ def main() -> int:
     ap.add_argument("--hold", type=float, default=1.3)
     ap.add_argument("--expires", type=int, default=90)
     ap.add_argument("--retreat", type=float, default=0.5)
+    ap.add_argument("--if-intercepted", default="push", choices=("push", "retreat", "fight"),
+                    help="что делать, если колонну перехватили по дороге")
     ap.add_argument("--if-held", default="wait", choices=("wait", "retreat", "attack"),
                     help="что делать, если порог не пройден: ждать до expires, домой, бить")
     ap.add_argument("--min-army", type=int, default=25,
                     help="сколько свободных бойцов ждать перед маршем")
+    ap.add_argument("--via-frac", type=float, default=0.5, help="доля пути до врага, где клетка сбора")
     ap.add_argument("--not-before", type=int, default=300)
     ap.add_argument("--stop-at", type=int, default=1000)
     a = ap.parse_args()
+    global ДОЛЯ_ПУТИ
+    ДОЛЯ_ПУТИ = a.via_frac
 
     br = Bridge(a.dir, a.plind)
     волны: list = []
@@ -77,8 +85,10 @@ def main() -> int:
         try:
             st = br.wait_state(timeout=45)
         except TimeoutError:
-            print("состояние не обновлялось 45 с — конец", flush=True)
-            return 1
+            # Игрок ставит игру на паузу, пока смотрит: состояние встаёт, а
+            # партия жива. Ждём, а не выходим — 18.09 водитель так умер дважды.
+            print("состояние не обновлялось 45 с — жду дальше (пауза?)", flush=True)
+            continue
         gt = _ц(st, "gametime")
         if st.get("victory") in ("win", "lose"):
             print(f"партия кончилась: {st.get('victory')} на {gt}", flush=True)
@@ -119,7 +129,17 @@ def main() -> int:
             if _ц(st, "ba17") > 0 and not заказ_пехоты:
                 cmds.append(train("infantry17", INFINITE))
                 заказ_пехоты = True
-            cmds += [balance("food", max(8, pea // 2)), balance("wood", 4), balance("stone", 4)]
+            # BALANCE в одной пачке ДЕЛЯТ ОДНИХ И ТЕХ ЖЕ людей: блок берёт свободных, а
+            # если их нет — снимает с ДРУГОГО ресурса (block_hcmd, второй проход).
+            # Пачка «еда 11, дерево 4, камень 4» при 12 на земле каждый такт гоняла
+            # крестьян по кругу пять минут (живая партия 18.09, увидел игрок). Просим
+            # только то, что есть на земле, и только когда расходится на двоих.
+            земля = max(0, pea - _ц(st, "on_mine") - _ц(st, "on_build"))
+            хочу = {"food": max(1, земля * 6 // 10), "wood": max(1, земля * 25 // 100),
+                    "stone": max(0, земля - земля * 6 // 10 - земля * 25 // 100)}
+            for р, n in хочу.items():
+                if abs(_ц(st, "on_" + р) - n) >= 2:
+                    cmds.append(balance(р, n))
             if _ц(st, "mills") > 0 and gt % 60 < 20:
                 cmds.append(seed())
         if cmds and not br.send(cmds[:9]):
@@ -134,7 +154,8 @@ def main() -> int:
                 if br.attack(n, "cell", mode="move", cx=сбор[0], cy=сбор[1]):
                     L.начать_марш(gt, n, "cell", цель,
                                   {"via": сбор, "hold": a.hold, "expires": a.expires,
-                                   "retreat": a.retreat, "if_held": a.if_held}, st)
+                                   "retreat": a.retreat, "if_held": a.if_held,
+                                   "if_intercepted": a.if_intercepted}, st)
                     марш_начат = True
                     print(f"МАРШ {gt}: ОТДАН контракт: {n} бойцов, сбор в {сбор}, цель {цель}, "
                           f"hold {a.hold}, expires {a.expires}, retreat_below {a.retreat} "
