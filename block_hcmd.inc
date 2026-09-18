@@ -239,10 +239,17 @@
       [*] = ;                        // the site and strips the mines bare. We already paid for
       [*] = ;                        // that lesson on the AI side; do not repeat it here.
       [*] = ;                        var hwpass : Integer;
-      [*] = ;                        // Second pass runs ONLY if there were no idle peasants at
-      [*] = ;                        // all - otherwise the same man would be added twice.
+      [*] = ;                        // Second pass tops the crew up to the cap from peasants
+      [*] = ;                        // busy ON THE GROUND (food, wood, stone). It used to run
+      [*] = ;                        // only when there were no idle men at all, so with one or
+      [*] = ;                        // two idle the model's BUILDERS 12 gave a crew of one or
+      [*] = ;                        // two: barracks 4 builders of 20, stables 2-3 of 18, three
+      [*] = ;                        // series in a row (18.09). A human who picks twelve men and
+      [*] = ;                        // clicks the site gets twelve. Pass 1 skips idle men (pass
+      [*] = ;                        // 0 took them - no man twice), miners inside a mine, men
+      [*] = ;                        // walking into one, and anyone already building.
       [*] = ;                        for hwpass := 0 to 1 do
-      [*] = ;                        if (hwpass = 0) or (gIntegerList.GetCount = 0) then
+      [*] = ;                        if (hwpass = 0) or (gIntegerList.GetCount < hccap) then
       [*] = ;                        for hck := 0 to hcobjn-1 do
       [*] = ;                        if (gIntegerList.GetCount < hccap) then
       [*] = ;                        begin
@@ -252,6 +259,8 @@
       [*] = ;                           if (gObjProp[TObj(hwpo).cid][TObj(hwpo).id].usage = gc_obj_usage_peasant) then
       [*] = ;                           if (TObj(hwpo).insideofuid = 0) then
       [*] = ;                           if ((hwpass = 1) or (TObj(hwpo).orders[0].itype = gc_obj_order_type_none)) then
+      [*] = ;                           if ((hwpass = 0) or (TObj(hwpo).orders[0].itype <> gc_obj_order_type_none)) then
+      [*] = ;                           if (TObj(hwpo).orders[0].itype <> gc_obj_order_type_gotomine) then
       [*] = ;                           // NEVER take a man off an unfinished building. The second
       [*] = ;                           // pass used to grab anyone at all, and a new foundation
       [*] = ;                           // stripped the previous one bare: in base10 (16.09) that
