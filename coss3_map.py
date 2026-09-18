@@ -38,6 +38,28 @@ def _s(d: dict, key: str, default: str = "") -> str:
     return v if isinstance(v, str) else str(v)
 
 
+ЗНАКИ = ".123456789abcdefghijklmnopqrstuvwxyz"   # знак клетки сетки: 0..35
+
+
+def счёт(c: str) -> int:
+    """Сколько бойцов за знаком клетки. До 18.09 клетка показывала не больше
+    «9», и набег из шестидесяти читался как «не меньше 27» по трём клеткам.
+    Теперь 1-9 цифрой, 10-35 буквой a-z, 36 и больше — «+» (нижняя граница)."""
+    if c == "+":
+        return 36
+    i = ЗНАКИ.find(c)
+    return i if i > 0 else 0
+
+
+def знак(n: int) -> str:
+    """Обратное: как блок пишет клетку. Нужен моку и проверкам."""
+    if n <= 0:
+        return "."
+    if n >= 36:
+        return "+"
+    return ЗНАКИ[n]
+
+
 def compass(dx: int, dy: int) -> str:
     """Направление от моей базы к клетке, в координатах мини-карты."""
     if dx == 0 and dy == 0:
@@ -142,13 +164,15 @@ def lines(state: dict, mapstate: dict | None = None, prev: dict | None = None) -
     if frows and any(c != "." for row in frows for c in row):
         out.append("")
         out += _grid(frows, "## Enemy forces    "
-                            "(digit = enemy soldiers standing in that cell, 9 = nine or more)",
+                            "(enemy soldiers standing in that cell: digit 1-9, "
+                            "letter a-z = 10-35, + = 36 or more)",
                      my_cx, my_cy)
     arows = [_s(state, f"arow{y}") for y in range(n) if f"arow{y}" in state]
     if arows and any(c != "." for row in arows for c in row):
         out.append("")
         out += _grid(arows, "## My army on the map    "
-                            "(digit = MY soldiers in that cell; ATTACK/MOVE with "
+                            "(MY soldiers in that cell, same marks: digit 1-9, "
+                            "letter a-z = 10-35, + = 36 or more; ATTACK/MOVE with "
                             "target=cell and cx,cy sends them to any cell)",
                      my_cx, my_cy)
 
@@ -345,14 +369,14 @@ def у_базы(state: dict, радиус: int = 2) -> dict:
     клетки, всего, срезано, sx, sy = [], 0, False, 0, 0
     for y in range(n):
         for x, c in enumerate(_s(state, f"frow{y}")):
-            if not c.isdigit() or c == "0":
+            сколько = счёт(c)
+            if сколько <= 0:
                 continue
             if max(abs(x - мой_x), abs(y - мой_y)) > радиус:
                 continue
-            сколько = int(c)
             клетки.append((сколько, x, y))
             всего += сколько
-            срезано = срезано or сколько >= 9
+            срезано = срезано or c == "+"
             sx += сколько * (x - мой_x)
             sy += сколько * (y - мой_y)
     клетки.sort(key=lambda т: (max(abs(т[1] - мой_x), abs(т[2] - мой_y)), -т[0]))
@@ -392,9 +416,9 @@ def фланг(state: dict) -> dict:
     ближние, всего = [], 0
     for y in range(n):
         for x, c in enumerate(_s(state, f"frow{y}")):
-            if not c.isdigit() or c == "0":
+            сколько = счёт(c)
+            if сколько <= 0:
                 continue
-            сколько = int(c)
             всего += сколько
             до_нас = max(abs(x - мой_x), abs(y - мой_y))
             до_них = дальше(x, y, враг_клетки)

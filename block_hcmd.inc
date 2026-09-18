@@ -939,7 +939,13 @@
       [*] = ;         // a name used before it is declared. The whole Progress tick stopped
       [*] = ;         // compiling, exactly as PROGRESS.md 5.4 describes.
       [*] = ;         var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
-      [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move')) then
+      [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
+      [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
+      [*] = ;         // the field, wounded or not - and walks them home in default mode.
+      [*] = ;         // MOVE could not do it: it takes idle men only, and a fighting wave is
+      [*] = ;         // never idle. A player does it with one click on the minimap.
+      [*] = ;         var haretreat : Boolean = (hamode = 'retreat');
+      [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move') or (haretreat)) then
       [*] = ;         begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, 'count');
       [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, 'target');
@@ -989,8 +995,19 @@
       [*] = ;                  var hau : Integer = gObjProp[TObj(hapo).cid][TObj(hapo).id].usage;
       [*] = ;                  if (not gObjProp[TObj(hapo).cid][TObj(hapo).id].bbuilding) then
       [*] = ;                  if (hau <> gc_obj_usage_peasant) and (hau <> gc_obj_usage_none) then
-      [*] = ;                  if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then
-      [*] = ;                  gIntegerList.Add(hago);
+      [*] = ;                  begin
+      [*] = ;                     // Idle men for ATTACK and MOVE; the FAR ones, idle or not, for RETREAT.
+      [*] = ;                     var hatake2 : Boolean = False;
+      [*] = ;                     if (haretreat) then
+      [*] = ;                     begin
+      [*] = ;                        var hadd : Float = VectorDistance(GetGameObjectPositionXByHandle(hago), 0,
+      [*] = ;                             GetGameObjectPositionZByHandle(hago), hax, 0, haz);
+      [*] = ;                        if (hadd > 60) then hatake2 := True;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then hatake2 := True;
+      [*] = ;                     if (hatake2) then gIntegerList.Add(hago);
+      [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            // Where to go. The model chooses: peasants (the objective), base, or army.
@@ -1076,7 +1093,7 @@
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               GroupAddGameObjectByHandle(hagr, gIntegerList.Get(hak));
       [*] = ;               _group_Initialize(hagr, nil);
-      [*] = ;               if (hamode = 'move') then
+      [*] = ;               if (hamode = 'move') or (haretreat) then
       [*] = ;               begin
       [*] = ;                  // No _unit_ListSetSearchEnemy here on purpose: that is what turns a
       [*] = ;                  // walk into a hunt. Mode default is how the game itself moves a
@@ -1085,6 +1102,8 @@
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
       [*] = ;                  Log('bridge-human: MOVE ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
       [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                  if (haretreat) then
+      [*] = ;                  Log('bridge-human: RETREAT ' + IntToStr(gIntegerList.GetCount) + ' far soldiers walk home');
       [*] = ;               end
       [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then

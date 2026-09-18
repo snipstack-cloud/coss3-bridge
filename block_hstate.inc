@@ -1102,15 +1102,23 @@
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'brow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
+      [*] = ;            // COUNTS ABOVE NINE. Until 18.09 a cell showed at most '9', and a
+      [*] = ;            // raid of sixty read as 'not less than 27' over three cells - the
+      [*] = ;            // model could not tell a picket from an army at its own gate. One
+      [*] = ;            // mark per cell stays (the grid is fixed width): 1-9 as digits,
+      [*] = ;            // 10-35 as letters a-z, 36 and more as '+'. SubStr is 1-based and
+      [*] = ;            // is what the native blocks use to pick a char out of a row.
+      [*] = ;            var hmalpha : String = 'abcdefghijklmnopqrstuvwxyz';
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            begin
       [*] = ;               hmrow := '';
       [*] = ;               for hmi := 0 to cHmGrid-1 do
       [*] = ;               begin
       [*] = ;                  var hmf : Integer = hmforce[hmi][hmj];
-      [*] = ;                  if (hmf > 9) then hmf := 9;
-      [*] = ;                  if (hmf > 0) then hmrow := hmrow + IntToStr(hmf);
       [*] = ;                  if (hmf = 0) then hmrow := hmrow + '.';
+      [*] = ;                  if (hmf > 0) and (hmf <= 9) then hmrow := hmrow + IntToStr(hmf);
+      [*] = ;                  if (hmf > 9) and (hmf <= 35) then hmrow := hmrow + SubStr(hmalpha, hmf-9, 1);
+      [*] = ;                  if (hmf > 35) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'frow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
@@ -1127,9 +1135,10 @@
       [*] = ;               for hmi := 0 to cHmGrid-1 do
       [*] = ;               begin
       [*] = ;                  var hmo : Integer = hmown[hmi][hmj];
-      [*] = ;                  if (hmo > 9) then hmo := 9;
-      [*] = ;                  if (hmo > 0) then hmrow := hmrow + IntToStr(hmo);
       [*] = ;                  if (hmo = 0) then hmrow := hmrow + '.';
+      [*] = ;                  if (hmo > 0) and (hmo <= 9) then hmrow := hmrow + IntToStr(hmo);
+      [*] = ;                  if (hmo > 9) and (hmo <= 35) then hmrow := hmrow + SubStr(hmalpha, hmo-9, 1);
+      [*] = ;                  if (hmo > 35) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
       [*] = ;            end;

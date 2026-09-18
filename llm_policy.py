@@ -364,7 +364,12 @@ infantry17, musk17, dragoon17 (конница, из конюшни stable; ко�
     идут туда, где волна сейчас, и вливаются в неё, а не отдельной группой мимо.
   отвести пятерых домой БЕЗ боя: {"cmd":"MOVE","count":5,"target":"home"}
     MOVE двигает и не ищет врага по дороге; цели home, peasants, base, army,
-    cell (с cx,cy).
+    cell (с cx,cy). Берёт только СВОБОДНЫХ: волну в поле им не вернуть.
+  отозвать волну домой:   {"cmd":"RETREAT","count":30}
+    RETREAT берёт бойцов ДАЛЬШЕ 60 от ратуши, чем бы они ни были заняты, и
+    ведёт домой без боя. Свободных дома не трогает. Одна команда — как клик
+    по мини-карте у человека. В контракте ATTACK то же делает retreat_below:
+    доля посланных, ниже которой мост отзовёт волну сам.
     Цели разбираются так же, как у ATTACK: к людям ведёт только peasants.
     Берёт только СВОБОДНЫХ бойцов: того, кто уже идёт в волне, вернуть нельзя.
     MOVE и ATTACK в одном ответе не ужиться — файл приказа один.
@@ -836,7 +841,7 @@ def _мои_бойцы(st: dict) -> list[str]:
     # FORMATION отключена 16.09: строй собирается вокруг офицера, а офицер и
     # барабанщик делаются только в академии, запрещённой настройками партии.
     "команды": ("BUILD", "TRAIN", "BALANCE", "BUILDERS", "SEED", "UPGRADE",
-                "ATTACK", "MOVE"),
+                "ATTACK", "MOVE", "RETREAT"),
     "команд_за_такт": 7,          # лишние НЕ молчат: мост называет отброшенные
     "цели_ATTACK": ("peasants", "base", "army", "cell", "wave"),
     "цели_MOVE": ("home", "peasants", "base", "army", "cell"),
@@ -2405,14 +2410,14 @@ def набег(st: dict, было: dict | None) -> list[str]:
 
 def _своих_у(st: dict, cx: int, cy: int, радиус: int = 1) -> int:
     """Свои бойцы в клетках не дальше радиуса от (cx,cy) по сетке arow.
-    Цифра в клетке срезана на 9, поэтому это нижняя граница."""
+    Знак клетки читает coss3_map.счёт: цифра, буква a-z, «+» от 36."""
     n = _чис(st.get("grid_n"))
     всего = 0
     for y in range(n):
         ряд = str(st.get(f"arow{y}", "") or "")
         for x, c in enumerate(ряд):
-            if c.isdigit() and c != "0" and max(abs(x - cx), abs(y - cy)) <= радиус:
-                всего += int(c)
+            if max(abs(x - cx), abs(y - cy)) <= радиус:
+                всего += coss3_map.счёт(c)
     return всего
 
 
@@ -2441,12 +2446,13 @@ def _клетка_волны(st: dict):
     for y in range(n):
         ряд = str(st.get(f"arow{y}", "") or "")
         for x, c in enumerate(ряд):
-            if not c.isdigit() or c == "0":
+            сколько = coss3_map.счёт(c)
+            if сколько <= 0:
                 continue
             d = max(abs(x - mx), abs(y - my))
             if d < 3:
                 continue
-            ключ = (int(c), d)
+            ключ = (сколько, d)
             if ключ > лучший:
                 лучший, лучшая = ключ, (x, y)
     return лучшая
@@ -2459,8 +2465,8 @@ def _врага_у(st: dict, cx: int, cy: int, радиус: int = 2) -> int:
     for y in range(n):
         ряд = str(st.get(f"frow{y}", "") or "")
         for x, c in enumerate(ряд):
-            if c.isdigit() and c != "0" and max(abs(x - cx), abs(y - cy)) <= радиус:
-                всего += int(c)
+            if max(abs(x - cx), abs(y - cy)) <= радиус:
+                всего += coss3_map.счёт(c)
     return всего
 
 
@@ -2489,7 +2495,27 @@ def шаг_марша(st: dict, br, gt: int, волны: list, дневник=No
     только для бойцов С ПРИКАЗОМ) и у клетки сбора стоят свои. Первый такт
     после MOVE не считается: приказ ещё мог не дойти до игры.
     """
-    if not МАРШ or МАРШ.get("фаза") != "сбор":
+    if not МАРШ:
+        return
+    if МАРШ.get("фаза") == "удар":
+        # ОТХОД ПО ПОТЕРЯМ (retreat_below из контракта). Живых в волне считаем
+        # по mil_away — бойцы дальше 60 от ратуши. Первый такт после удара не
+        # считаем: волна ещё выходит и «вдали» её нет.
+        доля = МАРШ.get("retreat")
+        МАРШ["тактов_удара"] = МАРШ.get("тактов_удара", 0) + 1
+        if доля and МАРШ["тактов_удара"] >= 3:
+            вдали = _чис(st.get("mil_away"))
+            МАРШ["вдали"] = вдали
+            if 0 < вдали < доля * МАРШ["послано"]:
+                if br.attack(МАРШ["послано"], "home", mode="retreat"):
+                    МАРШ["фаза"] = "отход"
+                    _с = (f"ОТХОД: в поле осталось {вдали} из {МАРШ['послано']} — ниже "
+                          f"retreat_below={доля}, который назвала ты. Бойцы дальше 60 "
+                          f"от базы идут домой без боя")
+                    МАРШ["отчёт"].append(_с)
+                    print("        " + _с)
+        return
+    if МАРШ.get("фаза") != "сбор":
         return
     МАРШ["тактов"] += 1
     vx, vy = МАРШ["via"]
@@ -2560,9 +2586,13 @@ def блок_марша(st: dict) -> list[str]:
                    + ". Новый ATTACK или MOVE отменит марш")
     elif МАРШ["фаза"] == "удар":
         # Минуту после удара — и хватит: дальше о волне говорит блок «твои
-        # войска», а этот только повторял бы старое.
-        if _чис(st.get("gametime")) - МАРШ.get("t_удара", 0) > 60:
+        # войска», а этот только повторял бы старое. С retreat_below блок
+        # живёт дольше: он же и отзовёт.
+        if _чис(st.get("gametime")) - МАРШ.get("t_удара", 0) > 60 and not МАРШ.get("retreat"):
             return []
+        if МАРШ.get("retreat"):
+            стр.append(f"  отход по потерям: retreat_below={МАРШ['retreat']}, в поле "
+                       f"{МАРШ.get('вдали', _чис(st.get('mil_away')))} из {МАРШ['послано']}")
         if _чис(st.get("wave_n")):
             _где = (f"волна: {_чис(st.get('wave_n'))} в пути, клетка "
                     f"({_чис(st.get('wave_cx'))},{_чис(st.get('wave_cy'))})")
@@ -3786,6 +3816,15 @@ def to_commands(data: dict, доступные: set[str] | None = None
                 else:
                     брак.append(f"MOVE: нужно число бойцов > 0 в поле count"
                                 f" (поля: {поля})")
+            elif c == "RETREAT":
+                # Отзыв волны: бойцы дальше 60 от ратуши идут домой без боя.
+                # Едет тем же файлом приказа, что MOVE, режимом retreat.
+                if total > 0:
+                    движение = max(движение, total)
+                    цель_движения = "retreat"
+                else:
+                    брак.append(f"RETREAT: нужно число бойцов > 0 в поле count"
+                                f" (поля: {поля})")
             elif c == "ATTACK":
                 if total > 0:
                     attack = max(attack, total)
@@ -3833,15 +3872,19 @@ def to_commands(data: dict, доступные: set[str] | None = None
                                 контракт.pop("expires", None)
                                 брак.append(f"ATTACK expires={срок}: нужно число "
                                             f"секунд больше нуля")
-                        if item.get("retreat_below") is not None:
-                            # Честно: отозвать бойцов из боя мост пока не умеет —
-                            # MOVE берёт только свободных. Поле принято в трассу,
-                            # но не исполняется, и модель должна это знать.
-                            контракт["retreat"] = item.get("retreat_below")
-                            брак.append("ATTACK retreat_below: принято, но НЕ "
-                                        "ИСПОЛНЯЕТСЯ — отзывать бойцов из боя мост "
-                                        "пока не умеет; отход возможен только "
-                                        "свободными через MOVE home")
+                        доля = item.get("retreat_below")
+                        if доля is not None:
+                            # Доля ПОСЛАННЫХ, ниже которой мост отзывает волну
+                            # домой (RETREAT в блоке команд с 18.09). Считается по
+                            # mil_away: бойцы дальше 60 от ратуши.
+                            try:
+                                контракт["retreat"] = float(доля)
+                                if not (0 < контракт["retreat"] < 1):
+                                    raise ValueError
+                            except (TypeError, ValueError):
+                                контракт.pop("retreat", None)
+                                брак.append(f"ATTACK retreat_below={доля}: нужна доля "
+                                            f"между 0 и 1, например 0.5")
                     elif цель:
                         брак.append(f"ATTACK target={цель}: не знаю такой цели; "
                                     f"можно peasants, base, army, cell, wave")
@@ -3992,7 +4035,7 @@ _КОМАНДА_СХЕМА = {
                 # FORMATION убрана из схемы 16.09 вместе с описанием: см.
                 # комментарий у "команды" выше.
                 "enum": ["BUILD", "TRAIN", "BALANCE", "BUILDERS",
-                         "SEED", "UPGRADE", "ATTACK", "MOVE"]},
+                         "SEED", "UPGRADE", "ATTACK", "MOVE", "RETREAT"]},
         "role": {"type": ["string", "null"],
                  "description": "роль здания/юнита/ресурса; для UPGRADE — имя апгрейда"},
         "total": {"type": ["integer", "null"],
@@ -4988,6 +5031,18 @@ def одна_партия(a, client, br: Bridge, plind: int,
         # боя вовсе, и прятать его внутрь веток ATTACK значило бы потерять.
         # Файл приказа один, поэтому обе команды разом не отдать: to_commands
         # это ловит и говорит вслух.
+        if движение and цель_движения == "retreat":
+            _вдали = _чис(st.get("mil_away"))
+            if _вдали <= 0:
+                print(f"        RETREAT {движение} не отправлен: дальше 60 от базы никого нет")
+                вмешательство = (вмешательство + "; " if вмешательство else "") + (
+                    f"RETREAT {движение} НЕ ОТПРАВЛЕН: дальше 60 от ратуши твоих нет, "
+                    f"отзывать некого")
+            elif not br.attack(движение, "home", mode="retreat"):
+                print("        RETREAT не отправлен: прошлый приказ ещё не забран игрой")
+            else:
+                print(f"        RETREAT {движение}: бойцы дальше 60 от базы ({_вдали}) идут домой")
+            движение = 0
         if движение:
             св = int(st.get("my_freewar", 0) or 0)
             if св <= 0:

@@ -209,6 +209,9 @@ def main() -> int:
     ap.add_argument("--move-target", default="home",
                     choices=("home", "peasants", "base", "army"),
                     help="куда двигать: home — к своей ратуше (по умолчанию)")
+    ap.add_argument("--retreat", type=int, default=0,
+                    help="отозвать домой до N бойцов, стоящих ДАЛЬШЕ 60 от ратуши, "
+                         "чем бы они ни были заняты (блок с 18.09)")
     ap.add_argument("--mode", type=int, choices=(0, 1), default=None,
                     help="1 — билд-ордер ведёт модель (нативный выключен), 0 — как в оригинале")
     ap.add_argument("--end", action="store_true",
@@ -306,6 +309,19 @@ def main() -> int:
         br = Bridge(d, plind)
         ушло = br.attack(a.move, a.move_target, mode="move")
         print(f"MOVE {a.move} -> {a.move_target} отправлен" if ушло
+              else "предыдущий приказ ещё не забран игрой")
+        return 0
+
+    if a.retreat:
+        # RETREAT руками (18.09): бойцы дальше 60 от ратуши идут домой без боя,
+        # чем бы они ни были заняты. Проверка блока на живой игре без модели.
+        plind = a.plind if a.plind is not None else find_ai_plind(d)
+        if plind is None:
+            print("слот не найден: " + почему_нет_слота(d))
+            return 1
+        br = Bridge(d, plind)
+        ушло = br.attack(a.retreat, "home", mode="retreat")
+        print(f"RETREAT {a.retreat} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
         return 0
 
