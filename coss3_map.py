@@ -175,6 +175,16 @@ def lines(state: dict, mapstate: dict | None = None, prev: dict | None = None) -
                             "letter a-z = 10-35, + = 36 or more; ATTACK/MOVE with "
                             "target=cell and cx,cy sends them to any cell)",
                      my_cx, my_cy)
+    # Крестьяне врага (18.09, открытая информация): своя сетка рядом с его
+    # войсками, чтобы клетка «крестьяне есть, бойцов нет» читалась глазами.
+    prows = [_s(state, f"prow{y}") for y in range(n) if f"prow{y}" in state]
+    if prows and any(c != "." for row in prows for c in row):
+        out.append("")
+        out += _grid(prows, "## Enemy peasants    "
+                            "(enemy PEASANTS in that cell, same marks; compare with "
+                            "Enemy forces - a cell with peasants and no soldiers "
+                            "around is the target of this match)",
+                     my_cx, my_cy)
 
     # --- добыча ---
     dt = _i(state, "gametime") - _i(prev or {}, "gametime")
@@ -427,4 +437,38 @@ def фланг(state: dict) -> dict:
     ближние.sort(key=lambda т: т[3])
     return {"всего": всего, "ближние": ближние,
             "бойцов_рядом": sum(т[0] for т in ближние)}
+
+
+def крестьяне_врага(state: dict, топ: int = 3) -> list[dict]:
+    """Клетки с крестьянами врага и охраной рядом — по сетке prow (18.09).
+
+    Открытая информация: матч идёт против другого бота по сети, и правила
+    хакатона разрешают знать, где стоят его крестьяне. Цель партии — они,
+    а ATTACK peasants ведёт волну к БЛИЖАЙШЕМУ крестьянину, то есть под армию
+    у его ратуши. Здесь для каждой клетки с крестьянами считается, сколько
+    чужих бойцов стоит в ней и в восьми соседних (frow), и клетки сортируются
+    «сначала без охраны, потом где крестьян больше». Модель получает готовую
+    цель для ATTACK target=cell.
+    """
+    n = _i(state, "grid_n", 16)
+    prows = [_s(state, f"prow{y}") for y in range(n) if f"prow{y}" in state]
+    if not prows:
+        return []
+    frows = [_s(state, f"frow{y}") for y in range(n)]
+    def сила(x: int, y: int) -> int:
+        s = 0
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                xx, yy = x + dx, y + dy
+                if 0 <= yy < len(frows) and 0 <= xx < len(frows[yy]):
+                    s += счёт(frows[yy][xx])
+        return s
+    клетки = []
+    for y, row in enumerate(prows):
+        for x, c in enumerate(row):
+            k = счёт(c)
+            if k > 0:
+                клетки.append({"x": x, "y": y, "крестьян": k, "бойцов_рядом": сила(x, y)})
+    клетки.sort(key=lambda c: (c["бойцов_рядом"], -c["крестьян"]))
+    return клетки[:топ]
 
