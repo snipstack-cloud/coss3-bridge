@@ -472,3 +472,24 @@ def крестьяне_врага(state: dict, топ: int = 3) -> list[dict]:
     клетки.sort(key=lambda c: (c["бойцов_рядом"], -c["крестьян"]))
     return клетки[:топ]
 
+
+def центр_сетки(state: dict, префикс: str) -> dict:
+    """Взвешенный центр сетки (frow/arow/prow) и сумма знаков.
+
+    {"cx","cy","n"} или {} при пустой сетке. Знак '+' считается как 36 —
+    нижняя граница, как везде в разборе сеток.
+    """
+    n = _i(state, "grid_n", 16)
+    sx = sy = s = 0
+    for y in range(n):
+        row = _s(state, f"{префикс}{y}")
+        for x, c in enumerate(row):
+            k = счёт(c)
+            if k:
+                sx += x * k
+                sy += y * k
+                s += k
+    if not s:
+        return {}
+    return {"cx": round(sx / s), "cy": round(sy / s), "n": s}
+
