@@ -1061,8 +1061,11 @@ def оценка_обстановки(st: dict, mp: dict) -> dict:
         except (TypeError, ValueError):
             return None
     # наш кулак: живая волна, иначе свободные у центра своей армии
+    # Волна жива только если её ОТПРАВЛЯЛИ: wave_n считает всех своих вдали от
+    # базы, и без отправки там 1-2 отбившихся (контейнер 19.09, 5:05-7:37 —
+    # оценка мерила «кулак 2» при 28 свободных дома).
     wave_n = _чис(st.get("wave_n"))
-    if wave_n > 0 and "wave_cx" in st:
+    if wave_n > 0 and _чис(st.get("wave_sent")) > 0 and "wave_cx" in st:
         кулак = {"n": wave_n, "cx": _чис(st.get("wave_cx")), "cy": _чис(st.get("wave_cy")), "что": "волна"}
     else:
         центр = coss3_map.центр_сетки(st, "arow") or {"cx": _чис(st.get("my_cx")), "cy": _чис(st.get("my_cy"))}
