@@ -52,7 +52,7 @@ die() {
 : "${COSS3_HINTS:=/opt/bridge/hints_human.txt}"
 : "${COSS3_MODEL:=@preset/coss3-bot}"
 : "${COSS3_EVERY:=20}"
-: "${COSS3_WAVE_MIN:=20}"
+: "${COSS3_WAVE_MIN:=0}"   # порог снят 18.09, флаг ничего не делает
 : "${COSS3_HB_TIMEOUT:=180}"  # сколько ждать пульса, прежде чем признать провал
 : "${COSS3_EPISODES:=1}"      # сколько партий подряд сыграть в этом контейнере
 : "${COSS3_KEEP_ALIVE:=1}"    # держать контейнер живым после конца партии,
