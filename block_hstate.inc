@@ -833,6 +833,12 @@
       [*] = ;         const cHmGrid = 16;
       [*] = ;         var hmbase : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmforce : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // Enemy PEASANTS per cell (open information, 18.09): the goal of
+      [*] = ;         // the match is their peasants, and a wave aimed 'at peasants' walks
+      [*] = ;         // to the nearest one, which stands under their army. With this grid
+      [*] = ;         // next to frow the model can pick a cell where peasants are and
+      [*] = ;         // soldiers are not, and send ATTACK target=cell there.
+      [*] = ;         var hmpea : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
       [*] = ;         // Counters of OUR army, declared at THIS level on purpose - see the
       [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
@@ -844,6 +850,7 @@
       [*] = ;         begin
       [*] = ;            hmbase[hmi][hmj] := 0;
       [*] = ;            hmforce[hmi][hmj] := 0;
+      [*] = ;            hmpea[hmi][hmj] := 0;
       [*] = ;         end;
       [*] = ;         var hmw : Integer = GetMapWidth;
       [*] = ;         var hmh : Integer = GetMapHeight;
@@ -871,6 +878,13 @@
       [*] = ;            // other player are read the same way as ours (res[], upgstate[],
       [*] = ;            // produce orders of buildings).
       [*] = ;            var hsytq : String;
+      [*] = ;            // Where their soldiers are GOING: move / attackpoint orders carry
+      [*] = ;            // the destination in orders[0].info.x/y (lib/unit.script:9458,
+      [*] = ;            // player.script:2511), attackobj carries the target handle in
+      [*] = ;            // info.trg. Sums of destination cells and how many head for a
+      [*] = ;            // point within 60 of OUR town centre. Integers only, like the
+      [*] = ;            // counters above - a Float sum here is an untested form.
+      [*] = ;            var hsymvn, hsymvb, hsymx, hsymz : Integer;
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
@@ -912,6 +926,37 @@
       [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
       [*] = ;                     if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
       [*] = ;                     hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
+      [*] = ;                     var hseot : Integer = TObj(hsep).orders[0].itype;
+      [*] = ;                     var hsytx : Float = -1000000;
+      [*] = ;                     var hsytz : Float = -1000000;
+      [*] = ;                     if (hseot = gc_obj_order_type_move) or (hseot = gc_obj_order_type_attackpoint) or
+      [*] = ;                        (hseot = gc_obj_order_type_continueattackpoint) then
+      [*] = ;                     begin
+      [*] = ;                        hsytx := TObj(hsep).orders[0].info.x;
+      [*] = ;                        hsytz := TObj(hsep).orders[0].info.y;
+      [*] = ;                     end;
+      [*] = ;                     if (hseot = gc_obj_order_type_attackobj) then
+      [*] = ;                     if (TObj(hsep).orders[0].info.trg <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        hsytx := GetGameObjectPositionXByHandle(TObj(hsep).orders[0].info.trg);
+      [*] = ;                        hsytz := GetGameObjectPositionZByHandle(TObj(hsep).orders[0].info.trg);
+      [*] = ;                     end;
+      [*] = ;                     if (hsytx > -999999) then
+      [*] = ;                     begin
+      [*] = ;                        hsymvn := hsymvn + 1;
+      [*] = ;                        hsymx := hsymx + floor((hsytx+hmhw)*cHmGrid/hmw);
+      [*] = ;                        hsymz := hsymz + floor((hsytz+hmhh)*cHmGrid/hmh);
+      [*] = ;                        if (hscen > 0) then
+      [*] = ;                        if (VectorDistance(hsytx, 0, hsytz, hscx, 0, hscz) < 60) then
+      [*] = ;                        hsymvb := hsymvb + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hsenemy) and (hseu = gc_obj_usage_peasant) then
+      [*] = ;                  begin
+      [*] = ;                     var hmpx : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
+      [*] = ;                     var hmpy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
+      [*] = ;                     if (hmpx>=0) and (hmpx<cHmGrid) and (hmpy>=0) and (hmpy<cHmGrid) then
+      [*] = ;                     hmpea[hmpx][hmpy] := hmpea[hmpx][hmpy] + 1;
       [*] = ;                  end;
       [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
       [*] = ;                     (hseu = gc_obj_usage_grenadier) then
@@ -1019,6 +1064,13 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_upg_done', hsyud);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_n', hsymvn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_base', hsymvb);
+      [*] = ;            if (hsymvn > 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_cx', hsymx div hsymvn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_cy', hsymz div hsymvn);
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
@@ -1190,6 +1242,20 @@
       [*] = ;                  if (hmo > 35) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
+      [*] = ;            // Enemy peasants on their own grid, same marks as frow/arow.
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmq : Integer = hmpea[hmi][hmj];
+      [*] = ;                  if (hmq = 0) then hmrow := hmrow + '.';
+      [*] = ;                  if (hmq > 0) and (hmq <= 9) then hmrow := hmrow + IntToStr(hmq);
+      [*] = ;                  if (hmq > 9) and (hmq <= 35) then hmrow := hmrow + SubStr(hmalpha, hmq-9, 1);
+      [*] = ;                  if (hmq > 35) then hmrow := hmrow + '+';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'prow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
