@@ -649,8 +649,13 @@
       [*] = ;         // guess which resource was short. Now the bridge asks the engine the same
       [*] = ;         // question the interface asks - _unit_CanApplyCostByID - and answers before
       [*] = ;         // the order. A human sees it as a greyed-out button.
-      [*] = ;         var hsroles : array [0..8] of Integer;
-      [*] = ;         var hsrname : array [0..8] of String;
+      [*] = ;         // STABLE added 18.09: the dragoon is the only unit of ours that catches
+      [*] = ;         // a fleeing peasant (the objective), and both the stable and the dragoon
+      [*] = ;         // need nothing but the blacksmith (country.script:2929, 2978). The list
+      [*] = ;         // had nine roles and no stable, so 'stable' never reached can_now or
+      [*] = ;         // cant_now, and the model never built one: zero cavalry in every game.
+      [*] = ;         var hsroles : array [0..9] of Integer;
+      [*] = ;         var hsrname : array [0..9] of String;
       [*] = ;         hsroles[0] := gc_ai_unit_center;    hsrname[0] := 'center';
       [*] = ;         hsroles[1] := gc_ai_unit_mill;      hsrname[1] := 'mill';
       [*] = ;         hsroles[2] := gc_ai_unit_smith;     hsrname[2] := 'smith';
@@ -660,6 +665,7 @@
       [*] = ;         hsroles[6] := gc_ai_unit_minegold;  hsrname[6] := 'minegold';
       [*] = ;         hsroles[7] := gc_ai_unit_mineiron;  hsrname[7] := 'mineiron';
       [*] = ;         hsroles[8] := gc_ai_unit_minecoal;  hsrname[8] := 'minecoal';
+      [*] = ;         hsroles[9] := gc_ai_unit_stable;    hsrname[9] := 'stable';
       [*] = ;         var hscan : String = '';
       [*] = ;         var hscant : String = '';
       [*] = ;         // PRICE of every building, same form as 'fighters'. Without it the
@@ -672,7 +678,7 @@
       [*] = ;         // shows it to a human.
       [*] = ;         var hsbtxt : String = '';
       [*] = ;         var hsri : Integer;
-      [*] = ;         for hsri := 0 to 8 do
+      [*] = ;         for hsri := 0 to 9 do
       [*] = ;         begin
       [*] = ;            var hsrid : Integer = -1;
       [*] = ;            var hsrj : Integer;

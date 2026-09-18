@@ -341,7 +341,8 @@ SYSTEM = """\
 затруднений: смотри на блок «Итог прошлого решения» и на цепочку до цели.
 Не больше семи команд. Роли пиши строкой: peasant, smith, ba17, center, mill,
 store, tower, stable, academi, market, house, minegold, mineiron, minecoal,
-infantry17, musk17.
+infantry17, musk17, dragoon17 (конница, из конюшни stable; конюшне и драгуну
+нужна только кузница).
 
 ВОТ КАК ВЫГЛЯДИТ КАЖДАЯ КОМАНДА — пиши их ровно так:
   постройка:              {"cmd":"BUILD","role":"smith","total":1}
@@ -1381,6 +1382,7 @@ def find_ai_plind(d: str, fresh: float = 30, human: bool = False) -> int | None:
     "academi": "academies",
     "minegold": "mines_gold", "mineiron": "mines_iron", "minecoal": "mines_coal",
     "peasant": "peasants", "infantry17": "mil_inf", "musk17": "mil_shooters",
+    "dragoon17": "mil_cav",
 }
 
 
@@ -1400,6 +1402,7 @@ def find_ai_plind(d: str, fresh: float = 30, human: bool = False) -> int | None:
     "market":     [("mills", "мельницы"), ("my_stores", "склада")],
     "infantry17": [("ba17", "казармы")],
     "musk17":     [("ba17", "казармы")],
+    "dragoon17":  [("stables", "конюшни")],
 }
 
 
