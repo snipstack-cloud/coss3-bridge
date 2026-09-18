@@ -39,6 +39,12 @@
       [*] = ;            // A new batch of commands - the old failure reason has been read.
       [*] = ;            // Cleared HERE, not on state write: the state is written every
       [*] = ;            // second and the model reads it every fifteen.
+      [*] = ;            // Every refusal in the batch is APPENDED with ' | ', not written over.
+      [*] = ;            // 18.09 (mac): BUILD mill was refused for 'no peasants' and TRAIN
+      [*] = ;            // peasant failed right after it in the same tick - the second reason
+      [*] = ;            // overwrote the first, the model saw only TRAIN and lost two ticks
+      [*] = ;            // guessing why the mill did not start. Three times per game.
+      [*] = ;            // Python strips the leading separator.
       [*] = ;            ParserSetValueByKeyByHandle(hfl, 'why', '');
       [*] = ;            var hccid : Integer = gPlayer[plind].cid;
       [*] = ;            var hcph : Integer = GetPlayerHandleByIndex(plind);
@@ -102,7 +108,7 @@
       [*] = ;               if (hcid < 0) and (hca1 > 0) then
       [*] = ;               if (hccmd = 'BUILD') or (hccmd = 'TRAIN') then
       [*] = ;               begin
-      [*] = ;                  ParserSetValueByKeyByHandle(hfl, 'why', hccmd + ' role' +
+      [*] = ;                  ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + hccmd + ' role' +
       [*] = ;                       IntToStr(hca1) + ': this nation has no such object');
       [*] = ;                  Log('bridge-human: ' + hccmd + ' role' + IntToStr(hca1) +
       [*] = ;                      ' - no such object for this nation');
@@ -132,7 +138,7 @@
       [*] = ;                     var hcprice : String = 'food=' + IntToStr(hcpf) + ' wood=' + IntToStr(hcpw) +
       [*] = ;                          ' stone=' + IntToStr(hcps) + ' gold=' + IntToStr(hcpg) +
       [*] = ;                          ' iron=' + IntToStr(hcpi) + ' coal=' + IntToStr(hcpc);
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BUILD ' + hcsid +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BUILD ' + hcsid +
       [*] = ;                          ': NOT ENOUGH RESOURCES. It costs ' + hcprice);
       [*] = ;                     Log('bridge-human: BUILD ' + hcsid + ' - not enough resources, costs ' + hcprice);
       [*] = ;                  end;
@@ -269,14 +275,14 @@
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'BUILD ' + hcsid +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BUILD ' + hcsid +
       [*] = ;                                ': nobody to build it - no peasants at all');
       [*] = ;                           Log('bridge-human: BUILD ' + hcsid + ' NO WORKERS');
       [*] = ;                        end;
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BUILD ' + hcsid +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BUILD ' + hcsid +
       [*] = ;                          ': no place found within 26 around the base');
       [*] = ;                     Log('bridge-human: BUILD ' + hcsid + ' NO PLACE within 26 around base');
       [*] = ;                     end;
@@ -349,7 +355,7 @@
       [*] = ;                        hcalready := True;
       [*] = ;                        if (hcalready) and (hca2 <= gc_obj_order_produce_infinite) then
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'TRAIN ' +
       [*] = ;                                gCountry[hccid].members[hcid] + ': ALREADY ORDERED without ' +
       [*] = ;                                'count and still running. The conveyor works, the order is ' +
       [*] = ;                                'not needed - spend the tick on something else');
@@ -365,7 +371,7 @@
       [*] = ;                            IntToStr(hca2) + ' in ' + IntToStr(gIntegerList.GetCount) + ' buildings')
       [*] = ;                        else
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'TRAIN ' +
       [*] = ;                                gCountry[hccid].members[hcid] + ': THE GAME DID NOT TAKE ' +
       [*] = ;                                'THE ORDER. The building is there, so look at the queue ' +
       [*] = ;                                '(train_now) and at the food');
@@ -376,7 +382,7 @@
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'TRAIN ' +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'TRAIN ' +
       [*] = ;                          gCountry[hccid].members[hcid] + ': the building that makes it is not built');
       [*] = ;                     Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] + ' - no producer built yet');
       [*] = ;                     end;
@@ -517,7 +523,7 @@
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        begin
-      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'GATHER res' + IntToStr(hca1) +
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'GATHER res' + IntToStr(hca1) +
       [*] = ;                             ': no deposit of this kind within 40. Food is searched around the ' +
       [*] = ;                             'MILL, wood and stone around the town hall. Sow a field (SEED) or ' +
       [*] = ;                             'build closer to the deposit');
@@ -575,21 +581,21 @@
       [*] = ;                  // and the reason goes back into the next request.
       [*] = ;                  if (hmine = 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
       [*] = ;                          ': no such mine is built yet');
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no mine built');
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  if (hminside >= hca2) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
       [*] = ;                          ': ' + IntToStr(hminside) + ' already work that mine, asked for ' + IntToStr(hca2));
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - already inside ' + IntToStr(hminside));
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  if (hmfree = 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
       [*] = ;                          ': no idle peasant to send, and a busy one is not taken away');
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no idle peasants');
       [*] = ;                  end
@@ -653,7 +659,7 @@
       [*] = ;                     end;
       [*] = ;                     if (hmsent = 0) then
       [*] = ;                     begin
-      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
       [*] = ;                             ': every mine of that kind is full, build one more');
       [*] = ;                        Log('bridge-human: MINE res' + IntToStr(hca1) + ' - all mines full');
       [*] = ;                     end;
@@ -691,14 +697,14 @@
       [*] = ;                  end;
       [*] = ;                  if (gTmpIntList.GetCount = 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why',
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' +
       [*] = ;                          'SEED: no mill is built yet - fields are sown at a mill');
       [*] = ;                     Log('bridge-human: SEED - no mill built');
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  if (hcfid <= 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'SEED: this nation has no field object');
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'SEED: this nation has no field object');
       [*] = ;                     Log('bridge-human: SEED - no field object for this nation');
       [*] = ;                  end
       [*] = ;                  else
@@ -740,7 +746,7 @@
       [*] = ;                  end;
       [*] = ;                  if (hfoff = 0) or (hfdrum = 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: a bonus ' +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'FORMATION: a bonus ' +
       [*] = ;                          'formation needs BOTH an officer and a drummer. Have ' +
       [*] = ;                          'officers: ' + IntToStr(hfoff) + ', drummers: ' + IntToStr(hfdrum) +
       [*] = ;                          ' (0 means none free). Train officer17 and drummer17 first');
@@ -793,7 +799,7 @@
       [*] = ;                        // is not fixable at all.
       [*] = ;                        if (hfneed < 1000000) then
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: too ' +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'FORMATION: too ' +
       [*] = ;                                'few men. The smallest formation with a bonus needs ' +
       [*] = ;                                IntToStr(hfneed) + ', you brought ' + IntToStr(hfmen));
       [*] = ;                           Log('bridge-human: FORMATION - need ' + IntToStr(hfneed) +
@@ -801,7 +807,7 @@
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: this ' +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'FORMATION: this ' +
       [*] = ;                                'officer has no formation of his own in the country table');
       [*] = ;                           Log('bridge-human: FORMATION - officer has no formations');
       [*] = ;                        end;
@@ -812,7 +818,7 @@
       [*] = ;                             hfdrum, gIntegerList, True, True);
       [*] = ;                        if (hfsq = nil) then
       [*] = ;                        begin
-      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', 'FORMATION: the ' +
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'FORMATION: the ' +
       [*] = ;                                'game refused to build the squad');
       [*] = ;                           Log('bridge-human: FORMATION - CreateSquad returned nil');
       [*] = ;                        end
@@ -858,7 +864,7 @@
       [*] = ;                  end;
       [*] = ;                  if (huid < 0) then
       [*] = ;                  begin
-      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', 'UPGRADE ' + hupg +
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'UPGRADE ' + hupg +
       [*] = ;                          ': no upgrade with this name for our nation');
       [*] = ;                     Log('bridge-human: UPGRADE ' + hupg + ' - unknown for this nation');
       [*] = ;                  end
@@ -885,7 +891,7 @@
       [*] = ;                     end;
       [*] = ;                     if (gIntegerList.GetCount = 0) then
       [*] = ;                     begin
-      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'UPGRADE ' + hupg +
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'UPGRADE ' + hupg +
       [*] = ;                             ': the building that researches it is not built');
       [*] = ;                        Log('bridge-human: UPGRADE ' + hupg + ' - host building missing');
       [*] = ;                     end
@@ -910,7 +916,7 @@
       [*] = ;                          ' iron=' + IntToStr(huci) + ' coal=' + IntToStr(hucc);
       [*] = ;                     if (not _unit_CanApplyUpgradeCostBySID(hcph, hccid, husid)) then
       [*] = ;                     begin
-      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', 'UPGRADE ' + hupg +
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'UPGRADE ' + hupg +
       [*] = ;                             ': NOT ENOUGH RESOURCES. It costs ' + huprice);
       [*] = ;                        Log('bridge-human: UPGRADE ' + hupg + ' - cannot pay, costs ' + huprice);
       [*] = ;                     end
