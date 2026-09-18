@@ -945,6 +945,12 @@
       [*] = ;         // MOVE could not do it: it takes idle men only, and a fighting wave is
       [*] = ;         // never idle. A player does it with one click on the minimap.
       [*] = ;         var haretreat : Boolean = (hamode = 'retreat');
+      [*] = ;         // ENGAGE (18.09): the marching column is INTERCEPTED. Soldiers on a MOVE
+      [*] = ;         // order cannot be re-collected by ATTACK (it takes idle men only), so
+      [*] = ;         // the column walks on and gets picked apart. This mode takes everybody
+      [*] = ;         // farther than 60 from the centre, whatever their order - exactly the
+      [*] = ;         // retreat set - and sends them into the ATTACK path instead of home.
+      [*] = ;         var haengage : Boolean = (hamode = 'engage');
       [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move') or (haretreat)) then
       [*] = ;         begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, 'count');
@@ -998,7 +1004,7 @@
       [*] = ;                  begin
       [*] = ;                     // Idle men for ATTACK and MOVE; the FAR ones, idle or not, for RETREAT.
       [*] = ;                     var hatake2 : Boolean = False;
-      [*] = ;                     if (haretreat) then
+      [*] = ;                     if (haretreat) or (haengage) then
       [*] = ;                     begin
       [*] = ;                        var hadd : Float = VectorDistance(GetGameObjectPositionXByHandle(hago), 0,
       [*] = ;                             GetGameObjectPositionZByHandle(hago), hax, 0, haz);
@@ -1118,10 +1124,16 @@
       [*] = ;                  // empty forever. wave_sent was zero in EVERY run since, and the
       [*] = ;                  // model read 'no waves at all' right after sending one.
       [*] = ;                  // A named parser lives between ticks and knows nothing of groups.
-      [*] = ;                  var hawp : Integer = ParserSelectByKey('br_hwave');
-      [*] = ;                  if (hawp = 0) then
-      [*] = ;                  hawp := ParserCreate('br_hwave');
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
+      [*] = ;                  if (haengage) then
+      [*] = ;                  Log('bridge-human: ENGAGE ' + IntToStr(gIntegerList.GetCount) + ' far soldiers turn to fight');
+      [*] = ;                  // ENGAGE is not a new wave: wave_sent stays as it was.
+      [*] = ;                  if (not haengage) then
+      [*] = ;                  begin
+      [*] = ;                     var hawp : Integer = ParserSelectByKey('br_hwave');
+      [*] = ;                     if (hawp = 0) then
+      [*] = ;                     hawp := ParserCreate('br_hwave');
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
+      [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end
       [*] = ;            else
