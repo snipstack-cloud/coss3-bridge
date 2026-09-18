@@ -864,6 +864,13 @@
       [*] = ;            var hsxmg, hsxmi, hsxmc : Integer;
       [*] = ;            var hsxcen, hsxmill, hsxsm, hsxba, hsxba18 : Integer;
       [*] = ;            var hsxstab, hsxstor, hsxho, hsxtow, hsxmar, hsxaca : Integer;
+      [*] = ;            // OPEN INFORMATION (18.09): the match is played against another bot
+      [*] = ;            // over the network and the new hackathon rules allow everything the
+      [*] = ;            // game knows about the opponent. The 'only our own' limits below
+      [*] = ;            // are lifted: resources, taken upgrades and training queues of every
+      [*] = ;            // other player are read the same way as ours (res[], upgstate[],
+      [*] = ;            // produce orders of buildings).
+      [*] = ;            var hsytq : String;
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
@@ -917,6 +924,23 @@
       [*] = ;                  if (gObjProp[TObj(hsep).cid][TObj(hsep).id].bbuilding) then
       [*] = ;                  begin
       [*] = ;                     hsebld := hsebld + 1;
+      [*] = ;                     // What this building of theirs is making: same reading as
+      [*] = ;                     // our train_now (produce orders, info.produceid, info.amount).
+      [*] = ;                     var hsyk : Integer;
+      [*] = ;                     for hsyk := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hsyp : Pointer = TObj(hsep).orders[hsyk];
+      [*] = ;                        if (hsyp<>nil) then
+      [*] = ;                        if (TOrder(hsyp).itype = gc_obj_order_type_produce) then
+      [*] = ;                        begin
+      [*] = ;                           if (hsytq <> '') then hsytq := hsytq + ',';
+      [*] = ;                           hsytq := hsytq + gCountry[TObj(hsep).cid].members[TOrder(hsyp).info.produceid] + ':';
+      [*] = ;                           if (TOrder(hsyp).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                           hsytq := hsytq + 'inf'
+      [*] = ;                           else
+      [*] = ;                           hsytq := hsytq + IntToStr(TOrder(hsyp).info.amount);
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                     var hsear : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].airole;
       [*] = ;                     if (hsear = gc_ai_unit_minegold) or (hsear = gc_ai_unit_mineiron) or
       [*] = ;                        (hsear = gc_ai_unit_minecoal) then
@@ -970,6 +994,31 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_tower',    hsxtow);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_market',   hsxmar);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_academi',  hsxaca);
+      [*] = ;            // Their resources, read exactly as our own six lines at the top.
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_food',  not gPlayer[hspl].res[gc_resource_type_food]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_wood',  not gPlayer[hspl].res[gc_resource_type_wood]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_stone', not gPlayer[hspl].res[gc_resource_type_stone]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_gold',  not gPlayer[hspl].res[gc_resource_type_gold]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_iron',  not gPlayer[hspl].res[gc_resource_type_iron]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_coal',  not gPlayer[hspl].res[gc_resource_type_coal]);
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_train', hsytq);
+      [*] = ;            // Their upgrades ALREADY TAKEN: upgstate[cid][i].done of their own
+      [*] = ;            // nation's list, names without the 3-letter nation prefix, as in
+      [*] = ;            // upg_done below. The 'only our own' note there is history now.
+      [*] = ;            var hsyud : String;
+      [*] = ;            var hsyui : Integer;
+      [*] = ;            var hsycid : Integer = gPlayer[hspl].cid;
+      [*] = ;            for hsyui := 0 to gc_country_maxupgradecount-1 do
+      [*] = ;            begin
+      [*] = ;               var hsyus : String = gCountry[hsycid].upgrade[hsyui].id;
+      [*] = ;               if (StrLength(hsyus) > 3) then
+      [*] = ;               if (gPlayer[hspl].upgstate[hsycid][hsyui].done) then
+      [*] = ;               begin
+      [*] = ;                  if (StrLength(hsyud) > 0) then hsyud := hsyud + ',';
+      [*] = ;                  hsyud := hsyud + SubStr(hsyus, 4, StrLength(hsyus)-3);
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_upg_done', hsyud);
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
@@ -1179,8 +1228,8 @@
       [*] = ;         // native AI asks about in _ai_IsUpgradeInProgressOrDone
       [*] = ;         // (progresseconomicai.inc:1429). Calling that function from here is not
       [*] = ;         // allowed - it lives in another script state - so we read the fields.
-      [*] = ;         // ONLY OUR OWN: the player said 16.09 he does not see the enemy upgrades,
-      [*] = ;         // so the bridge must not know them either.
+      [*] = ;         // Until 18.09 this was ONLY OUR OWN (player, 16.09: a human does not see
+      [*] = ;         // the enemy upgrades). The rule is lifted; theirs go out as p<n>_upg_done.
       [*] = ;         var hsupgd, hsupgp : String;
       [*] = ;         var hsui : Integer;
       [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
