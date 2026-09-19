@@ -72,6 +72,9 @@
       [*] = ;         // nor we could see it - the state said only 'ba17 = 2'.
       [*] = ;         var hsbq : String;   // barracks queues: 1:pikeman:inf,2:none
       [*] = ;         var hsbn : Integer;  // barracks counter for the line above
+      [*] = ;         var hsqn : Integer;  // stable counter: the stable has a queue too
+      [*] = ;         // NB: 'hssn' is taken - stone_slots_near uses it below (line ~622),
+      [*] = ;         // and a repeat in the same begin..end kills the whole Progress tick.
       [*] = ;         var hscx, hscz : Float;
       [*] = ;         var hspeaid : Integer = -1;
       [*] = ;         var hsk : Integer;
@@ -176,6 +179,33 @@
       [*] = ;                           else
       [*] = ;                           hstq := hstq + IntToStr(hstam);
       [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     // STABLE 19.09: its queue was collected nowhere, so an idle
+      [*] = ;                     // stable was invisible - not busy, not empty. Live game the
+      [*] = ;                     // same day: the stable was finished at 15:27 and not a single
+      [*] = ;                     // dragoon was ordered until the horizon, while the whole
+      [*] = ;                     // 'an idle building makes nobody' logic reads this very line.
+      [*] = ;                     // Numbered 's1', 's2' so the reader tells it from a barracks.
+      [*] = ;                     if (hsrole = gc_ai_unit_stable) then
+      [*] = ;                     begin
+      [*] = ;                        hsqn := hsqn + 1;
+      [*] = ;                        var hsswhat : String = 'none';
+      [*] = ;                        var hssk : Integer;
+      [*] = ;                        for hssk := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hssp : Pointer = TObj(hspo).orders[hssk];
+      [*] = ;                           if (hssp<>nil) then
+      [*] = ;                           if (TOrder(hssp).itype = gc_obj_order_type_produce) then
+      [*] = ;                           begin
+      [*] = ;                              hsswhat := gCountry[hscid].members[TOrder(hssp).info.produceid];
+      [*] = ;                              if (TOrder(hssp).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                              hsswhat := hsswhat + ':inf'
+      [*] = ;                              else
+      [*] = ;                              hsswhat := hsswhat + ':' + IntToStr(TOrder(hssp).info.amount);
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hsbq <> '') then hsbq := hsbq + ',';
+      [*] = ;                        hsbq := hsbq + 's' + IntToStr(hsqn) + ':' + hsswhat;
       [*] = ;                     end;
       [*] = ;                     if (hsrole = gc_ai_unit_ba17) then
       [*] = ;                     begin
