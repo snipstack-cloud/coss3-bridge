@@ -524,11 +524,28 @@
       [*] = ;               // another slot - lib/unit.script sets it at a variable weapInd, and
       [*] = ;               // slots 0..2 are all in use across the roster. A human reads one
       [*] = ;               // attack figure off the unit card, and that figure is this one.
-      [*] = ;               var hsfa, hsfwi : Integer;
+      [*] = ;               // Index of the BEST slot, not just its damage: weapon kind and reload
+      [*] = ;               // pause must come from the SAME slot, or damage is taken from one
+      [*] = ;               // weapon and speed from another. Damage = attacker's attack minus the
+      [*] = ;               // target's protection FOR THAT WEAPON KIND (lib/miscext2.script:380,
+      [*] = ;               // 434), so without kind there is no telling which protection to use.
+      [*] = ;               var hsfa, hsfwi, hsfwb : Integer;
+      [*] = ;               hsfwb := -1;
       [*] = ;               for hsfwi := 0 to gc_obj_MaxWeapon-1 do
       [*] = ;               if (gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwi].damage > hsfa) then
-      [*] = ;               hsfa := gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwi].damage;
+      [*] = ;               begin
+      [*] = ;                  hsfa := gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwi].damage;
+      [*] = ;                  hsfwb := hsfwi;
+      [*] = ;               end;
       [*] = ;               hsftxt := hsftxt + ',atk' + IntToStr(hsfa);
+      [*] = ;               // Pause goes out in HUNDREDTHS: _misc_FramesToTime returns a fraction,
+      [*] = ;               // and rounding it to a whole number turned the pikeman's pause into 0
+      [*] = ;               // on a live game 19.09 while the musketeer's came out as 4.
+      [*] = ;               if (hsfwb >= 0) then
+      [*] = ;               begin
+      [*] = ;                  hsftxt := hsftxt + ',wkind' + IntToStr(gObjProp[hscid][hsfid].weapon[hsfwb].kind);
+      [*] = ;                  hsftxt := hsftxt + ',pause' + IntToStr(Round(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].pause*100));
+      [*] = ;               end;
       [*] = ;               hsftxt := hsftxt + ',dpike' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;               hsftxt := hsftxt + ',dsword' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_sword]);
       [*] = ;               hsftxt := hsftxt + ',dbullet' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_bullet]);
@@ -1092,13 +1109,22 @@
       [*] = ;               begin
       [*] = ;                  // Attack is the BEST weapon slot, not slot 0: the musketeer keeps his
       [*] = ;                  // shot in another slot, and slot 0 reported atk0 on a live game 16.09.
-      [*] = ;                  var hsyfa, hsyfwi : Integer;
+      [*] = ;                  var hsyfa, hsyfwi, hsyfwb : Integer;
       [*] = ;                  hsyfa := 0;
+      [*] = ;                  hsyfwb := -1;
       [*] = ;                  for hsyfwi := 0 to gc_obj_MaxWeapon-1 do
       [*] = ;                  if (gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwi].damage > hsyfa) then
-      [*] = ;                  hsyfa := gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwi].damage;
+      [*] = ;                  begin
+      [*] = ;                     hsyfa := gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwi].damage;
+      [*] = ;                     hsyfwb := hsyfwi;
+      [*] = ;                  end;
       [*] = ;                  hsyftxt := hsyftxt + hsyfn[hsyfi] + '=hp' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].maxhp);
       [*] = ;                  hsyftxt := hsyftxt + ',atk' + IntToStr(hsyfa);
+      [*] = ;                  if (hsyfwb >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     hsyftxt := hsyftxt + ',wkind' + IntToStr(gObjProp[hsycid][hsyfid].weapon[hsyfwb].kind);
+      [*] = ;                     hsyftxt := hsyftxt + ',pause' + IntToStr(Round(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].pause*100));
+      [*] = ;                  end;
       [*] = ;                  hsyftxt := hsyftxt + ',dpike' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;                  hsyftxt := hsyftxt + ',dsword' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_sword]);
       [*] = ;                  hsyftxt := hsyftxt + ',dbullet' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_bullet]);
