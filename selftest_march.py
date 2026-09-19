@@ -45,27 +45,27 @@ def сетка(имя, **клетки):
            "via": {"cx": 13, "cy": 8}, "hold_if_outnumbered": 1.3, "expires": 90}
 
 # 1. Разбор контракта.
-_, attack, _, брак, цель, _, _, клетка, к = L.to_commands({"commands": [КОМАНДА]})
+_, attack, _, брак, цель, _, _, клетка, к, _, _ = L.to_commands({"commands": [КОМАНДА]})
 проверка("ATTACK разобран", attack == 40 and цель == "cell" and клетка == (13, 4))
 проверка("via разобран", к.get("via") == (13, 8), str(к))
 проверка("порог разобран", к.get("hold") == 1.3)
 проверка("срок разобран", к.get("expires") == 90)
 проверка("брака нет", брак == [], str(брак))
 
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, via={"cx": 99})]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, via={"cx": 99})]})
 проверка("кривая via названа вслух", any("via" in б for б in брак) and "via" not in к)
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, hold_if_outnumbered=-1)]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, hold_if_outnumbered=-1)]})
 проверка("кривой порог назван вслух", any("hold_if_outnumbered" in б for б in брак) and "hold" not in к)
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, retreat_below=0.5)]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, retreat_below=0.5)]})
 проверка("retreat_below принят без брака", к.get("retreat") == 0.5 and брак == [], str(брак))
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, retreat_below=1.5)]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, retreat_below=1.5)]})
 проверка("кривая доля названа вслух", "retreat" not in к and any("retreat_below" in б for б in брак))
-_, _, _, брак, _, дв, цд, _, _ = L.to_commands({"commands": [{"cmd": "RETREAT", "count": 30}]})
+_, _, _, брак, _, дв, цд, _, _, _, _ = L.to_commands({"commands": [{"cmd": "RETREAT", "count": 30}]})
 проверка("RETREAT разобран", дв == 30 and цд == "retreat" and брак == [], str(брак))
-_, attack, _, брак, цель, _, _, _, к = L.to_commands(
+_, attack, _, брак, цель, _, _, _, к, _, _ = L.to_commands(
     {"commands": [{"cmd": "ATTACK", "count": 20, "target": "wave"}]})
 проверка("target=wave принят", attack == 20 and цель == "wave" and брак == [])
-_, _, _, _, _, _, _, _, к = L.to_commands(
+_, _, _, _, _, _, _, _, к, _, _ = L.to_commands(
     {"commands": [{"cmd": "ATTACK", "count": 20, "target": "peasants"}]})
 проверка("без via контракт пуст", к == {})
 
@@ -118,9 +118,9 @@ L.шаг_марша(st, мост, 540, волны)
 
 # 3б. Что делать при «стоим» — тоже пишет модель (if_held). Марш руками 18.09:
 # группа без решения простояла в поле шесть минут и погибла.
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, if_held="retreat")]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, if_held="retreat")]})
 проверка("if_held разобран", к.get("if_held") == "retreat" and брак == [])
-_, _, _, брак, _, _, _, _, к = L.to_commands({"commands": [dict(КОМАНДА, if_held="panic")]})
+_, _, _, брак, _, _, _, _, к, _, _ = L.to_commands({"commands": [dict(КОМАНДА, if_held="panic")]})
 проверка("кривой if_held назван вслух", "if_held" not in к and any("if_held" in б for б in брак))
 
 def стоим(if_held, expires=90):
@@ -382,7 +382,7 @@ L.шаг_марша(dict(БАЗА, gametime=1840, wave_n=0, **сетка("arow",
 # нельзя, иначе отказ неотличим от исполнения.
 в_цель = {"cmd": "ATTACK", "count": 40, "target": "cell", "cx": 13, "cy": 4,
           "via": {"cx": 13, "cy": 4}}
-cmds, attack, why, брак, цель_атаки, дв, цдв, клетка, контракт = L.to_commands(
+cmds, attack, why, брак, цель_атаки, дв, цдв, клетка, контракт, _, _ = L.to_commands(
     {"commands": [в_цель]})
 проверка("сбор в цели назван вслух",
          any("совпала с целью" in b for b in брак), str(брак))
@@ -393,7 +393,7 @@ cmds, attack, why, брак, цель_атаки, дв, цдв, клетка, к
 # Обычный сбор в стороне по-прежнему принимается молча — правка не должна
 # задевать здоровый случай.
 в_сторону = dict(в_цель, via={"cx": 13, "cy": 8})
-cmds, attack, why, брак2, цель_атаки, дв, цдв, клетка, контракт2 = L.to_commands(
+cmds, attack, why, брак2, цель_атаки, дв, цдв, клетка, контракт2, _, _ = L.to_commands(
     {"commands": [в_сторону]})
 проверка("сбор в стороне принят без замечаний",
          tuple(контракт2.get("via")) == (13, 8)
@@ -478,7 +478,7 @@ for слово in ("all", "все", "всех", "ALL"):
 проверка("мусор вместо числа не ломает разбор",
          L.нормализовать({"cmd": "ATTACK", "count": "много"})[2] == 0)
 
-cmds, attack, why, брак, цель, дв, цдв, клетка, контракт = L.to_commands(
+cmds, attack, why, брак, цель, дв, цдв, клетка, контракт, _, _ = L.to_commands(
     {"commands": [{"cmd": "ATTACK", "count": "all", "target": "cell",
                    "cx": 13, "cy": 4, "via": {"cx": 13, "cy": 8}}]})
 проверка("«всей армией» доходит до приказа вместе со сбором",
@@ -488,14 +488,67 @@ cmds, attack, why, брак, цель, дв, цдв, клетка, контра�
 
 # count:"all" не только у ATTACK: MOVE выдвигает всех свободных, RETREAT
 # отзывает всех дальних. Разница в том, КОГО берёт команда, а не в разборе.
-_c, _a, _w, _б, _ц, дв_all, цдв_all, _кл, _к = L.to_commands(
+_c, _a, _w, _б, _ц, дв_all, цдв_all, _кл, _к, _, _ = L.to_commands(
     {"commands": [{"cmd": "MOVE", "count": "all", "target": "cell", "cx": 9, "cy": 7}]})
 проверка("MOVE всей армией разобран", дв_all == L.ВСЕ_СВОБОДНЫЕ and цдв_all == "cell",
          f"{дв_all} {цдв_all}")
-_c, _a, _w, _б, _ц, дв_r, цдв_r, _кл, _к = L.to_commands(
+_c, _a, _w, _б, _ц, дв_r, цдв_r, _кл, _к, _, _ = L.to_commands(
     {"commands": [{"cmd": "RETREAT", "count": "all"}]})
 проверка("RETREAT всех дальних разобран", дв_r == L.ВСЕ_СВОБОДНЫЕ and цдв_r == "retreat",
          f"{дв_r} {цдв_r}")
+
+
+# 10. КЕМ бить (19.09). Размен считается ПО ВИДАМ и бывает очень разным: наш
+# пикинёр менялся с его 10 к 1, мушкетёр - ровно. Пока вида в приказе не было,
+# count:"all" тащил в бой и тех, кому туда нельзя.
+for вид in ("infantry17", "musk17", "uniq_inf17", "dragoon17"):
+    r = L.to_commands({"commands": [{"cmd": "ATTACK", "count": "all", "who": вид,
+                                     "target": "cell", "cx": 3, "cy": 3}]})
+    проверка(f"ATTACK who={вид} разобран", r[9] == вид, str(r[9]))
+r = L.to_commands({"commands": [{"cmd": "MOVE", "count": "all", "who": "dragoon17",
+                                 "target": "cell", "cx": 9, "cy": 7}]})
+проверка("MOVE who тоже разобран", r[10] == "dragoon17", str(r[10]))
+r = L.to_commands({"commands": [{"cmd": "RETREAT", "count": "all", "who": "musk17"}]})
+проверка("RETREAT who тоже разобран", r[10] == "musk17", str(r[10]))
+r = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "who": "нечто",
+                                 "target": "base"}]})
+проверка("неизвестный вид назван вслух и приказ идёт всеми",
+         any("who=нечто" in b for b in r[3]) and r[9] == "", str(r[3]))
+r = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "target": "base"}]})
+проверка("без who поведение прежнее", r[9] == "", str(r[9]))
+
+
+# 11. ДВА ПРИКАЗА ОДНОГО РОДА в одном ответе (19.09). Файл приказа один, второй
+# затирает первый - и до этой правки лишний пропадал МОЛЧА: модель просила
+# мушкетёров в одну клетку и драгун в другую, а уходили только вторые.
+r = L.to_commands({"commands": [
+    {"cmd": "ATTACK", "count": "all", "who": "musk17", "target": "cell", "cx": 3, "cy": 3},
+    {"cmd": "ATTACK", "count": "all", "who": "dragoon17", "target": "cell", "cx": 9, "cy": 9}]})
+проверка("два ATTACK названы вслух",
+         any("ATTACK в ответе 2 раза" in b for b in r[3]), str(r[3]))
+проверка("выполняется последний, и это видно",
+         r[9] == "dragoon17" and tuple(r[7]) == (9, 9), f"{r[9]} {r[7]}")
+r2 = L.to_commands({"commands": [
+    {"cmd": "MOVE", "count": 5, "target": "home"},
+    {"cmd": "MOVE", "count": 7, "target": "cell", "cx": 2, "cy": 2}]})
+проверка("два MOVE тоже названы", any("MOVE в ответе 2 раза" in b for b in r2[3]), str(r2[3]))
+r3 = L.to_commands({"commands": [
+    {"cmd": "ATTACK", "count": 10, "target": "base"},
+    {"cmd": "TRAIN", "role": "infantry17", "total": 5}]})
+проверка("разные команды не считаются повтором",
+         not any("в ответе" in b for b in r3[3]), str(r3[3]))
+
+
+# who:"all" значит ВСЕ ВИДЫ, а не ошибку: раз count:"all" есть, модель напишет
+# так же и здесь. 19.09 такой ответ попадал в брак, хотя исполнялся верно.
+for слово in ("all", "все", "всех", "любой", "ANY"):
+    r = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "who": слово,
+                                     "target": "base"}]})
+    проверка(f"who={слово} — все виды, без укора", r[9] == "" and not r[3],
+             f"{r[9]} {r[3]}")
+r = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "who": "нечто",
+                                 "target": "base"}]})
+проверка("а настоящая опечатка по-прежнему названа", len(r[3]) == 1, str(r[3]))
 
 print()
 print(f"ПРОВАЛОВ: {len(беды)}")

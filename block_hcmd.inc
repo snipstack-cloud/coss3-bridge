@@ -954,6 +954,20 @@
       [*] = ;         // a name used before it is declared. The whole Progress tick stopped
       [*] = ;         // compiling, exactly as PROGRESS.md 5.4 describes.
       [*] = ;         var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
+      [*] = ;         // WHO (19.09): take only fighters of ONE kind, if the model named it.
+      [*] = ;         // Empty means everybody, as before. The names are the same the state
+      [*] = ;         // writes in 'fighters': infantry17, musk17, uniq_inf17, dragoon17 - so
+      [*] = ;         // the model orders with the word she already reads.
+      [*] = ;         // Why at all: the bridge counts the exchange now, and it differs by kind
+      [*] = ;         // - 19.09 our pikeman traded 10 to 1 against his, while the musketeer
+      [*] = ;         // traded even. Sending everybody drags into the fight those who only
+      [*] = ;         // die there.
+      [*] = ;         var hawho : String = ParserGetValueByKeyByHandle(hah, 'who');
+      [*] = ;         var hawrole : Integer = -1;
+      [*] = ;         if (hawho = 'infantry17') then hawrole := gc_ai_unit_infantry17;
+      [*] = ;         if (hawho = 'musk17') then hawrole := gc_ai_unit_musk17;
+      [*] = ;         if (hawho = 'uniq_inf17') then hawrole := gc_ai_unit_uniq_inf17;
+      [*] = ;         if (hawho = 'dragoon17') then hawrole := gc_ai_unit_dragoon17;
       [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
       [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
       [*] = ;         // the field, wounded or not - and walks them home in default mode.
@@ -1027,6 +1041,12 @@
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then hatake2 := True;
+      [*] = ;                     // The kind filter is applied LAST, after the idle/far test: the two
+      [*] = ;                     // questions are separate, and mixing them would hide which one
+      [*] = ;                     // refused the man.
+      [*] = ;                     if (hatake2) and (hawrole >= 0) then
+      [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) then
+      [*] = ;                     hatake2 := False;
       [*] = ;                     if (hatake2) then gIntegerList.Add(hago);
       [*] = ;                  end;
       [*] = ;               end;

@@ -44,7 +44,7 @@ def проверка(условие: bool, что: str) -> None:
 #    выглядело это как «волна не ушла».
 лишку = [{"cmd": "BUILD", "role": "mill", "total": 1}] * предел + [
     {"cmd": "ATTACK", "count": 20, "target": "peasants"}]
-_, attack, _, брак, _, _, _, _, _ = L.to_commands({"commands": лишку})
+_, attack, _, брак, _, _, _, _, _, _, _ = L.to_commands({"commands": лишку})
 проверка(any("не ушли" in b for b in брак) and attack == 0,
          "команда сверх предела названа вслух, а не отброшена молча")
 
@@ -55,7 +55,7 @@ for имя in П["команды"]:
 # 4. Цели ATTACK и MOVE в промпте и в разборе — одни и те же.
 for цель in П["цели_ATTACK"]:
     проверка(цель in ТЕКСТ, f"цель ATTACK {цель} названа в промпте")
-_, _, _, брак2, _, _, _, _, _ = L.to_commands(
+_, _, _, брак2, _, _, _, _, _, _, _ = L.to_commands(
     {"commands": [{"cmd": "ATTACK", "count": 5, "target": "walls"}]})
 проверка(any("walls" in b for b in брак2),
          "неизвестная цель ATTACK отвергнута и названа")
@@ -68,7 +68,7 @@ try:
           "mil_inf": 0, "mil_shooters": 0, "mil_cav": 0, "my_freewar": 0}
     текст = L.situation(st, {}, [], "", волны=[])
     проверка("academi" in текст, "запрещённая роль названа модели")
-    _, _, _, брак3, _, _, _, _, _ = L.to_commands(
+    _, _, _, брак3, _, _, _, _, _, _, _ = L.to_commands(
         {"commands": [{"cmd": "BUILD", "role": "academi", "total": 1}]})
     проверка(any("запрещено" in b for b in брак3),
              "запрещённая роль отвергнута разбором")
