@@ -1379,6 +1379,25 @@
       [*] = ;               if (StrLength(hsupg) > 0) then
       [*] = ;               hsupg := hsupg + ',';
       [*] = ;               hsupg := hsupg + hsun;
+      [*] = ;               // PRICE for the MILITARY upgrades only (a name with three dots, like
+      [*] = ;               // bar.pikeman.1.4). Taken from the nation table the same way the refusal
+      [*] = ;               // in block_hcmd reads it. Without the price the bridge cannot weigh a
+      [*] = ;               // step against its cost: 19.09 the model climbed to the fifth step of
+      [*] = ;               // attack at 16030 food and came out with a quarter less army. Only the
+      [*] = ;               // military ones carry a price here - the rest would bloat the line, and
+      [*] = ;               // the python side splits on '=' and keeps the name (llm_policy:5500).
+      [*] = ;               var hsudots, hsudi : Integer;
+      [*] = ;               hsudots := 0;
+      [*] = ;               for hsudi := 1 to StrLength(hsun) do
+      [*] = ;               if (SubStr(hsun, hsudi, 1) = '.') then
+      [*] = ;               hsudots := hsudots + 1;
+      [*] = ;               if (hsudots >= 3) then
+      [*] = ;               begin
+      [*] = ;                  var hsupf : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_food];
+      [*] = ;                  var hsupg2 : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_gold];
+      [*] = ;                  var hsupi : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_iron];
+      [*] = ;                  hsupg := hsupg + '=f' + IntToStr(hsupf) + 'g' + IntToStr(hsupg2) + 'i' + IntToStr(hsupi);
+      [*] = ;               end;
       [*] = ;               if (gPlayer[plind].upgstate[hscid][hsui].done) then
       [*] = ;               begin
       [*] = ;                  if (StrLength(hsupgd) > 0) then
