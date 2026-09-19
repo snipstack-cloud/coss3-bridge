@@ -1064,6 +1064,52 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_upg_done', hsyud);
+      [*] = ;            // HIS fighters in NUMBERS, upgrades included. objbase is kept PER PLAYER
+      [*] = ;            // (player.script:1798), so his figures are read exactly like ours above -
+      [*] = ;            // only the player index differs. Until 19.09 the model saw WHICH upgrades he
+      [*] = ;            // took (p<n>_upg_done) but not WHAT they gave, while her own numbers came
+      [*] = ;            // with atk/dpike from the unit card: she could not compare her pikeman with
+      [*] = ;            // his. On an open map a human reads the same figures off the enemy unit card,
+      [*] = ;            // so this is not a head start.
+      [*] = ;            // Own role lists, NOT the ones used for our own fighters far above: reusing
+      [*] = ;            // a name across a closed block is how the tick died on 15.09.
+      [*] = ;            var hsyfr : array [0..3] of Integer;
+      [*] = ;            var hsyfn : array [0..3] of String;
+      [*] = ;            hsyfr[0] := gc_ai_unit_infantry17;  hsyfn[0] := 'infantry17';
+      [*] = ;            hsyfr[1] := gc_ai_unit_musk17;      hsyfn[1] := 'musk17';
+      [*] = ;            hsyfr[2] := gc_ai_unit_uniq_inf17;  hsyfn[2] := 'uniq_inf17';
+      [*] = ;            hsyfr[3] := gc_ai_unit_dragoon17;   hsyfn[3] := 'dragoon17';
+      [*] = ;            var hsyftxt : String = '';
+      [*] = ;            var hsyfi : Integer;
+      [*] = ;            for hsyfi := 0 to 3 do
+      [*] = ;            begin
+      [*] = ;               var hsyfid : Integer = -1;
+      [*] = ;               var hsyfj : Integer;
+      [*] = ;               for hsyfj := 0 to gc_country_maxmembers-1 do
+      [*] = ;               if (hsyfid < 0) and (gObjProp[hsycid][hsyfj].airole = hsyfr[hsyfi]) then
+      [*] = ;               hsyfid := hsyfj;
+      [*] = ;               if (hsyfid >= 0) then
+      [*] = ;               begin
+      [*] = ;                  // Attack is the BEST weapon slot, not slot 0: the musketeer keeps his
+      [*] = ;                  // shot in another slot, and slot 0 reported atk0 on a live game 16.09.
+      [*] = ;                  var hsyfa, hsyfwi : Integer;
+      [*] = ;                  hsyfa := 0;
+      [*] = ;                  for hsyfwi := 0 to gc_obj_MaxWeapon-1 do
+      [*] = ;                  if (gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwi].damage > hsyfa) then
+      [*] = ;                  hsyfa := gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwi].damage;
+      [*] = ;                  hsyftxt := hsyftxt + hsyfn[hsyfi] + '=hp' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].maxhp);
+      [*] = ;                  hsyftxt := hsyftxt + ',atk' + IntToStr(hsyfa);
+      [*] = ;                  hsyftxt := hsyftxt + ',dpike' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_pike]);
+      [*] = ;                  hsyftxt := hsyftxt + ',dsword' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_sword]);
+      [*] = ;                  hsyftxt := hsyftxt + ',dbullet' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_bullet]);
+      [*] = ;                  hsyftxt := hsyftxt + ' ';
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            // Always write the key, even empty: a missing line and 'none' look the same
+      [*] = ;            // from Python (14.09, a round lost to guessing which it was).
+      [*] = ;            if (hsyftxt = '') then
+      [*] = ;            hsyftxt := 'none-found';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_fighters', hsyftxt);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_n', hsymvn);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_base', hsymvb);
       [*] = ;            if (hsymvn > 0) then

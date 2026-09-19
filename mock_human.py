@@ -542,6 +542,11 @@ class Мир:
              "p0_food": 900 + int(self.t), "p0_wood": 1200, "p0_stone": 700,
              "p0_gold": 1500 + int(self.t * 2), "p0_iron": 800, "p0_coal": 600,
              "p0_upg_done": "milfood140" if self.t > 300 else "",
+             # Его бойцы в числах (19.09): атака растёт, когда он берёт
+             # апгрейды, иначе строка немая и ветка запроса проверяется вслепую.
+             "p0_fighters": ("infantry17=hp90,atk11,dpike4,dsword3,dbullet2 "
+                             if self.t > 300 else
+                             "infantry17=hp90,atk8,dpike3,dsword2,dbullet1 "),
              "p0_train": "pikeman:inf,peasant:inf" if self.t > 90 else "",
              "p0_mv_n": 23 if self.набег() else 0,
              "p0_mv_base": 23 if self.набег() else 0,
