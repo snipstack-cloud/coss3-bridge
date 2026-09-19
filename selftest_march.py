@@ -485,6 +485,18 @@ cmds, attack, why, брак, цель, дв, цдв, клетка, контра�
          attack == L.ВСЕ_СВОБОДНЫЕ and tuple(контракт.get("via")) == (13, 8),
          f"{attack} {контракт}")
 
+
+# count:"all" не только у ATTACK: MOVE выдвигает всех свободных, RETREAT
+# отзывает всех дальних. Разница в том, КОГО берёт команда, а не в разборе.
+_c, _a, _w, _б, _ц, дв_all, цдв_all, _кл, _к = L.to_commands(
+    {"commands": [{"cmd": "MOVE", "count": "all", "target": "cell", "cx": 9, "cy": 7}]})
+проверка("MOVE всей армией разобран", дв_all == L.ВСЕ_СВОБОДНЫЕ and цдв_all == "cell",
+         f"{дв_all} {цдв_all}")
+_c, _a, _w, _б, _ц, дв_r, цдв_r, _кл, _к = L.to_commands(
+    {"commands": [{"cmd": "RETREAT", "count": "all"}]})
+проверка("RETREAT всех дальних разобран", дв_r == L.ВСЕ_СВОБОДНЫЕ and цдв_r == "retreat",
+         f"{дв_r} {цдв_r}")
+
 print()
 print(f"ПРОВАЛОВ: {len(беды)}")
 sys.exit(1 if беды else 0)
