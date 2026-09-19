@@ -147,11 +147,18 @@ class Мир:
             свои = max(0, свои - у_сбора)
         if свои:
             arow[12][12] = знак(свои)
+        # Крестьяне врага (prow, 18.09): у его ратуши под армией и пятеро в
+        # шахте в стороне, где бойцов нет, — чтобы блок «клетка без охраны»
+        # на моке срабатывал.
+        prow = [["."] * n for _ in range(n)]
+        prow[3][3] = знак(max(1, self.враг_крестьян - 5))
+        prow[2][6] = знак(5)
         d = {}
         for y in range(n):
             d[f"brow{y}"] = "".join(brow[y])
             d[f"frow{y}"] = "".join(frow[y])
             d[f"arow{y}"] = "".join(arow[y])
+            d[f"prow{y}"] = "".join(prow[y])
         return d
 
     def в_пути(self) -> dict:
@@ -271,18 +278,20 @@ class Мир:
                     self.отказ = f"BUILD {имя}: not enough resources"
                     print("mock-human: " + self.отказ, flush=True)
                     continue
-                # Как в block_hcmd.inc: сначала простаивающие, а если их нет —
-                # снимаем с добычи. Мок обязан врать так же, как игра, иначе
-                # проверка петли ничего не стоит.
+                # Как в block_hcmd.inc с 18.09 ночи: сначала простаивающие, а если их
+                # МЕНЬШЕ потолка — добираем до потолка с наземной добычи (шахтёров
+                # и чужих строителей не трогаем). До этого и блок, и мок тянулись
+                # к занятым только когда свободных не было совсем. Мок обязан
+                # врать так же, как игра, иначе проверка петли ничего не стоит.
                 раб = min(self.builders, self.свободно())
                 снято = 0
-                if раб <= 0:
+                if раб < self.builders:
                     for р in ("wood", "stone", "food"):
                         пока = min(self.builders - раб - снято, self.на[р])
                         if пока > 0:
                             self.на[р] -= пока
                             снято += пока
-                    раб = снято
+                    раб += снято
                 if раб <= 0:
                     self.отказ = (f"BUILD {имя}: no peasants at all "
                                   f"(have {self.peasants})")
@@ -527,6 +536,17 @@ class Мир:
              "p0_center": 1, "p0_mill": 2, "p0_smith": 1, "p0_ba17": 1,
              "p0_ba18": 0, "p0_stable": 0, "p0_store": 1, "p0_house": 3,
              "p0_tower": 0, "p0_market": 0, "p0_academi": 0,
+             # Открытая информация (18.09): те же поля, что пишет block_hstate
+             # с ветки idea/open-info. Числа грубые, ветка запроса и трасса
+             # проверяются не вслепую. В окно набега бойцы «идут к нам».
+             "p0_food": 900 + int(self.t), "p0_wood": 1200, "p0_stone": 700,
+             "p0_gold": 1500 + int(self.t * 2), "p0_iron": 800, "p0_coal": 600,
+             "p0_upg_done": "milfood140" if self.t > 300 else "",
+             "p0_train": "pikeman:inf,peasant:inf" if self.t > 90 else "",
+             "p0_mv_n": 23 if self.набег() else 0,
+             "p0_mv_base": 23 if self.набег() else 0,
+             "p0_mv_cx": 12 if self.набег() else 3,
+             "p0_mv_cy": 13 if self.набег() else 3,
              "map_open": "true",
              "en_near_dist": 210,
              # Сетки мини-карты тем же форматом, что пишет block_hstate: карта

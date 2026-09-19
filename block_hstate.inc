@@ -833,6 +833,12 @@
       [*] = ;         const cHmGrid = 16;
       [*] = ;         var hmbase : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmforce : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // Enemy PEASANTS per cell (open information, 18.09): the goal of
+      [*] = ;         // the match is their peasants, and a wave aimed 'at peasants' walks
+      [*] = ;         // to the nearest one, which stands under their army. With this grid
+      [*] = ;         // next to frow the model can pick a cell where peasants are and
+      [*] = ;         // soldiers are not, and send ATTACK target=cell there.
+      [*] = ;         var hmpea : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
       [*] = ;         // Counters of OUR army, declared at THIS level on purpose - see the
       [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
@@ -844,6 +850,7 @@
       [*] = ;         begin
       [*] = ;            hmbase[hmi][hmj] := 0;
       [*] = ;            hmforce[hmi][hmj] := 0;
+      [*] = ;            hmpea[hmi][hmj] := 0;
       [*] = ;         end;
       [*] = ;         var hmw : Integer = GetMapWidth;
       [*] = ;         var hmh : Integer = GetMapHeight;
@@ -864,6 +871,20 @@
       [*] = ;            var hsxmg, hsxmi, hsxmc : Integer;
       [*] = ;            var hsxcen, hsxmill, hsxsm, hsxba, hsxba18 : Integer;
       [*] = ;            var hsxstab, hsxstor, hsxho, hsxtow, hsxmar, hsxaca : Integer;
+      [*] = ;            // OPEN INFORMATION (18.09): the match is played against another bot
+      [*] = ;            // over the network and the new hackathon rules allow everything the
+      [*] = ;            // game knows about the opponent. The 'only our own' limits below
+      [*] = ;            // are lifted: resources, taken upgrades and training queues of every
+      [*] = ;            // other player are read the same way as ours (res[], upgstate[],
+      [*] = ;            // produce orders of buildings).
+      [*] = ;            var hsytq : String;
+      [*] = ;            // Where their soldiers are GOING: move / attackpoint orders carry
+      [*] = ;            // the destination in orders[0].info.x/y (lib/unit.script:9458,
+      [*] = ;            // player.script:2511), attackobj carries the target handle in
+      [*] = ;            // info.trg. Sums of destination cells and how many head for a
+      [*] = ;            // point within 60 of OUR town centre. Integers only, like the
+      [*] = ;            // counters above - a Float sum here is an untested form.
+      [*] = ;            var hsymvn, hsymvb, hsymx, hsymz : Integer;
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
@@ -905,6 +926,37 @@
       [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
       [*] = ;                     if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
       [*] = ;                     hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
+      [*] = ;                     var hseot : Integer = TObj(hsep).orders[0].itype;
+      [*] = ;                     var hsytx : Float = -1000000;
+      [*] = ;                     var hsytz : Float = -1000000;
+      [*] = ;                     if (hseot = gc_obj_order_type_move) or (hseot = gc_obj_order_type_attackpoint) or
+      [*] = ;                        (hseot = gc_obj_order_type_continueattackpoint) then
+      [*] = ;                     begin
+      [*] = ;                        hsytx := TObj(hsep).orders[0].info.x;
+      [*] = ;                        hsytz := TObj(hsep).orders[0].info.y;
+      [*] = ;                     end;
+      [*] = ;                     if (hseot = gc_obj_order_type_attackobj) then
+      [*] = ;                     if (TObj(hsep).orders[0].info.trg <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        hsytx := GetGameObjectPositionXByHandle(TObj(hsep).orders[0].info.trg);
+      [*] = ;                        hsytz := GetGameObjectPositionZByHandle(TObj(hsep).orders[0].info.trg);
+      [*] = ;                     end;
+      [*] = ;                     if (hsytx > -999999) then
+      [*] = ;                     begin
+      [*] = ;                        hsymvn := hsymvn + 1;
+      [*] = ;                        hsymx := hsymx + floor((hsytx+hmhw)*cHmGrid/hmw);
+      [*] = ;                        hsymz := hsymz + floor((hsytz+hmhh)*cHmGrid/hmh);
+      [*] = ;                        if (hscen > 0) then
+      [*] = ;                        if (VectorDistance(hsytx, 0, hsytz, hscx, 0, hscz) < 60) then
+      [*] = ;                        hsymvb := hsymvb + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hsenemy) and (hseu = gc_obj_usage_peasant) then
+      [*] = ;                  begin
+      [*] = ;                     var hmpx : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
+      [*] = ;                     var hmpy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
+      [*] = ;                     if (hmpx>=0) and (hmpx<cHmGrid) and (hmpy>=0) and (hmpy<cHmGrid) then
+      [*] = ;                     hmpea[hmpx][hmpy] := hmpea[hmpx][hmpy] + 1;
       [*] = ;                  end;
       [*] = ;                  if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
       [*] = ;                     (hseu = gc_obj_usage_grenadier) then
@@ -917,6 +969,23 @@
       [*] = ;                  if (gObjProp[TObj(hsep).cid][TObj(hsep).id].bbuilding) then
       [*] = ;                  begin
       [*] = ;                     hsebld := hsebld + 1;
+      [*] = ;                     // What this building of theirs is making: same reading as
+      [*] = ;                     // our train_now (produce orders, info.produceid, info.amount).
+      [*] = ;                     var hsyk : Integer;
+      [*] = ;                     for hsyk := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hsyp : Pointer = TObj(hsep).orders[hsyk];
+      [*] = ;                        if (hsyp<>nil) then
+      [*] = ;                        if (TOrder(hsyp).itype = gc_obj_order_type_produce) then
+      [*] = ;                        begin
+      [*] = ;                           if (hsytq <> '') then hsytq := hsytq + ',';
+      [*] = ;                           hsytq := hsytq + gCountry[TObj(hsep).cid].members[TOrder(hsyp).info.produceid] + ':';
+      [*] = ;                           if (TOrder(hsyp).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                           hsytq := hsytq + 'inf'
+      [*] = ;                           else
+      [*] = ;                           hsytq := hsytq + IntToStr(TOrder(hsyp).info.amount);
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                     var hsear : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].airole;
       [*] = ;                     if (hsear = gc_ai_unit_minegold) or (hsear = gc_ai_unit_mineiron) or
       [*] = ;                        (hsear = gc_ai_unit_minecoal) then
@@ -970,6 +1039,38 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_tower',    hsxtow);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_market',   hsxmar);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_academi',  hsxaca);
+      [*] = ;            // Their resources, read exactly as our own six lines at the top.
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_food',  not gPlayer[hspl].res[gc_resource_type_food]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_wood',  not gPlayer[hspl].res[gc_resource_type_wood]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_stone', not gPlayer[hspl].res[gc_resource_type_stone]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_gold',  not gPlayer[hspl].res[gc_resource_type_gold]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_iron',  not gPlayer[hspl].res[gc_resource_type_iron]);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_coal',  not gPlayer[hspl].res[gc_resource_type_coal]);
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_train', hsytq);
+      [*] = ;            // Their upgrades ALREADY TAKEN: upgstate[cid][i].done of their own
+      [*] = ;            // nation's list, names without the 3-letter nation prefix, as in
+      [*] = ;            // upg_done below. The 'only our own' note there is history now.
+      [*] = ;            var hsyud : String;
+      [*] = ;            var hsyui : Integer;
+      [*] = ;            var hsycid : Integer = gPlayer[hspl].cid;
+      [*] = ;            for hsyui := 0 to gc_country_maxupgradecount-1 do
+      [*] = ;            begin
+      [*] = ;               var hsyus : String = gCountry[hsycid].upgrade[hsyui].id;
+      [*] = ;               if (StrLength(hsyus) > 3) then
+      [*] = ;               if (gPlayer[hspl].upgstate[hsycid][hsyui].done) then
+      [*] = ;               begin
+      [*] = ;                  if (StrLength(hsyud) > 0) then hsyud := hsyud + ',';
+      [*] = ;                  hsyud := hsyud + SubStr(hsyus, 4, StrLength(hsyus)-3);
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_upg_done', hsyud);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_n', hsymvn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_base', hsymvb);
+      [*] = ;            if (hsymvn > 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_cx', hsymx div hsymvn);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_cy', hsymz div hsymvn);
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
@@ -1142,6 +1243,20 @@
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
+      [*] = ;            // Enemy peasants on their own grid, same marks as frow/arow.
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmq : Integer = hmpea[hmi][hmj];
+      [*] = ;                  if (hmq = 0) then hmrow := hmrow + '.';
+      [*] = ;                  if (hmq > 0) and (hmq <= 9) then hmrow := hmrow + IntToStr(hmq);
+      [*] = ;                  if (hmq > 9) and (hmq <= 35) then hmrow := hmrow + SubStr(hmalpha, hmq-9, 1);
+      [*] = ;                  if (hmq > 35) then hmrow := hmrow + '+';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'prow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
@@ -1179,8 +1294,8 @@
       [*] = ;         // native AI asks about in _ai_IsUpgradeInProgressOrDone
       [*] = ;         // (progresseconomicai.inc:1429). Calling that function from here is not
       [*] = ;         // allowed - it lives in another script state - so we read the fields.
-      [*] = ;         // ONLY OUR OWN: the player said 16.09 he does not see the enemy upgrades,
-      [*] = ;         // so the bridge must not know them either.
+      [*] = ;         // Until 18.09 this was ONLY OUR OWN (player, 16.09: a human does not see
+      [*] = ;         // the enemy upgrades). The rule is lifted; theirs go out as p<n>_upg_done.
       [*] = ;         var hsupgd, hsupgp : String;
       [*] = ;         var hsui : Integer;
       [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
