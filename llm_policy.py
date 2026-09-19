@@ -6114,10 +6114,11 @@ def одна_партия(a, client, br: Bridge, plind: int,
                     print(f"        BALANCE food {_c.a2} — это ЧИСЛО людей, а "
                           f"крестьян всего {_кр}: на еду уйдут все")
         было_st = st
+        # Число берём ТЕМ ЖЕ разбором, что и команды: с 19.09 count может быть
+        # словом «all», и прямой int() на нём падал — прогон 19.09 умер на
+        # ValueError посреди партии, когда модель написала count:"all".
         прошлый_заказ = [(str(i.get("cmd", "")).upper(), str(i.get("role", "")),
-                          int(i.get("count", i.get("total", 0)) or 0)
-                          if str(i.get("cmd", "")).upper() == "ATTACK"
-                          else int(i.get("total", i.get("count", 0)) or 0))
+                          нормализовать(i)[2])
                          for i in (box["data"].get("commands") or [])[:6]
                          if str(i.get("cmd", "")).upper()
                          in ("BUILD", "TRAIN", "ATTACK", "BALANCE", "UPGRADE")]

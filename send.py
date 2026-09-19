@@ -202,6 +202,9 @@ def main() -> int:
     ap.add_argument("--plind", type=int, default=None)
     ap.add_argument("--ticks", type=int, default=40, help="сколько тиков удерживать цель")
     ap.add_argument("--once", action="store_true", help="отправить один раз и выйти")
+    ap.add_argument("--who", default="",
+                    help="КЕМ выполнять: infantry17, musk17, uniq_inf17, "
+                         "dragoon17. Пусто — все боевые, как раньше")
     ap.add_argument("--attack", type=int, default=0,
                     help="отправить в атаку N свободных бойцов (только вне перемирия)")
     ap.add_argument("--move", type=int, default=0,
@@ -307,7 +310,7 @@ def main() -> int:
             print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
-        ушло = br.attack(a.move, a.move_target, mode="move")
+        ушло = br.attack(a.move, a.move_target, mode="move", who=(a.who or "").strip())
         print(f"MOVE {a.move} -> {a.move_target} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
         return 0
@@ -335,7 +338,9 @@ def main() -> int:
         if st.get("peacemode"):
             print("идёт перемирие — атака заблокирована движком, приказ не отправлен")
             return 1
-        print("волна отправлена" if br.attack(a.attack)
+        кем = (a.who or "").strip()
+        print(("волна отправлена" + (f", только {кем}" if кем else ""))
+              if br.attack(a.attack, who=кем)
               else "предыдущий приказ атаки ещё не забран")
         return 0
 
