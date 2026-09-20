@@ -718,8 +718,18 @@
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  begin
-      [*] = ;                     _unit_ProduceUnit(hcph, gTmpIntList, hccid, hcfid, 1, True, True, True);
-      [*] = ;                     Log('bridge-human: SEED ordered at ' + IntToStr(gTmpIntList.GetCount) + ' mills');
+      [*] = ;                     // HOW MANY fields at once. Until 21.09 it was hard-wired to one,
+      [*] = ;                     // and a reaped quarter could only be re-sown field by field, one
+      [*] = ;                     // per tick - twenty game seconds each. The player sows several in
+      [*] = ;                     // a row with the mouse, and so should we. a1 carries the count;
+      [*] = ;                     // zero or absent means one, as before.
+      [*] = ;                     var hcfn : Integer = hca1;
+      [*] = ;                     if (hcfn < 1) then
+      [*] = ;                     hcfn := 1;
+      [*] = ;                     if (hcfn > 20) then
+      [*] = ;                     hcfn := 20;
+      [*] = ;                     _unit_ProduceUnit(hcph, gTmpIntList, hccid, hcfid, hcfn, True, True, True);
+      [*] = ;                     Log('bridge-human: SEED ordered ' + IntToStr(hcfn) + ' at ' + IntToStr(gTmpIntList.GetCount) + ' mills');
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;               if (hccmd = 'FORMATION') then
