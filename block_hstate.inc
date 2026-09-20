@@ -1432,12 +1432,31 @@
       [*] = ;               for hsudi := 1 to StrLength(hsun) do
       [*] = ;               if (SubStr(hsun, hsudi, 1) = '.') then
       [*] = ;               hsudots := hsudots + 1;
-      [*] = ;               if (hsudots >= 3) then
+      [*] = ;               // ACADEMY TOO, since 20.09. Its names carry ONE dot
+      [*] = ;               // ('aca.12') and used to fall out of this test, so the
+      [*] = ;               // model saw an academy upgrade without a price - while
+      [*] = ;               // aca.12..15 give +10..+25 per cent of BULLET damage and
+      [*] = ;               // aca.31/33 cut its reload by 30 per cent each.
+      [*] = ;               var hsupac : Boolean = (StrLength(hsun) > 4) and (SubStr(hsun, 1, 4) = 'aca.');
+      [*] = ;               if (hsudots >= 3) or (hsupac) then
       [*] = ;               begin
       [*] = ;                  var hsupf : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_food];
       [*] = ;                  var hsupg2 : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_gold];
       [*] = ;                  var hsupi : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_iron];
       [*] = ;                  hsupg := hsupg + '=f' + IntToStr(hsupf) + 'g' + IntToStr(hsupg2) + 'i' + IntToStr(hsupi);
+      [*] = ;                  // Wood, stone and coal ONLY when non-zero: military
+      [*] = ;                  // upgrades never cost them, and three zeroes on every
+      [*] = ;                  // name would bloat the line for nothing. Academy does
+      [*] = ;                  // cost them - aca.31 wants 6000 stone on top.
+      [*] = ;                  var hsupw : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_wood];
+      [*] = ;                  var hsups : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_stone];
+      [*] = ;                  var hsupc : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_coal];
+      [*] = ;                  if (hsupw > 0) then
+      [*] = ;                  hsupg := hsupg + 'w' + IntToStr(hsupw);
+      [*] = ;                  if (hsups > 0) then
+      [*] = ;                  hsupg := hsupg + 's' + IntToStr(hsups);
+      [*] = ;                  if (hsupc > 0) then
+      [*] = ;                  hsupg := hsupg + 'c' + IntToStr(hsupc);
       [*] = ;               end;
       [*] = ;               if (gPlayer[plind].upgstate[hscid][hsui].done) then
       [*] = ;               begin
