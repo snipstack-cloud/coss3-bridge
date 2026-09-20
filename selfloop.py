@@ -185,7 +185,8 @@ def аргументы_партии(партий: int, botlog: str, лог: str,
     серией stage_num 20.09.
     """
     свои = {"--self-loop", "--self-io", "--self-iters", "--self-games",
-            "--self-placebo", "--self-rules", "--episodes", "--botlog", "--log"}
+            "--self-placebo", "--self-model", "--self-rules",
+            "--episodes", "--botlog", "--log"}
     чужие, i = [], 0
     сырьё = sys.argv[1:]
     while i < len(сырьё):
@@ -316,6 +317,13 @@ tuple enumerate zip bool isinstance
 
 
 def спросить(client, модель: str, текст: str, таймаут: float = 180.0) -> dict:
+    """Запрос на ЗАМЫСЕЛ — это не ход в игре, и модель тут другая работа.
+
+    Игровой пресет (`@preset/coss3-bot`) несёт свою схему ответа и настройки
+    под такт; замысел через него приходит не в JSON. Поэтому авторский шаг
+    зовётся отдельным ключом `--self-model`, а пустой ответ не молчит, а
+    говорит, что именно пришло.
+    """
     r = client.chat.completions.create(
         model=модель,
         messages=[{"role": "system", "content": СИСТЕМА},
@@ -325,6 +333,13 @@ def спросить(client, модель: str, текст: str, таймаут:
         timeout=таймаут,
     )
     сырое = (r.choices[0].message.content or "").strip()
+    if not сырое:
+        # Пустой ответ, разобранный молча, дал бы «модель ничего не придумала»
+        # — ложный ноль на ровном месте. Говорим, что ответ ПУСТ, и чем.
+        причина = getattr(r.choices[0], "finish_reason", "?")
+        raise ValueError(f"модель {модель} вернула ПУСТОЙ ответ "
+                         f"(finish_reason={причина}). Если это игровой пресет, "
+                         f"назовите авторскую модель ключом --self-model")
     if "```" in сырое:
         куски = сырое.split("```")
         for к in куски:
@@ -335,6 +350,12 @@ def спросить(client, модель: str, текст: str, таймаут:
                 сырое = к
                 break
     return json.loads(сырое)
+
+
+def авторская_модель(a) -> str:
+    """Кем писать замысел. Ключ --self-model важнее игровой модели: пресет под
+    такт навязывает схему ответа, и замысел через него приходит не в JSON."""
+    return str(getattr(a, "self_model", "") or a.model)
 
 
 # --- суд ----------------------------------------------------------------------
@@ -409,7 +430,8 @@ def итерация(client, a, io: str, n: int, базапартии: list, ж�
     print(f"\n=== итерация {n}{' (ПЛАЦЕБО)' if плацебо else ''} ===")
     текст = запрос(журнал, поля_снимка(состояния), сводка_базы, n)
     try:
-        ответ = спросить(client, a.model, текст, float(a.timeout or 180))
+        ответ = спросить(client, авторская_модель(a), текст,
+                         float(a.timeout or 180))
     except Exception as e:
         print(f"    модель не ответила: {type(e).__name__}: {e}")
         return {"вид": "итерация", "итерация": n, "вердикт": "модель не ответила",
