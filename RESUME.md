@@ -2061,7 +2061,7 @@ enough resources`, `UPGRADE l: no upgrade with this name for our nation`,
    апгрейды ЗДАНИЙ, КОТОРЫЕ СТОЯТ (счётчики `centers`/`mills`/`smiths`/`ba17`/
    `ba18`/`stables` из `block_hstate.inc:341–346`), а из военных — только для
    бойцов из `fighters`, в порядке списка найма. Академии больше нет вовсе: её
-   боту запрещено строить (`--ban market,academi`), а она занимала тридцать
+   боту запрещено строить (`--ban market,ba18`), а она занимала тридцать
    шесть мест из сорока. Если отобрать нечего — старый мост или начало партии —
    возвращаемся к прежнему поведению, хуже стать не может. Условие
    строки-расшифровки переехало с полного списка на ПОКАЗАННЫЙ.
@@ -2709,12 +2709,12 @@ python install_bridge.py "C:\Program Files (x86)\Steam\steamapps\common\Cossacks
 
 ```powershell
 python send.py --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --new --res 0 --peace 0 --ai 3 --nation net --balloon 2 --cannons 1 --capture 3 --market 2 --century18 1
-python llm_policy.py --human --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --hints hints_human.txt --model "@preset/coss3-bot" --every 20 --ban market,academi --episodes 3
+python llm_policy.py --human --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --hints hints_human.txt --model "@preset/coss3-bot" --every 20 --ban market,ba18 --episodes 3
 ```
 
 **ПЯТЬ ПОСЛЕДНИХ КЛЮЧЕЙ `send.py` ОБЯЗАТЕЛЬНЫ, И ДО 20.09 ИХ ЗДЕСЬ НЕ БЫЛО.**
 `--market 2 --century18 1` закрывают асимметрию, найденную игроком 20.09:
-`--ban market,academi` связывает ТОЛЬКО нашего бота, а нативный ИИ ставил рынок
+`--ban market,ba18` связывает ТОЛЬКО нашего бота, а нативный ИИ ставил рынок
 на 1:56–2:51 и академию на 11:24–16:17 в каждой замеренной партии — при том что
 рынок лечит ровно наше узкое место, золото. Настройка карты действует на обе
 стороны. Проверено живой игрой: на 4:20 рынка у врага НЕТ, тогда как прежде он

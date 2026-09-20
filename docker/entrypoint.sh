@@ -471,7 +471,7 @@ else
     # его счёта он уходит одинаково, так что «цель взята» могло означать захват.
     : "${COSS3_MATCH_CANNONS:=1}"
     : "${COSS3_MATCH_CAPTURE:=3}"
-    # РЫНОК И ВОСЕМНАДЦАТЫЙ ВЕК ЗАПРЕЩЕНЫ ВСЕМ (20.09). Ключ --ban market,academi
+    # РЫНОК И ВОСЕМНАДЦАТЫЙ ВЕК ЗАПРЕЩЕНЫ ВСЕМ (20.09). Ключ --ban
     # у политики связывает только НАШЕГО бота: нативный ИИ ставил рынок на
     # 1:56-2:51 и академию на 11:24-16:17 в каждой замеренной партии, а рынок
     # лечит ровно наше узкое место - золото, тугое в 61-98 процентах тактов.
@@ -636,7 +636,7 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
         --every "$COSS3_EVERY" \
         --wave-min "$COSS3_WAVE_MIN" \
         --episodes "$COSS3_EPISODES" \
-        --ban market,academi \
+        --ban market,ba18 \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
         --log "$COSS3_IO/coss3_llm.log" \
         ${COSS3_EXTRA_FLAGS:-} > >(tee -a "$COSS3_IO/policy.log") 2>&1
