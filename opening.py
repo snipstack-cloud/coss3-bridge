@@ -107,6 +107,13 @@ class Params:
     scout: int = 0     # 1 — после цели не выходить, а наблюдать врага до горизонта
     wave: int = 0      # 1 — по достижении цели послать ВСЕХ goal бойцов в атаку
     target: str = "cell"   # cell — лучшая клетка его крестьян без охраны; peasants; base
+    # eco=1 — минимальная экономика, чтобы армия не умерла от голода: live
+    # 20.09 еда 1000 кончалась к 230-й секунде при 20 пикинёрах, и волна гибла
+    # до прихода. Мельница закладывается В ПАРАЛЛЕЛЬ с кузницей четырьмя
+    # свободными (после ратуши дерева 300, камня 300; мельница 30/150), поле
+    # зреет ~105 с, и на еду встают люди, как только оно созрело
+    # (food_ready). Шахта тогда ждёт казармы и добытого дерева.
+    eco: int = 0
 
     def key(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
@@ -116,7 +123,7 @@ class Params:
         if self.scout:
             return f"разведка/цель{self.goal}/{режим}"
         if self.wave:
-            return f"волна{self.goal}/{self.target}/{режим}"
+            return f"волна{self.goal}/{self.target}/{'еда' if self.eco else 'без-еды'}/{режим}"
         if self.goal <= 1:
             return f"c{self.center_cap}/s{self.smith_cap}/b{self.ba_cap}/{режим}"
         return (f"шахта{self.mine_at}/стр{self.mine_cap}/дерево{self.wood}/"
@@ -181,11 +188,18 @@ def такт(st: dict, p: Params, train_ok: bool = True) -> list:
     elif готово["ba17"] < 1:
         if "ba17" not in идут:
             закладка = ("ba17", p.ba_cap)
+    if (закладка is None and p.eco and готово["center"] >= 1
+            and _int(st, "mills") < 1 and "mill" not in идут
+            and _int(st, "wood") >= 30 and _int(st, "stone") >= 150):
+        закладка = ("mill", 4)
     if (закладка is None and p.goal > 1 and p.mine_at
             and _int(st, "mines_iron") < 1 and "mineiron" not in идут):
         пора = {1: готово["center"] >= 1,
                 2: готово["smith"] >= 1 or not p.strict,
                 3: готово["ba17"] >= 1}.get(p.mine_at, False)
+        # с экономикой шахта ждёт казармы и денег: дерево уходит на мельницу
+        if p.eco:
+            пора = готово["ba17"] >= 1 and _int(st, "wood") >= 100 and _int(st, "stone") >= 100
         if пора:
             закладка = ("mineiron", p.mine_cap)
     if закладка:
@@ -322,6 +336,8 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
     дерево_послано = False
     en_prev = None
     ноль_подряд = 0
+    добыча_gt = None          # когда послали на дерево и камень
+    еда_gt = -100             # когда последний раз ставили людей на еду
     while True:
         try:
             st = br.wait_state(timeout=тихо)
@@ -360,7 +376,8 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
             снимок_gt = gt
             итог["series"].append([gt] + [_int(st, k) for k in РЕСУРСЫ]
                                   + [_int(st, "idle_pea"), _int(st, "on_wood"),
-                                     _int(st, "on_iron"), есть])
+                                     _int(st, "on_iron"), есть, _int(st, "on_food"),
+                                     _int(st, "mills"), _int(st, "food_ready")])
             if p.scout or p.wave:
                 в = враг(st)
                 в["gt"], в["наши"], в["крестьяне_наши"] = gt, есть, _int(st, "peasants")
@@ -439,6 +456,14 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
                 and (("smith" in стройки(st)) or _int(st, "smiths") >= 1 or not p.strict)):
             cmds.append(balance("wood", p.wood))
             дерево_послано = True
+        if p.eco and _int(st, "ba17") >= 1 and добыча_gt is None:
+            # казарма готова — бригада свободна: четверо на дерево, трое на камень
+            cmds += [balance("wood", 4), balance("stone", 3)]
+            добыча_gt = gt
+        if (p.eco and _int(st, "mills") >= 1 and _int(st, "food_ready") >= 1
+                and gt - еда_gt >= 60 and _int(st, "on_food") < 6):
+            cmds.append(balance("food", 6))
+            еда_gt = gt
         if cmds and br.send(cmds):
             if any(c.cmd == "TRAIN" for c in cmds):
                 train_gt = gt
@@ -660,12 +685,13 @@ def разведка_в_файл(rows: list[dict], путь: str) -> None:
         f.write("\n".join(строки) + "\n")
 
 
-def _волна(strict: int, n: int, target: str) -> Params:
+def _волна(strict: int, n: int, target: str, eco: int = 0) -> Params:
     return Params(strict=strict, goal=n, wave=1, target=target,
-                  mine_at=(1 if n > 1 else 0), order=n)
+                  mine_at=(1 if n > 1 else 0), order=n, eco=eco)
 
 
-def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, target: str) -> list[Params]:
+def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, target: str,
+               eco: int = 0) -> list[Params]:
     """Ступень 1: размер волны против времени прихода. Лесенка: goal бойцов
     в лучшую клетку, затем 10, 15, 5 в клетку, потом goal и 10 к ближайшему
     крестьянину; в конце — соседи лучшего по размеру ±5. Каждое сочетание
@@ -676,10 +702,10 @@ def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, t
         k = _params(r).key()
         раз[k] = раз.get(k, 0) + 1
     очередь: list[Params] = []
-    первый = _волна(strict, goal, target)
-    лесенка = [первый] + [_волна(strict, n, target) for n in (10, 15, 5) if n != goal]
+    первый = _волна(strict, goal, target, eco)
+    лесенка = [первый] + [_волна(strict, n, target, eco) for n in (10, 15, 5) if n != goal]
     другая = "peasants" if target == "cell" else "cell"
-    лесенка += [_волна(strict, n, другая) for n in (goal, 10)]
+    лесенка += [_волна(strict, n, другая, eco) for n in (goal, 10)]
     # Карта в каждой партии своя (сид блок не читает), поэтому КАЖДОЕ
     # сочетание играется repeat раз, а не только первое.
     for p in лесенка:
@@ -691,7 +717,7 @@ def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, t
     if лучшая is None:
         return []
     q = _params(лучшая)
-    соседние = [_волна(strict, n, q.target) for n in (q.goal - 5, q.goal + 5) if 1 <= n <= 30]
+    соседние = [_волна(strict, n, q.target, q.eco) for n in (q.goal - 5, q.goal + 5) if 1 <= n <= 30]
     return [x for x in соседние for _ in range(max(0, repeat - раз.get(x.key(), 0)))]
 
 
@@ -705,7 +731,7 @@ def время_волны(r: dict) -> float:
 
 
 def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int = 0,
-         wave: int = 0, target: str = "cell") -> list[Params]:
+         wave: int = 0, target: str = "cell", eco: int = 0) -> list[Params]:
     """Кого играть дальше. Сначала стартовый список (первый — repeat раз, это
     проверка повторяемости), потом подъём по соседям лучшего. Уже измеренные
     сочетания не повторяются. Разведка — одно сочетание repeat раз, и всё."""
@@ -715,7 +741,7 @@ def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int =
         было = sum(1 for r in rows if _params(r).key() == p.key())
         return [p] * max(0, repeat - было)
     if wave:
-        return план_волны(rows, repeat, strict, goal, target)
+        return план_волны(rows, repeat, strict, goal, target, eco)
     измерено = лучшее_по_ключу(rows)
     раз: dict[str, int] = {}
     for r in rows:
@@ -739,7 +765,7 @@ def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int =
 
 def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: int,
           new_timeout: float, strict: int = 1, goal: int = 1, scout: int = 0,
-          wave: int = 0, target: str = "cell") -> int:
+          wave: int = 0, target: str = "cell", eco: int = 0) -> int:
     d = os.path.expandvars(os.path.expanduser(d))
     os.makedirs(io, exist_ok=True)
     файл = os.path.join(io, "opening.jsonl")
@@ -757,7 +783,7 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         br = Bridge(d, слот[0])
         print(f"     партия уже идёт с {_int(слот[1], 'gametime')} с — беру её", flush=True)
     while True:
-        очередь = план(rows, repeat, strict, goal, scout, wave, target)
+        очередь = план(rows, repeat, strict, goal, scout, wave, target, eco)
         if not очередь:
             print("сочетания кончились: лучший не улучшается ни одним соседом", flush=True)
             break
@@ -819,7 +845,8 @@ def run_from_policy(a) -> int:
                  int(getattr(a, "opening_goal", 1)),
                  int(getattr(a, "opening_scout", 0)),
                  int(getattr(a, "opening_wave", 0)),
-                 str(getattr(a, "opening_target", "cell") or "cell"))
+                 str(getattr(a, "opening_target", "cell") or "cell"),
+                 int(getattr(a, "opening_eco", 0)))
 
 
 def main() -> int:
@@ -840,10 +867,12 @@ def main() -> int:
     ap.add_argument("--wave", type=int, default=0,
                     help="1 — ступень 1: по достижении цели послать всех в атаку, перебор размера")
     ap.add_argument("--target", default="cell", help="cell | peasants | base")
+    ap.add_argument("--eco", type=int, default=0,
+                    help="1 — мельница в параллель с кузницей и люди на еду: армия не умирает от голода")
     a = ap.parse_args()
     return поиск(a.dir, a.io or os.path.expandvars(os.path.expanduser(a.dir)), a.seed,
                  a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal, a.scout,
-                 a.wave, a.target)
+                 a.wave, a.target, a.eco)
 
 
 if __name__ == "__main__":
