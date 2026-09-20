@@ -98,6 +98,8 @@ class Params:
     wood: int = 0
     order: int = 1
     scout: int = 0     # 1 — после цели не выходить, а наблюдать врага до горизонта
+    wave: int = 0      # 1 — по достижении цели послать ВСЕХ goal бойцов в атаку
+    target: str = "cell"   # cell — лучшая клетка его крестьян без охраны; peasants; base
 
     def key(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
@@ -106,6 +108,8 @@ class Params:
         режим = "честно" if self.strict else "без-кузницы"
         if self.scout:
             return f"разведка/цель{self.goal}/{режим}"
+        if self.wave:
+            return f"волна{self.goal}/{self.target}/{режим}"
         if self.goal <= 1:
             return f"c{self.center_cap}/s{self.smith_cap}/b{self.ba_cap}/{режим}"
         return (f"шахта{self.mine_at}/стр{self.mine_cap}/дерево{self.wood}/"
@@ -294,12 +298,17 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
             "t_center": None, "t_smith": None, "t_ba": None, "t_mine": None,
             "t_soldier": None, "t_10": None, "t_goal": None,
             "laid": {}, "crew": {}, "fails": [], "series": [], "scout": [],
-            "end": "", "gt_end": 0, "wall": 0.0, "gt_start": None, "last": {}}
+            "end": "", "gt_end": 0, "wall": 0.0, "gt_start": None, "last": {},
+            # волна: когда ушла, куда, когда пришла, что убила, что потеряла
+            "t_wave": None, "wave_to": None, "t_arrive": None, "t_kill": None,
+            "t_win": None, "kills": 0, "en_start": None, "en_min": None,
+            "en_army_at_arrive": None, "ours_min_after": None}
     t0 = time.monotonic()
     последний_gt = -1
     train_gt = -100          # когда последний раз слали TRAIN (игровые секунды)
     снимок_gt = -100
     дерево_послано = False
+    en_prev = None
     while True:
         try:
             st = br.wait_state(timeout=тихо)
@@ -337,17 +346,66 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
             итог["series"].append([gt] + [_int(st, k) for k in РЕСУРСЫ]
                                   + [_int(st, "idle_pea"), _int(st, "on_wood"),
                                      _int(st, "on_iron"), есть])
-            if p.scout:
+            if p.scout or p.wave:
                 в = враг(st)
                 в["gt"], в["наши"], в["крестьяне_наши"] = gt, есть, _int(st, "peasants")
+                в["волна"] = [_int(st, "wave_cx"), _int(st, "wave_cy"), _int(st, "wave_n")]
                 итог["scout"].append(в)
+        # --- враг: стартовое число крестьян, веха, победа — как в llm_policy ---
+        if p.wave:
+            в = враг(st)
+            en = в["крестьяне"]
+            if итог["en_start"] is None and en > 0:
+                итог["en_start"] = en
+            if итог["t_wave"] is not None:
+                итог["en_min"] = en if итог["en_min"] is None else min(итог["en_min"], en)
+                if en_prev is not None and en < en_prev:
+                    итог["kills"] += en_prev - en
+                if итог["t_kill"] is None and итог["en_start"] and en < итог["en_start"]:
+                    итог["t_kill"] = gt
+                if итог["t_win"] is None and en == 0 and итог["en_start"]:
+                    итог["t_win"] = gt
+                    итог["end"] = "победа"
+                    break
+                wx, wy, wn = _int(st, "wave_cx"), _int(st, "wave_cy"), _int(st, "wave_n")
+                if (итог["t_arrive"] is None and итог["wave_to"] and wn > 0
+                        and abs(wx - итог["wave_to"][0]) <= 1 and abs(wy - итог["wave_to"][1]) <= 1):
+                    итог["t_arrive"] = gt
+                    итог["en_army_at_arrive"] = в["армия"]
+                if итог["t_arrive"] is not None:
+                    итог["ours_min_after"] = (есть if итог["ours_min_after"] is None
+                                              else min(итог["ours_min_after"], есть))
+                if есть == 0 and gt - итог["t_wave"] > 30:
+                    итог["end"] = "волна погибла"
+                    break
+            en_prev = en
         итог["last"] = {k: _int(st, k) for k in РЕСУРСЫ}
         итог["last"]["queue"] = str(st.get("ba_queues", "") or "")
         if есть >= p.goal and итог["t_goal"] is None:
             итог["t_goal"] = gt
-        if есть >= p.goal and not p.scout:
+        if есть >= p.goal and not p.scout and not p.wave:
             итог["end"] = "цель"
             break
+        # --- волна: все goal бойцов в лучшую клетку его крестьян без охраны ---
+        if p.wave and есть >= p.goal and итог["t_wave"] is None:
+            в = враг(st)
+            клетка = в["клетки"][0] if в["клетки"] else None
+            цель = p.target
+            cx = cy = -1
+            if цель == "cell":
+                if клетка is None:
+                    цель = "peasants"          # сетки нет — к ближайшему крестьянину
+                else:
+                    cx, cy = клетка["x"], клетка["y"]
+            if br.attack(есть, цель, cx=cx, cy=cy):
+                итог["t_wave"] = gt
+                итог["wave_to"] = [cx, cy] if цель == "cell" else None
+                итог["wave_target"] = цель
+                итог["wave_n_sent"] = есть
+                print(f"     волна {есть} -> {цель}"
+                      + (f" ({cx},{cy}), там крестьян {клетка['крестьян']}, бойцов рядом "
+                         f"{клетка['бойцов_рядом']}, ход {клетка['ход_с']} с" if клетка else ""),
+                      flush=True)
         if gt >= horizon:
             итог["end"] = "горизонт"
             break
@@ -514,6 +572,41 @@ def сводка(rows: list[dict], путь: str, seed: int, goal: int) -> None:
         f.write("\n".join(строки) + "\n")
 
 
+def сводка_волны(rows: list[dict], путь: str, seed: int) -> None:
+    rows = [r for r in rows if int(r["params"].get("wave", 0)) == 1]
+    по = лучшее_по_ключу(rows)
+    порядок = sorted(по.values(), key=lambda r: (время_волны(r), -(r.get("kills") or 0)))
+    строки = ["# Ступень 1: волна из N — приход, веха, победа", "",
+              f"Партий сыграно {len(rows)}, сочетаний {len(по)}, сид карты {seed}.",
+              "Веха и победа считаются как в llm_policy: веха — его крестьян стало меньше, чем "
+              "было при первом взгляде, после нашей волны; победа — ноль крестьян. «Убито по "
+              "падениям» — сумма снижений его счётчика после ухода волны (может включать "
+              "уход крестьян в шахты, поэтому оценка).", ""]
+    повторы: dict[str, list] = {}
+    for r in rows:
+        повторы.setdefault(_params(r).key(), []).append((r.get("t_arrive"), r.get("t_kill"), r.get("t_win")))
+    разброс = [(k, v) for k, v in повторы.items() if len(v) > 1]
+    if разброс:
+        k, v = разброс[0]
+        строки.append(f"**Повторяемость:** {Params(**json.loads(k)).label()} сыграна {len(v)} раз: "
+                      f"(приход, веха, победа) = {v}.")
+        строки.append("")
+    строки += ["| сочетание | ушла | пришла | его армия при приходе | веха | победа | убито (оценка) "
+               "| его крестьян старт → мин | наших ушло → мин после | конец на |",
+               "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in порядок:
+        д = lambda k: r.get(k) if r.get(k) is not None else "—"
+        строки.append(f"| {r['label']} | {д('t_wave')} | {д('t_arrive')} | {д('en_army_at_arrive')} "
+                      f"| {д('t_kill')} | {д('t_win')} | {r.get('kills', 0)} "
+                      f"| {д('en_start')} → {д('en_min')} | {д('wave_n_sent')} → {д('ours_min_after')} "
+                      f"| {r.get('end', '')} {r.get('gt_end')} |")
+    строки.append("")
+    строки.append("Сочетание: волнаN — N бойцов уходят, как только готовы; cell — в лучшую клетку его "
+                  "крестьян без охраны, peasants — к ближайшему крестьянину, base — к его зданию.")
+    with open(путь, "w", encoding="utf-8") as f:
+        f.write("\n".join(строки) + "\n")
+
+
 def разведка_в_файл(rows: list[dict], путь: str) -> None:
     """Хронология врага по партиям: раз в 10 с — его армия, крестьяне, кто идёт,
     лучшая клетка без охраны и сколько до неё идти. Нужна, чтобы назвать ОКНО:
@@ -547,7 +640,51 @@ def разведка_в_файл(rows: list[dict], путь: str) -> None:
         f.write("\n".join(строки) + "\n")
 
 
-def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int = 0) -> list[Params]:
+def _волна(strict: int, n: int, target: str) -> Params:
+    return Params(strict=strict, goal=n, wave=1, target=target,
+                  mine_at=(1 if n > 1 else 0), order=n)
+
+
+def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, target: str) -> list[Params]:
+    """Ступень 1: размер волны против времени прихода. Первое сочетание —
+    goal бойцов в лучшую клетку, повторяется repeat раз; затем размеры 10,
+    15, 5 в клетку, потом та же лесенка к ближайшему крестьянину; в конце —
+    соседи лучшего по размеру ±5."""
+    измерено = лучшее_по_ключу(rows)
+    раз: dict[str, int] = {}
+    for r in rows:
+        k = _params(r).key()
+        раз[k] = раз.get(k, 0) + 1
+    очередь: list[Params] = []
+    первый = _волна(strict, goal, target)
+    лесенка = [первый] + [_волна(strict, n, target) for n in (10, 15, 5) if n != goal]
+    другая = "peasants" if target == "cell" else "cell"
+    лесенка += [_волна(strict, n, другая) for n in (goal, 10)]
+    for p in лесенка:
+        нужно = (repeat if p == первый else 1) - раз.get(p.key(), 0)
+        очередь += [p] * max(0, нужно)
+    if очередь:
+        return очередь
+    свои = [r for r in измерено.values() if int(r["params"].get("wave", 0)) == 1]
+    лучшая = min(свои, key=время_волны, default=None)
+    if лучшая is None:
+        return []
+    q = _params(лучшая)
+    соседние = [_волна(strict, n, q.target) for n in (q.goal - 5, q.goal + 5) if 1 <= n <= 30]
+    return [x for x in соседние if x.key() not in измерено]
+
+
+def время_волны(r: dict) -> float:
+    """Чем раньше победа, тем лучше; без победы — чем раньше веха; иначе бесконечность."""
+    if r.get("t_win") is not None:
+        return float(r["t_win"])
+    if r.get("t_kill") is not None:
+        return 10000.0 + float(r["t_kill"])
+    return float("inf")
+
+
+def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int = 0,
+         wave: int = 0, target: str = "cell") -> list[Params]:
     """Кого играть дальше. Сначала стартовый список (первый — repeat раз, это
     проверка повторяемости), потом подъём по соседям лучшего. Уже измеренные
     сочетания не повторяются. Разведка — одно сочетание repeat раз, и всё."""
@@ -556,6 +693,8 @@ def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int =
                    **({} if goal <= 1 else dict(mine_at=1, order=goal)))
         было = sum(1 for r in rows if _params(r).key() == p.key())
         return [p] * max(0, repeat - было)
+    if wave:
+        return план_волны(rows, repeat, strict, goal, target)
     измерено = лучшее_по_ключу(rows)
     раз: dict[str, int] = {}
     for r in rows:
@@ -578,7 +717,8 @@ def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int =
 
 
 def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: int,
-          new_timeout: float, strict: int = 1, goal: int = 1, scout: int = 0) -> int:
+          new_timeout: float, strict: int = 1, goal: int = 1, scout: int = 0,
+          wave: int = 0, target: str = "cell") -> int:
     d = os.path.expandvars(os.path.expanduser(d))
     os.makedirs(io, exist_ok=True)
     файл = os.path.join(io, "opening.jsonl")
@@ -596,7 +736,7 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         br = Bridge(d, слот[0])
         print(f"     партия уже идёт с {_int(слот[1], 'gametime')} с — беру её", flush=True)
     while True:
-        очередь = план(rows, repeat, strict, goal, scout)
+        очередь = план(rows, repeat, strict, goal, scout, wave, target)
         if not очередь:
             print("сочетания кончились: лучший не улучшается ни одним соседом", flush=True)
             break
@@ -615,17 +755,32 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         rows.append(r)
         with open(файл, "a", encoding="utf-8") as f:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        сводка(rows, отчёт, seed, goal)
-        if p.scout:
+        if p.wave:
+            сводка_волны(rows, отчёт, seed)
+        else:
+            сводка(rows, отчёт, seed, goal)
+        if p.scout or p.wave:
             разведка_в_файл(rows, os.path.join(io, "scout.md"))
         print(f"     {p.label()}: {r['end']}; ратуша {r['t_center']}, кузница {r['t_smith']}, "
               f"казарма {r['t_ba']}, шахта {r['t_mine']}, 1-й боец {r['t_soldier']}, "
               f"10-й {r['t_10']}, ЦЕЛЬ {r['t_goal']}; к концу {r['last']} "
               f"({r['wall']} с реального времени)", flush=True)
+        if p.wave:
+            print(f"     волна ушла {r['t_wave']}, пришла {r['t_arrive']} (его армия там "
+                  f"{r['en_army_at_arrive']}), ВЕХА {r['t_kill']}, ПОБЕДА {r['t_win']}, "
+                  f"убито по падениям {r['kills']}, его крестьян {r['en_start']} -> мин "
+                  f"{r['en_min']}, наших после прихода мин {r['ours_min_after']}", flush=True)
         if r["fails"]:
             print(f"     отказы: {r['fails'][-1][1]}", flush=True)
         сыграно += 1
         br = None
+    if wave:
+        свои = [r for r in rows if int(r["params"].get("wave", 0)) == 1]
+        лучшая = min(свои, key=время_волны, default=None)
+        if лучшая and время_волны(лучшая) != float("inf"):
+            print(f"\nЛУЧШЕЕ: {лучшая['label']} — веха {лучшая['t_kill']}, победа {лучшая['t_win']}",
+                  flush=True)
+        return 0
     свои = [r for r in rows if int(r["params"].get("goal", 1)) == goal]
     лучшая = min(свои, key=время, default=None)
     if лучшая and время(лучшая) != float("inf"):
@@ -641,7 +796,9 @@ def run_from_policy(a) -> int:
                  float(getattr(a, "new_timeout", 240) or 240),
                  int(getattr(a, "opening_strict", 1)),
                  int(getattr(a, "opening_goal", 1)),
-                 int(getattr(a, "opening_scout", 0)))
+                 int(getattr(a, "opening_scout", 0)),
+                 int(getattr(a, "opening_wave", 0)),
+                 str(getattr(a, "opening_target", "cell") or "cell"))
 
 
 def main() -> int:
@@ -659,9 +816,13 @@ def main() -> int:
                     help="1 — требования зданий как в интерфейсе; 0 — как принимает движок (без кузницы)")
     ap.add_argument("--scout", type=int, default=0,
                     help="1 — разведка: после цели наблюдать врага до горизонта, без перебора")
+    ap.add_argument("--wave", type=int, default=0,
+                    help="1 — ступень 1: по достижении цели послать всех в атаку, перебор размера")
+    ap.add_argument("--target", default="cell", help="cell | peasants | base")
     a = ap.parse_args()
     return поиск(a.dir, a.io or os.path.expandvars(os.path.expanduser(a.dir)), a.seed,
-                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal, a.scout)
+                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal, a.scout,
+                 a.wave, a.target)
 
 
 if __name__ == "__main__":

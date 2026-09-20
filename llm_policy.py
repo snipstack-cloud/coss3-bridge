@@ -8247,6 +8247,10 @@ def main() -> int:
                     help="сколько бойцов нужно: 1 = первый боец, 20 = двадцать (экономика)")
     ap.add_argument("--opening-scout", type=int, default=0,
                     help="1 — разведка: после цели наблюдать врага до горизонта, без перебора")
+    ap.add_argument("--opening-wave", type=int, default=0,
+                    help="1 — ступень 1: по достижении цели послать всех в атаку, перебор размера волны")
+    ap.add_argument("--opening-target", default="cell",
+                    help="куда идёт волна: cell (клетка его крестьян без охраны), peasants, base")
     ap.add_argument("--opening-strict", type=int, default=1,
                     help="1 — требования зданий как в интерфейсе (честно); 0 — как принимает "
                          "движок: казарма и найм без кузницы. Законность 0 решает игрок")
