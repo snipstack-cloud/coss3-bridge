@@ -70,6 +70,20 @@ for _ур, _ц in enumerate(((250, 150), (800, 275), (4200, 100),
 МЕСТ_В_ШАХТЕ = 5
 
 
+def _подменить(врем: str, куда: str) -> None:
+    """os.replace с повтором. На Windows подмена файла, который читатель держит
+    открытым, отвечает «отказано в доступе» (WinError 5) — и мок падал посреди
+    проверки петли 20.09, когда opening.py опрашивал состояние раз в секунду.
+    Игра на Windows от этого не умирает, значит и мок не должен."""
+    for попытка in range(20):
+        try:
+            os.replace(врем, куда)
+            return
+        except PermissionError:
+            time.sleep(0.02)
+    os.replace(врем, куда)
+
+
 class Мир:
     def __init__(self, d: str, plind: int = 1):
         self.d, self.plind, self.t = d, plind, 0.0
@@ -580,7 +594,7 @@ class Мир:
         # мок не имеет права убить прогон из-за буквы.
         with open(врем, "wb") as f:
             f.write(текст.encode("latin-1", "replace"))
-        os.replace(врем, os.path.join(self.d, f"coss3_eco_P{self.plind}.dat"))
+        _подменить(врем, os.path.join(self.d, f"coss3_eco_P{self.plind}.dat"))
 
 
 def пульс_интерфейса(d: str, gt: int, исход: str) -> None:
@@ -592,7 +606,7 @@ def пульс_интерфейса(d: str, gt: int, исход: str) -> None:
     врем = os.path.join(d, ".tmp_gui")
     with open(врем, "wb") as f:
         f.write(f"br_gui : section.begin\n{тело}section.end\n".encode("latin-1", "replace"))
-    os.replace(врем, os.path.join(d, "coss3_gui.dat"))
+    _подменить(врем, os.path.join(d, "coss3_gui.dat"))
 
 
 def новая_партия(d: str, gt: int, исход: str, живая: bool = False) -> bool:
@@ -626,7 +640,7 @@ def новая_партия(d: str, gt: int, исход: str, живая: bool =
     врем = os.path.join(d, ".tmp_ack")
     with open(врем, "wb") as f:
         f.write(f"br_ack : section.begin\n{тело}section.end\n".encode("latin-1", "replace"))
-    os.replace(врем, os.path.join(d, "coss3_ack.dat"))
+    _подменить(врем, os.path.join(d, "coss3_ack.dat"))
     return cmd == "NEW"
 
 

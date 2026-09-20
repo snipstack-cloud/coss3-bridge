@@ -8228,7 +8228,25 @@ def main() -> int:
                          "проверка петли без ключа и без игры (см. log_review.py --replay-out)")
     ap.add_argument("--think", action="store_true",
                     help="разрешить модели рассуждать вслух: умнее, но в такт не лезет")
+    # ПОИСК ПЕРВОГО БОЙЦА БЕЗ МОДЕЛИ (opening.py). Ключ живёт здесь, а не в
+    # entrypoint: контейнер берёт из ветки только *.py, *.inc и *.txt, а
+    # docker/ остаётся от образа, так что переключить политику можно только
+    # флагом. Перехват стоит ДО ключа и клиента модели: денег этот цикл не
+    # тратит и ключа не требует.
+    ap.add_argument("--opening-search", type=int, default=0,
+                    help="1 — не звать модель, а крутить перебор параметров до первого бойца")
+    ap.add_argument("--opening-seed", type=int, default=12345,
+                    help="сид карты для всех попыток перебора: один и тот же")
+    ap.add_argument("--opening-horizon", type=int, default=300,
+                    help="игровых секунд на попытку перебора")
+    ap.add_argument("--opening-attempts", type=int, default=0,
+                    help="сколько партий сыграть (0 = пока есть что мерить)")
+    ap.add_argument("--opening-repeat", type=int, default=2,
+                    help="сколько раз играть первое сочетание: проверка повторяемости")
     a = ap.parse_args()
+    if a.opening_search:
+        import opening
+        return opening.run_from_policy(a)
 
     # Горизонт нужен промпту (блок «Что купить»), а туда аргументы не доходят.
     global ГОРИЗОНТ, СМЕНА_СОСТАВА, УДАР_ПО_ОТРЯДУ, ВСТРЕТИТЬ_УГРОЗУ
