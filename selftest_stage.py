@@ -125,6 +125,33 @@ L.STAGE_ЗА_ТАКТ.clear()
 
 print()
 
+# --- MOVE, RETREAT и who тоже должны быть видны в трассе (20.09) ----------
+#
+# Та же дыра, что у STAGE: `to_commands` возвращает движение, цель и вид
+# бойцов отдельными значениями, а в трассу они не попадали. По ней выходило
+# «модель не отдаёт MOVE, RETREAT и who». Перепроверка по логам: RETREAT
+# отдан не меньше 13 раз в assess_local и 2 в base18. Здесь стережём то, что
+# разбор ответа эти значения ВОЗВРАЩАЕТ, — тогда запись в трассу не потеряет
+# их снова.
+_р = L.to_commands({"commands": [{"cmd": "RETREAT", "count": 40}]})
+проверка("RETREAT возвращается числом и целью",
+         _р[5] == 40 and _р[6] == "retreat", str(_р[5:7]))
+
+_р = L.to_commands({"commands": [{"cmd": "MOVE", "count": 30, "target": "cell",
+                                  "cx": 9, "cy": 7}]})
+проверка("MOVE возвращается числом и целью",
+         _р[5] == 30 and _р[6] == "cell", str(_р[5:7]))
+
+_р = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 20, "who": "musk17",
+                                  "target": "base"}]})
+проверка("who у ATTACK возвращается", _р[9] == "musk17", str(_р[9]))
+
+_р = L.to_commands({"commands": [{"cmd": "MOVE", "count": 10, "who": "infantry17",
+                                  "target": "home"}]})
+проверка("who у MOVE возвращается", _р[10] == "infantry17", str(_р[10]))
+
+print()
+
 if беды:
     print(f"БЕД: {len(беды)} — {', '.join(беды)}")
     raise SystemExit(1)
