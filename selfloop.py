@@ -346,11 +346,34 @@ def запрос(журнал: list, поля: list, база: dict, итера�
         # итог   — {{'тактов','gt','цель','армия','крестьян','еда'}}
         return 0.0
 
+ВНИМАНИЕ, здесь ломаются: в МЕРЕ команды — это СЛОВАРИ из трассы, а не объекты.
+Брать `c['cmd']`, `c['a1']`, `c['a2']`, `c['upg']` — точка там не работает.
+В ПРАВИЛЕ наоборот: там объекты и точка. Живая проверка 21.09: мера написана
+через `c.cmd` и упала с `AttributeError: 'dict' object has no attribute 'cmd'`.
+
+    def мера(трасса, итог):          # сколько SEED отдано при созревшем поле
+        n = 0
+        for т in трасса:
+            st = т.get('state') or {{}}
+            if чис(st, 'food_ready') > 0:
+                n += sum(1 for c in (т.get('cmds') or [])
+                         if c.get('cmd') == 'SEED')
+        return n
+
 ## Что можно звать внутри
 
 build(роль, сколько) train(роль, сколько) balance(ресурс, людей)
 builders(потолок) seed() upgrade(имя) formation()
 чис(st, 'поле') есть(st, 'поле') INFINITE RESOURCE BUILDABLE
+имя_ресурса(c.a1) -> 'food'|'wood'|'stone'|'gold'|'iron'|'coal'
+на_ресурсе(st, c) -> сколько крестьян СЕЙЧАС на ресурсе этой команды BALANCE
+
+НОМЕРА РЕСУРСОВ НАИЗУСТЬ НЕ ПИСАТЬ. Живая проверка 21.09: модель приняла
+2 за gold, 3 за iron, 4 за coal, 5 за stone, а на деле 2 это stone, 3 gold,
+4 iron, 5 coal — перепутаны четыре из шести. Правило не упало и уверенно
+срабатывало 52 раза, сравнивая заказанный камень с людьми на золоте; ни одна
+проверка такого поймать не может. Поэтому у команды BALANCE спрашивай
+`на_ресурсе(st, c)` и `имя_ресурса(c.a1)`, а таблицу бери из RESOURCE.
 len int float min max abs sorted sum any all range round str dict list set
 tuple enumerate zip bool isinstance
 
