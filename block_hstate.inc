@@ -711,8 +711,8 @@
       [*] = ;         // need nothing but the blacksmith (country.script:2929, 2978). The list
       [*] = ;         // had nine roles and no stable, so 'stable' never reached can_now or
       [*] = ;         // cant_now, and the model never built one: zero cavalry in every game.
-      [*] = ;         var hsroles : array [0..9] of Integer;
-      [*] = ;         var hsrname : array [0..9] of String;
+      [*] = ;         var hsroles : array [0..10] of Integer;
+      [*] = ;         var hsrname : array [0..10] of String;
       [*] = ;         hsroles[0] := gc_ai_unit_center;    hsrname[0] := 'center';
       [*] = ;         hsroles[1] := gc_ai_unit_mill;      hsrname[1] := 'mill';
       [*] = ;         hsroles[2] := gc_ai_unit_smith;     hsrname[2] := 'smith';
@@ -723,6 +723,13 @@
       [*] = ;         hsroles[7] := gc_ai_unit_mineiron;  hsrname[7] := 'mineiron';
       [*] = ;         hsroles[8] := gc_ai_unit_minecoal;  hsrname[8] := 'minecoal';
       [*] = ;         hsroles[9] := gc_ai_unit_stable;    hsrname[9] := 'stable';
+      [*] = ;         // ACADEMY (20.09) - the same hole the stable had. It was missing
+      [*] = ;         // from this list, so it never reached can_now, cant_now or the
+      [*] = ;         // price line: a full 20-minute game with two barracks showed it
+      [*] = ;         // in NONE of 59 ticks. The model knew what academy upgrades give
+      [*] = ;         // (they are listed with prices) and still could not build the
+      [*] = ;         // building that unlocks them.
+      [*] = ;         hsroles[10] := gc_ai_unit_academi;  hsrname[10] := 'academi';
       [*] = ;         var hscan : String = '';
       [*] = ;         var hscant : String = '';
       [*] = ;         // PRICE of every building, same form as 'fighters'. Without it the
@@ -735,7 +742,7 @@
       [*] = ;         // shows it to a human.
       [*] = ;         var hsbtxt : String = '';
       [*] = ;         var hsri : Integer;
-      [*] = ;         for hsri := 0 to 9 do
+      [*] = ;         for hsri := 0 to 10 do
       [*] = ;         begin
       [*] = ;            var hsrid : Integer = -1;
       [*] = ;            var hsrj : Integer;
