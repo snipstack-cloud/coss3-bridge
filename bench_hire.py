@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 """Годится ли локальная модель для СОБЫТИЙНОГО вызова «кого нанимать».
 
-    python3 bench_hire_cases.py            # собрать задачи из трасс прогонов
-    python3 bench_hire.py qwen2.5:14b ...  # локальные, через ollama
-    python3 bench_hire.py --облако @preset/coss3-bot
-
 Событийный вызов (20.09) — узкий: запрос около 940 символов против ~6800 у
 обычного такта, ответ короткой схемой {"role","total","why"}. Именно такая
 форма и могла бы уехать на локальную модель: полный запрос моста семи- и
@@ -45,7 +41,7 @@ def спросить_локально(модель, промпт, таймаут
             "options": {"num_predict": 80, "num_ctx": 2048, "temperature": 0}}
     if кандидаты:
         тело["format"] = {"type": "object",
-                          "properties": {"role": {"type": "string", "enum": list(кандидаты)},
+                          "properties": {"role": {"type": "string", "enum": list(кандидаты) + ["wait"]},
                                          "total": {"type": "integer"},
                                          "why": {"type": "string"}},
                           "required": ["role", "total"]}
@@ -83,6 +79,8 @@ def годен(d, з):
     роль = d.get("role")
     if not роль:
         return False, "нет поля role"
+    if str(роль).strip().lower() in ("wait", "ждать"):
+        return True, ""            # законный ответ с 21.09
     if роль not in з["кандидаты"]:
         return False, f"роль {роль} это здание не кует"
     всего = d.get("total", -1)
