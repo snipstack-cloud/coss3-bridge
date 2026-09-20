@@ -252,6 +252,19 @@ def main() -> int:
                          "вовсе. Важно для меры: по умолчанию крестьянина можно "
                          "захватить вместо убийства, а из счёта врага он уходит "
                          "одинаково")
+    ap.add_argument("--market", type=int, default=-1,
+                    help="рынок и дипломатия: 0 как обычно, 1 без дипломатии, "
+                         "2 БЕЗ РЫНКА ни у кого, 3 ни рынка ни дипломатии, "
+                         "4 дорогие наёмники (gc_mapsettings_marketdip_*). "
+                         "Нужно для ЧЕСТНОСТИ: ключ --ban market у политики "
+                         "связывает только НАШЕГО бота, а нативный ИИ ставил "
+                         "рынок на 1:56-2:51 в каждой замеренной партии 20.09 — "
+                         "и рынок лечит ровно наше узкое место, золото")
+    ap.add_argument("--century18", type=int, default=-1,
+                    help="восемнадцатый век: 1 ЗАПРЕЩЁН всем, 2 разрешён "
+                         "(gc_mapsettings_century18_*). Академия — дверь в этот "
+                         "век, и враг открывал её на 11:24-16:17 в каждой партии, "
+                         "тогда как нам академия запрещена ключом --ban")
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
@@ -288,7 +301,8 @@ def main() -> int:
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
                           balloon=a.balloon, cannons=a.cannons,
-                          capture=a.capture):
+                          capture=a.capture, market=a.market,
+                          century18=a.century18):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

@@ -55,6 +55,18 @@
       [*] = ;         // peasant can be CAPTURED instead of killed, and he leaves the
       [*] = ;         // enemy count all the same - so 'goal taken' could mean a capture.
       [*] = ;         var brctlcapt  : Integer = -1;
+      [*] = ;         // additional.marketdip: 1 no diplomacy, 2 NO MARKET for ANYONE,
+      [*] = ;         // 3 neither, 4 expensive mercenaries (showcustomgame.inc:920-925).
+      [*] = ;         // Our own bot is barred from the market by --ban, but that key
+      [*] = ;         // binds only US: the native AI built one at 1:56-2:51 in every
+      [*] = ;         // match measured 20.09, and the market cures exactly our worst
+      [*] = ;         // bottleneck - gold, tight in 61-98 per cent of ticks.
+      [*] = ;         var brctlmark  : Integer = -1;
+      [*] = ;         // additional.century18: 1 forbidden for ANYONE, 2 allowed. The
+      [*] = ;         // academy is the door into the 18th century, and the enemy opened
+      [*] = ;         // it at 11:24-16:17 in every match. Forbidding the century closes
+      [*] = ;         // that door on BOTH sides, which is what makes it fair.
+      [*] = ;         var brctlcent  : Integer = -1;
       [*] = ;         if ParserLoadFromFileByHandle(hctl, brctlpath) then
       [*] = ;         begin
       [*] = ;            brctlcmd := ParserGetValueByKeyByHandle(hctl, 'cmd');
@@ -70,6 +82,10 @@
       [*] = ;            brctlcann := ParserGetIntValueByKeyByHandle(hctl, 'cannons');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'capture') <> '') then
       [*] = ;            brctlcapt := ParserGetIntValueByKeyByHandle(hctl, 'capture');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'market') <> '') then
+      [*] = ;            brctlmark := ParserGetIntValueByKeyByHandle(hctl, 'market');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'century18') <> '') then
+      [*] = ;            brctlcent := ParserGetIntValueByKeyByHandle(hctl, 'century18');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
@@ -109,6 +125,10 @@
       [*] = ;            gMap.settings.additional.cannons := brctlcann;
       [*] = ;            if (brctlcapt >= 0) then
       [*] = ;            gMap.settings.additional.capture := brctlcapt;
+      [*] = ;            if (brctlmark >= 0) then
+      [*] = ;            gMap.settings.additional.marketdip := brctlmark;
+      [*] = ;            if (brctlcent >= 0) then
+      [*] = ;            gMap.settings.additional.century18 := brctlcent;
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
       [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
@@ -148,6 +168,11 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'balloon', gMap.settings.additional.balloon);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'cannons', gMap.settings.additional.cannons);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'capture', gMap.settings.additional.capture);
+      [*] = ;            // Echo the new settings back: without it the match terms can
+      [*] = ;            // only be checked indirectly - by whether the enemy built a
+      [*] = ;            // market. On 20.09 that meant waiting until 4:20 game time.
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'market', gMap.settings.additional.marketdip);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'century18', gMap.settings.additional.century18);
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
       [*] = ;            GUIExecuteState('DoNewGame');
       [*] = ;         end;

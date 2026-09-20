@@ -363,7 +363,8 @@ class Bridge:
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0,
                 res: int = -1, peace: int = -1, ai: int = -1,
                 nation: str = "", balloon: int = -1,
-                cannons: int = -1, capture: int = -1) -> bool:
+                cannons: int = -1, capture: int = -1,
+                market: int = -1, century18: int = -1) -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
@@ -417,6 +418,10 @@ class Bridge:
             # ЗАХВАТИТЬ вместо убийства, и из вражеского счёта он уходит так же,
             # то есть «цель взята» могло означать захват.
             поля["capture"] = int(capture)
+            if int(market) >= 0:
+                поля["market"] = int(market)
+            if int(century18) >= 0:
+                поля["century18"] = int(century18)
         text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

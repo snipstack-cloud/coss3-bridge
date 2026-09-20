@@ -471,8 +471,17 @@ else
     # его счёта он уходит одинаково, так что «цель взята» могло означать захват.
     : "${COSS3_MATCH_CANNONS:=1}"
     : "${COSS3_MATCH_CAPTURE:=3}"
+    # РЫНОК И ВОСЕМНАДЦАТЫЙ ВЕК ЗАПРЕЩЕНЫ ВСЕМ (20.09). Ключ --ban market,academi
+    # у политики связывает только НАШЕГО бота: нативный ИИ ставил рынок на
+    # 1:56-2:51 и академию на 11:24-16:17 в каждой замеренной партии, а рынок
+    # лечит ровно наше узкое место - золото, тугое в 61-98 процентах тактов.
+    # Настройка карты действует на обе стороны, и это делает сравнение честным.
+    : "${COSS3_MATCH_MARKET:=2}"
+    : "${COSS3_MATCH_CENTURY18:=1}"
     [ -n "${COSS3_MATCH_CANNONS:-}" ] && NEWARGS="$NEWARGS --cannons ${COSS3_MATCH_CANNONS}"
     [ -n "${COSS3_MATCH_CAPTURE:-}" ] && NEWARGS="$NEWARGS --capture ${COSS3_MATCH_CAPTURE}"
+    [ -n "${COSS3_MATCH_MARKET:-}" ] && NEWARGS="$NEWARGS --market ${COSS3_MATCH_MARKET}"
+    [ -n "${COSS3_MATCH_CENTURY18:-}" ] && NEWARGS="$NEWARGS --century18 ${COSS3_MATCH_CENTURY18}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
     else
