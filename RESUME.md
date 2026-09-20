@@ -2705,9 +2705,18 @@ python install_bridge.py "C:\Program Files (x86)\Steam\steamapps\common\Cossacks
 условиями — **мышь не нужна**:
 
 ```powershell
-python send.py --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --new --res 0 --peace 0 --ai 3 --nation net
+python send.py --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --new --res 0 --peace 0 --ai 3 --nation net --balloon 2 --cannons 1 --capture 3
 python llm_policy.py --human --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --hints hints_human.txt --model "@preset/coss3-bot" --every 20 --ban market,academi --episodes 3
 ```
+
+**ТРИ ПОСЛЕДНИХ КЛЮЧА `send.py` ОБЯЗАТЕЛЬНЫ, И ДО 20.09 ИХ ЗДЕСЬ НЕ БЫЛО.**
+Ферма ставит их сама по умолчанию (`entrypoint.sh`: `BALLOON=2`, `CANNONS=1`,
+`CAPTURE=3`), а живая игра берёт команду отсюда — и 20.09 четыре живые партии
+прошли с `--capture 0`, то есть с РАЗРЕШЁННЫМ захватом крестьян. Это ломает
+главную меру проекта: цель — УБИТЬ крестьянина, а захваченный уходит из счёта
+врага так же, как убитый, и партия становится несравнимой с контейнерными.
+Проверять условия надо не по памяти, а по `match.dat`: в контейнере там
+`balloon = 2  cannons = 1  capture = 3`, и живая партия обязана дать то же.
 
 Ключ OpenRouter — в `nim_key.txt` рядом со скриптом, либо переменной
 `OPENROUTER_API_KEY`. Имя файла историческое; переименовывать не стоит, оно
