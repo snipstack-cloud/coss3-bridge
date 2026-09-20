@@ -33,15 +33,15 @@ def строка(ключ=1, его_dpike=7, наш_atk=8, конюшня=0, к�
           "mil_cav": 0, "ba17": казарм, "stables": конюшня, "mills": 1,
           "p1_enemy": 1, "food": 20000, "gold": 9000, "iron": 3000,
           "p1_army": 200, "p1_inf": 200, "p1_shoot": 0, "p1_cav": 0,
-          "fighters": (f"infantry17=pikeman,hp90,atk{наш_atk},wkind1,pause0,"
+          "fighters": (f"infantry17=pikeman,hp90,atk{наш_atk},wkind1,pause0,rmax190,"
                        "dpike3,dsword2,dbullet4,food25,gold3,iron20 "
-                       "musk17=musketeernet,hp65,atk10,wkind3,pause375,"
+                       "musk17=musketeernet,hp65,atk10,wkind3,pause375,rmax1500,"
                        "dpike1,dsword1,dbullet0,food50,gold8,iron4 "
-                       "dragoon17=dragoon,hp220,atk15,wkind3,pause562,"
+                       "dragoon17=dragoon,hp220,atk15,wkind3,pause562,rmax1500,"
                        "dpike0,dsword0,dbullet0,food90,gold7,iron5"),
-          "p1_fighters": (f"infantry17=hp90,atk13,wkind1,pause0,dpike{его_dpike},"
+          "p1_fighters": (f"infantry17=hp90,atk13,wkind1,pause0,rmax190,dpike{его_dpike},"
                           "dsword6,dbullet4 "
-                          "musk17=hp65,atk10,wkind3,pause375,dpike0,dsword0,dbullet0")}
+                          "musk17=hp65,atk10,wkind3,pause375,rmax1500,dpike0,dsword0,dbullet0")}
     return "\n".join(L.сменить_состав(ст, {}))
 
 
@@ -70,6 +70,16 @@ print("Самопроверка смены состава:")
 
 проверка("при крошечной армии молчим", строка(наших=3) == "",
          "менять состав из трёх бойцов нечего")
+
+# ДАЛЬНОСТЬ (20.09, из кода игры: SetObjBaseWeapon, unit.script:520; пиксели
+# делятся на gc_pixels_to_tile = 53,3333, dmscript.global:172).
+# Пикинёр 100 px -> 1,9; мушкетёр 800 px -> 15,0.
+проверка("названа дальность замены", "бьёт на 15.0 против 1.9" in с, с[:400])
+проверка("посчитаны залпы форы", "успеет 2 залп" in с, с[:400])
+проверка("фора переведена в урон по жизням",
+         "= 12 из 90 его жизней ДО контакта" in с, с[:400])
+проверка("сказано, что дальше ближний бой",
+         "дальше ближний бой, где стрелок слаб" in с, с[:400])
 
 print()
 if беды:

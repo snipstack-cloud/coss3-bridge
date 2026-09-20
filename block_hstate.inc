@@ -575,6 +575,16 @@
       [*] = ;               begin
       [*] = ;                  hsftxt := hsftxt + ',wkind' + IntToStr(gObjProp[hscid][hsfid].weapon[hsfwb].kind);
       [*] = ;                  hsftxt := hsftxt + ',pause' + IntToStr(Round(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].pause*100));
+      [*] = ;                  // RANGE (20.09): radiusmax of the same weapon slot, in
+      [*] = ;                  // HUNDREDTHS like pause. Declared in SetObjBaseWeapon
+      [*] = ;                  // (unit.script:520) as pixels and stored already divided
+      [*] = ;                  // by gc_pixels_to_tile = 53.3333 (dmscript.global:172).
+      [*] = ;                  // Pikeman 100 px -> 1.9, musketeer 800 px -> 15.0: an
+      [*] = ;                  // EIGHTFOLD gap, and it decides how many free volleys a
+      [*] = ;                  // shooter gets while the pikeman closes the distance.
+      [*] = ;                  // Without it the bridge scored musketeer against pikeman
+      [*] = ;                  // as 562 and flagged its own number as unusable.
+      [*] = ;                  hsftxt := hsftxt + ',rmax' + IntToStr(Round(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].radiusmax*100));
       [*] = ;               end;
       [*] = ;               hsftxt := hsftxt + ',dpike' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;               hsftxt := hsftxt + ',dsword' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_sword]);
@@ -1154,6 +1164,7 @@
       [*] = ;                  begin
       [*] = ;                     hsyftxt := hsyftxt + ',wkind' + IntToStr(gObjProp[hsycid][hsyfid].weapon[hsyfwb].kind);
       [*] = ;                     hsyftxt := hsyftxt + ',pause' + IntToStr(Round(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].pause*100));
+      [*] = ;                     hsyftxt := hsyftxt + ',rmax' + IntToStr(Round(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].radiusmax*100));
       [*] = ;                  end;
       [*] = ;                  hsyftxt := hsyftxt + ',dpike' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;                  hsyftxt := hsyftxt + ',dsword' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_sword]);
