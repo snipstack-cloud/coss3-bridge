@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
-"""Поиск самого быстрого первого бойца — БЕЗ МОДЕЛИ, только питон.
+"""Поиск самого быстрого начала партии — БЕЗ МОДЕЛИ, только питон.
 
-Задача узкая и решается перебором: за первые три минуты партии врага рядом
-нет, решений нет, есть только порядок закладок и число строителей. Цепочка
-жёсткая (lib/country.script:2926): ратуша -> кузница -> казарма -> пикинёр.
-Ресурсов на неё хватает с первой секунды (партия начинается с 1000 каждого:
-ратуша 700 дерева/700 камня, кузница 100/30/640 железа, казарма 100/100/500
-золота, пикинёр 25 еды/3 золота/20 железа), поэтому добыча не нужна вовсе, и
-единственное, что можно крутить, — КТО и КОГДА строит.
+Задача узкая и решается перебором: за первые минуты партии врага рядом нет,
+решений нет, есть только порядок закладок, число строителей и что заказать.
+Цепочка жёсткая (lib/country.script:2926): ратуша -> кузница -> казарма ->
+пикинёр. Ресурсов на неё хватает с первой секунды (партия начинается с 1000
+каждого: ратуша 700 дерева/700 камня, кузница 100/30/640 железа, казарма
+100/100/500 золота, пикинёр 25 еды/3 золота/20 железа).
 
-ЖИВАЯ ИГРА 20.09 (контейнер, три партии): движок через мост НЕ проверяет
-требования зданий — казарма заложена и пикинёр нанят без кузницы (боец на
-36 с); честная очередь ратуша -> кузница -> казарма даёт 50 с. Режим задаёт
---strict (1 честно, по умолчанию; 0 без кузницы — законность решает игрок).
+Две цели, ключ --goal:
+  1   ПЕРВЫЙ БОЕЦ. Крутится только КТО строит: потолки строителей. Решено
+      20.09 (15 партий): все на каждую стройку, боец на 50 с; любой потолок
+      ниже «все» только замедляет.
+  N   N БОЙЦОВ (задача 20.09: двадцать). Тут уже экономика: после цепочки
+      железа 360 при нужных 400, дерева РОВНО 0, а найм ниже 500 еды встаёт.
+      Крутится: когда закладывать железную шахту (полная даёт ~500 в минуту),
+      сколько на неё строителей, сколько людей на дерево после ратуши и
+      каким куском заказывать бойцов (весь заказ разом, по пять, бесконечно).
 
     python opening.py --dir ~/coss3-io                       # цикл: партия за партией
     python opening.py --dir ./sb --attempts 3 --horizon 300  # против mock_human.py
@@ -22,6 +26,11 @@
 карты будет больше разницы параметров. Первый кандидат играется дважды —
 это проверка, что при равных параметрах время совпадает; если не совпадает,
 дальше мерить нечего, и отчёт говорит об этом первой строкой.
+
+ЖИВАЯ ИГРА 20.09 (контейнер): движок через мост НЕ проверяет требования
+зданий — казарма заложена и пикинёр нанят без кузницы (боец на 36 с); честная
+очередь даёт 50 с. Режим задаёт --strict (1 честно, по умолчанию; 0 без
+кузницы — законность решает игрок).
 
 Результаты копятся в opening.jsonl (одна строка — одна партия) и сводятся в
 opening.md после каждой партии. Повторный запуск продолжает с того места:
@@ -40,13 +49,14 @@ import re
 import time
 from dataclasses import asdict, dataclass
 
-from coss3_bridge import Bridge, build, train, builders
+from coss3_bridge import Bridge, build, train, builders, balance
 
 БОЙЦЫ = ("mil_inf", "mil_shooters", "mil_cav")
 # роль в приказе -> счётчик ГОТОВЫХ зданий в состоянии
 ЦЕПОЧКА = (("center", "centers"), ("smith", "smiths"), ("ba17", "ba17"))
-ВЕХА = {"center": "t_center", "smith": "t_smith", "ba17": "t_ba"}
+ВЕХА = {"center": "t_center", "smith": "t_smith", "ba17": "t_ba", "mineiron": "t_mine"}
 ПОТОЛКИ = (3, 6, 9, 12, 99)     # 99 = все, кто влезает; 18 = 99, крестьян ровно 18
+РЕСУРСЫ = ("food", "wood", "stone", "gold", "iron")
 
 
 @dataclass(frozen=True)
@@ -63,18 +73,37 @@ class Params:
     _player_ConstructBuildingList напрямую и требований не проверяет; в
     интерфейсе кнопка была бы серой. Годится ли это по правилам хакатона —
     решает игрок, поэтому по умолчанию выключено и кузница в этом режиме не
-    строится вовсе (она там не нужна ничему)."""
+    строится вовсе (она там не нужна ничему).
+
+    Для goal > 1 добавляются:
+      mine_at  — когда закладывать железную шахту: 0 никогда, 1 как только
+                 готова ратуша (в параллель с кузницей: в её котлован влезает
+                 14, четверо свободны), 2 после кузницы, 3 после казармы;
+      mine_cap — потолок строителей на шахте;
+      wood     — сколько людей послать на дерево, когда ратуша готова
+                 (BALANCE берёт только простаивающих);
+      order    — заказ в казарму: N бойцов разом, кусками по N (когда очередь
+                 пуста) или -1 бесконечно.
+    """
     center_cap: int = 99
     smith_cap: int = 99
     ba_cap: int = 99
     strict: int = 1
+    goal: int = 1
+    mine_at: int = 0
+    mine_cap: int = 99
+    wood: int = 0
+    order: int = 1
 
     def key(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
 
     def label(self) -> str:
-        return (f"c{self.center_cap}/s{self.smith_cap}/b{self.ba_cap}/"
-                + ("честно" if self.strict else "без-кузницы"))
+        режим = "честно" if self.strict else "без-кузницы"
+        if self.goal <= 1:
+            return f"c{self.center_cap}/s{self.smith_cap}/b{self.ba_cap}/{режим}"
+        return (f"шахта{self.mine_at}/стр{self.mine_cap}/дерево{self.wood}/"
+                f"заказ{self.order}/{режим}")
 
 
 def _int(st: dict, k: str) -> int:
@@ -101,8 +130,15 @@ def стройки(st: dict) -> dict[str, tuple[int, int, int]]:
     return out
 
 
+def очередь_пуста(st: dict) -> bool:
+    """ba_queues: '1:pikeman:20' или '1:none'. Нет казармы — тоже «пуста»."""
+    q = str(st.get("ba_queues", "") or "")
+    return (not q) or (":none" in q)
+
+
 def такт(st: dict, p: Params, train_ok: bool = True) -> list:
-    """Команды на этот такт: ОДНА закладка — первая незакрытая в цепочке.
+    """Команды на этот такт: ОДНА закладка — первая незакрытая в цепочке, а
+    если цепочка ждёт предшественника — шахта, когда ей пора.
     Потолок BUILDERS один на файл (block_hcmd.inc читает его предварительным
     проходом), поэтому две закладки с разными потолками в один такт не лезут.
     Прежнее чередование по чётности такта делало результат зависимым от того,
@@ -123,11 +159,24 @@ def такт(st: dict, p: Params, train_ok: bool = True) -> list:
     elif готово["ba17"] < 1:
         if "ba17" not in идут:
             закладка = ("ba17", p.ba_cap)
+    if (закладка is None and p.goal > 1 and p.mine_at
+            and _int(st, "mines_iron") < 1 and "mineiron" not in идут):
+        пора = {1: готово["center"] >= 1,
+                2: готово["smith"] >= 1 or not p.strict,
+                3: готово["ba17"] >= 1}.get(p.mine_at, False)
+        if пора:
+            закладка = ("mineiron", p.mine_cap)
     if закладка:
         cmds.append(builders(закладка[1]))
         cmds.append(build(закладка[0], 1))
-    if готово["ba17"] >= 1 and бойцов(st) < 1 and train_ok:
-        cmds.append(train("infantry17", 1))
+    есть = бойцов(st)
+    if готово["ba17"] >= 1 and есть < p.goal and train_ok:
+        if p.goal <= 1:
+            cmds.append(train("infantry17", 1))
+        elif p.order < 0:
+            cmds.append(train("infantry17", -1))       # повтор блок отсеет сам
+        elif очередь_пуста(st):
+            cmds.append(train("infantry17", min(p.order, p.goal - есть)))
     return cmds
 
 
@@ -211,15 +260,19 @@ def новая_партия(d: str, seed: int, timeout: float) -> Bridge | None:
 
 # --- одна партия ----------------------------------------------------------------
 def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) -> dict:
-    """Ведёт партию до первого бойца или до горизонта. Возвращает строку
-    результата: вехи в игровых секундах и то, что мост сказал об отказах."""
+    """Ведёт партию до цели (goal бойцов) или до горизонта. Возвращает строку
+    результата: вехи в игровых секундах, снимки ресурсов раз в 10 с и то, что
+    мост сказал об отказах."""
     итог = {"params": asdict(p), "label": p.label(), "seed": None,
-            "t_center": None, "t_smith": None, "t_ba": None, "t_soldier": None,
-            "laid": {}, "crew": {}, "fails": [], "end": "", "gt_end": 0,
-            "wall": 0.0, "gt_start": None}
+            "t_center": None, "t_smith": None, "t_ba": None, "t_mine": None,
+            "t_soldier": None, "t_10": None, "t_goal": None,
+            "laid": {}, "crew": {}, "fails": [], "series": [],
+            "end": "", "gt_end": 0, "wall": 0.0, "gt_start": None, "last": {}}
     t0 = time.monotonic()
     последний_gt = -1
     train_gt = -100          # когда последний раз слали TRAIN (игровые секунды)
+    снимок_gt = -100
+    дерево_послано = False
     while True:
         try:
             st = br.wait_state(timeout=тихо)
@@ -237,6 +290,8 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
         for роль, ключ in ЦЕПОЧКА:
             if итог[ВЕХА[роль]] is None and _int(st, ключ) >= 1:
                 итог[ВЕХА[роль]] = gt
+        if итог["t_mine"] is None and _int(st, "mines_iron") >= 1:
+            итог["t_mine"] = gt
         for роль, (котлован, строят, _pct) in стройки(st).items():
             итог["laid"].setdefault(роль, gt)
             прежде = итог["crew"].get(роль, (0, 0))
@@ -245,9 +300,21 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
         отказ = str(st.get("last_fail", "") or "").strip()
         if отказ and (not итог["fails"] or итог["fails"][-1][1] != отказ):
             итог["fails"].append((gt, отказ[:200]))
-        if бойцов(st) >= 1:
+        есть = бойцов(st)
+        if итог["t_soldier"] is None and есть >= 1:
             итог["t_soldier"] = gt
-            итог["end"] = "боец"
+        if итог["t_10"] is None and есть >= 10:
+            итог["t_10"] = gt
+        if gt - снимок_gt >= 10:
+            снимок_gt = gt
+            итог["series"].append([gt] + [_int(st, k) for k in РЕСУРСЫ]
+                                  + [_int(st, "idle_pea"), _int(st, "on_wood"),
+                                     _int(st, "on_iron"), есть])
+        итог["last"] = {k: _int(st, k) for k in РЕСУРСЫ}
+        итог["last"]["queue"] = str(st.get("ba_queues", "") or "")
+        if есть >= p.goal:
+            итог["t_goal"] = gt
+            итог["end"] = "цель"
             break
         if gt >= horizon:
             итог["end"] = "горизонт"
@@ -256,7 +323,13 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
         if исход:
             итог["end"] = f"партия кончилась: {исход}"
             break
-        cmds = такт(st, p, train_ok=(gt - train_gt >= 10))
+        cmds = такт(st, p, train_ok=(gt - train_gt >= 5))
+        # Дерево: один раз, когда ратуша готова и следующая стройка уже взяла
+        # своих (иначе BALANCE заберёт простаивающих раньше котлована).
+        if (p.goal > 1 and p.wood > 0 and not дерево_послано and _int(st, "centers") >= 1
+                and (("smith" in стройки(st)) or _int(st, "smiths") >= 1 or not p.strict)):
+            cmds.append(balance("wood", p.wood))
+            дерево_послано = True
         if cmds and br.send(cmds):
             if any(c.cmd == "TRAIN" for c in cmds):
                 train_gt = gt
@@ -265,31 +338,50 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
 
 
 # --- поиск ----------------------------------------------------------------------
-def стартовые(strict: int) -> list[Params]:
-    """Первое — все на каждую стройку; оно и играется дважды. Остальные —
-    чтобы сразу увидеть цену потолка на каждой стройке порознь."""
+def стартовые(strict: int, goal: int) -> list[Params]:
+    """Первое — и играется дважды. Остальные — чтобы сразу увидеть цену
+    каждого рычага порознь."""
+    if goal <= 1:
+        return [
+            Params(strict=strict),
+            Params(center_cap=12, strict=strict),
+            Params(smith_cap=6, strict=strict),
+            Params(ba_cap=12, strict=strict),
+            Params(center_cap=9, smith_cap=9, ba_cap=9, strict=strict),
+        ]
+    b = dict(strict=strict, goal=goal)
     return [
-        Params(strict=strict),
-        Params(center_cap=12, strict=strict),
-        Params(smith_cap=6, strict=strict),
-        Params(ba_cap=12, strict=strict),
-        Params(center_cap=9, smith_cap=9, ba_cap=9, strict=strict),
+        Params(mine_at=1, mine_cap=99, wood=0, order=5, **b),   # шахта в параллель с кузницей
+        Params(mine_at=1, mine_cap=99, wood=0, order=goal, **b), # весь заказ разом
+        Params(mine_at=2, mine_cap=99, wood=0, order=5, **b),   # шахта после кузницы
+        Params(mine_at=3, mine_cap=99, wood=0, order=5, **b),   # шахта после казармы
+        Params(mine_at=1, mine_cap=99, wood=2, order=5, **b),   # двое на дерево
+        Params(mine_at=0, mine_cap=99, wood=0, order=5, **b),   # без шахты: где встанет
     ]
 
 
 def соседи(p: Params) -> list[Params]:
     out = []
-    for имя in ("center_cap", "smith_cap", "ba_cap"):
-        if имя == "smith_cap" and not p.strict:
-            continue                         # кузницы в этом режиме нет
-        for v in ПОТОЛКИ:
+    if p.goal <= 1:
+        for имя in ("center_cap", "smith_cap", "ba_cap"):
+            if имя == "smith_cap" and not p.strict:
+                continue                         # кузницы в этом режиме нет
+            for v in ПОТОЛКИ:
+                if v != getattr(p, имя):
+                    out.append(Params(**{**asdict(p), имя: v}))
+        return out
+    сетка = {"mine_at": (0, 1, 2, 3), "mine_cap": (4, 99), "wood": (0, 2, 4),
+             "order": (p.goal, 5, -1)}
+    for имя, значения in сетка.items():
+        for v in значения:
             if v != getattr(p, имя):
                 out.append(Params(**{**asdict(p), имя: v}))
     return out
 
 
 def время(r: dict) -> float:
-    return float(r["t_soldier"]) if r.get("t_soldier") is not None else float("inf")
+    t = r.get("t_goal", r.get("t_soldier"))
+    return float(t) if t is not None else float("inf")
 
 
 def загрузить(путь: str) -> list[dict]:
@@ -308,20 +400,26 @@ def загрузить(путь: str) -> list[dict]:
     return rows
 
 
+def _params(r: dict) -> Params:
+    return Params(**{k: v for k, v in r["params"].items() if k in Params.__dataclass_fields__})
+
+
 def лучшее_по_ключу(rows: list[dict]) -> dict[str, dict]:
     """Ключ параметров -> лучшая (наименьшее время) строка."""
     out: dict[str, dict] = {}
     for r in rows:
-        k = Params(**r["params"]).key()
+        k = _params(r).key()
         if k not in out or время(r) < время(out[k]):
             out[k] = r
     return out
 
 
-def сводка(rows: list[dict], путь: str, seed: int) -> None:
+def сводка(rows: list[dict], путь: str, seed: int, goal: int) -> None:
+    rows = [r for r in rows if int(r["params"].get("goal", 1)) == goal]
     по = лучшее_по_ключу(rows)
     порядок = sorted(по.values(), key=время)
-    строки = ["# Первый боец: поиск без модели", "",
+    цель = "первый боец" if goal <= 1 else f"{goal} бойцов"
+    строки = [f"# {цель.capitalize()}: поиск без модели", "",
               f"Партий сыграно {len(rows)}, сочетаний {len(по)}, сид карты {seed}.",
               "Режим «честно» — требования зданий как в интерфейсе; «без-кузницы» — "
               "как принимает движок через мост (казарма и найм без кузницы), законность "
@@ -329,34 +427,53 @@ def сводка(rows: list[dict], путь: str, seed: int) -> None:
     # проверка повторяемости: одинаковые параметры — одинаковое время?
     повторы: dict[str, list] = {}
     for r in rows:
-        повторы.setdefault(Params(**r["params"]).key(), []).append(r.get("t_soldier"))
+        повторы.setdefault(_params(r).key(), []).append(r.get("t_goal", r.get("t_soldier")))
     разброс = [(k, v) for k, v in повторы.items() if len(v) > 1]
     if разброс:
         k, v = разброс[0]
         ч = [x for x in v if x is not None]
+        имя = Params(**json.loads(k)).label()
         if len(ч) >= 2:
-            строки.append(f"**Повторяемость:** {Params(**json.loads(k)).label()} сыграна "
-                          f"{len(v)} раз: боец на {', '.join(str(x) for x in v)} с, "
-                          f"разброс {max(ч) - min(ч)} с. "
+            строки.append(f"**Повторяемость:** {имя} сыграна {len(v)} раз: цель на "
+                          f"{', '.join(str(x) for x in v)} с, разброс {max(ч) - min(ч)} с. "
                           + ("Замер честный." if max(ч) - min(ч) <= 3 else
                              "РАЗБРОС БОЛЬШЕ 3 С — при одном сиде так быть не должно, "
                              "разницу между сочетаниями меньше этого не засчитывать."))
         else:
-            строки.append(f"**Повторяемость:** {Params(**json.loads(k)).label()} сыграна "
-                          f"{len(v)} раз, боец получен не во всех: {v}.")
+            строки.append(f"**Повторяемость:** {имя} сыграна {len(v)} раз, цель взята "
+                          f"не во всех: {v}.")
         строки.append("")
-    строки += ["| сочетание | боец | ратуша | кузница | казарма | заложены | бригады | конец |",
-               "|---|---|---|---|---|---|---|---|"]
-    for r in порядок:
-        заложены = " ".join(f"{k}:{v}" for k, v in sorted(r.get("laid", {}).items(), key=lambda x: x[1]))
-        бригады = " ".join(f"{k}:{v[1]}/{v[0]}" for k, v in r.get("crew", {}).items())
-        боец = r.get("t_soldier") if r.get("t_soldier") is not None else "—"
-        строки.append(f"| {r['label']} | {боец} "
-                      f"| {r.get('t_center') or '—'} | {r.get('t_smith') or '—'} | {r.get('t_ba') or '—'} "
-                      f"| {заложены} | {бригады} | {r.get('end', '')} |")
-    строки.append("")
-    строки.append("Сочетание: c/s/b — потолок строителей на ратуше, кузнице, казарме "
-                  "(99 = все, кто влезает). Бригады: строят/котлован.")
+    if goal <= 1:
+        строки += ["| сочетание | боец | ратуша | кузница | казарма | заложены | бригады | конец |",
+                   "|---|---|---|---|---|---|---|---|"]
+        for r in порядок:
+            заложены = " ".join(f"{k}:{v}" for k, v in sorted(r.get("laid", {}).items(), key=lambda x: x[1]))
+            бригады = " ".join(f"{k}:{v[1]}/{v[0]}" for k, v in r.get("crew", {}).items())
+            боец = r.get("t_soldier") if r.get("t_soldier") is not None else "—"
+            строки.append(f"| {r['label']} | {боец} "
+                          f"| {r.get('t_center') or '—'} | {r.get('t_smith') or '—'} | {r.get('t_ba') or '—'} "
+                          f"| {заложены} | {бригады} | {r.get('end', '')} |")
+        строки.append("")
+        строки.append("Сочетание: c/s/b — потолок строителей на ратуше, кузнице, казарме "
+                      "(99 = все, кто влезает). Бригады: строят/котлован.")
+    else:
+        строки += [f"| сочетание | {goal} бойцов | 1-й | 10-й | казарма | шахта заложена/готова "
+                   f"| бойцов к концу | еда/дерево/золото/железо к концу | очередь | конец |",
+                   "|---|---|---|---|---|---|---|---|---|---|"]
+        for r in порядок:
+            ц = r.get("t_goal") if r.get("t_goal") is not None else "—"
+            шахта = f"{r.get('laid', {}).get('mineiron', '—')}/{r.get('t_mine') or '—'}"
+            посл = r.get("last", {})
+            рес = "/".join(str(посл.get(k, "?")) for k in ("food", "wood", "gold", "iron"))
+            бойцов_к_концу = r["series"][-1][-1] if r.get("series") else "?"
+            строки.append(f"| {r['label']} | {ц} | {r.get('t_soldier') or '—'} | {r.get('t_10') or '—'} "
+                          f"| {r.get('t_ba') or '—'} | {шахта} | {бойцов_к_концу} | {рес} "
+                          f"| {посл.get('queue', '')} | {r.get('end', '')} |")
+        строки.append("")
+        строки.append("Сочетание: шахта — когда заложена железная (0 никогда, 1 при готовой "
+                      "ратуше, 2 после кузницы, 3 после казармы); стр — потолок строителей на "
+                      "ней; дерево — сколько людей послано на дерево после ратуши; заказ — "
+                      "кусок заказа в казарму (-1 бесконечно). Потолки на цепочке — все.")
     отказы = [(r["label"], f) for r in порядок for f in r.get("fails", [])][:12]
     if отказы:
         строки += ["", "Что игра отвечала отказом (первые 12):"]
@@ -365,31 +482,33 @@ def сводка(rows: list[dict], путь: str, seed: int) -> None:
         f.write("\n".join(строки) + "\n")
 
 
-def план(rows: list[dict], repeat: int, strict: int) -> list[Params]:
+def план(rows: list[dict], repeat: int, strict: int, goal: int) -> list[Params]:
     """Кого играть дальше. Сначала стартовый список (первый — repeat раз, это
     проверка повторяемости), потом подъём по соседям лучшего. Уже измеренные
     сочетания не повторяются."""
     измерено = лучшее_по_ключу(rows)
     раз: dict[str, int] = {}
     for r in rows:
-        k = Params(**r["params"]).key()
+        k = _params(r).key()
         раз[k] = раз.get(k, 0) + 1
     очередь: list[Params] = []
-    первый = стартовые(strict)[0]
-    for p in стартовые(strict):
+    первый = стартовые(strict, goal)[0]
+    for p in стартовые(strict, goal):
         нужно = (repeat if p == первый else 1) - раз.get(p.key(), 0)
         очередь += [p] * max(0, нужно)
     if очередь:
         return очередь
-    свои = [r for r in измерено.values() if int(r["params"].get("strict", 1)) == strict]
+    свои = [r for r in измерено.values()
+            if int(r["params"].get("strict", 1)) == strict
+            and int(r["params"].get("goal", 1)) == goal]
     лучшая = min(свои, key=время, default=None)
     if лучшая is None:
         return []
-    return [s for s in соседи(Params(**лучшая["params"])) if s.key() not in измерено]
+    return [s for s in соседи(_params(лучшая)) if s.key() not in измерено]
 
 
 def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: int,
-          new_timeout: float, strict: int = 1) -> int:
+          new_timeout: float, strict: int = 1, goal: int = 1) -> int:
     d = os.path.expandvars(os.path.expanduser(d))
     os.makedirs(io, exist_ok=True)
     файл = os.path.join(io, "opening.jsonl")
@@ -397,7 +516,7 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
     rows = загрузить(файл)
     режим = ("ЧЕСТНЫЙ (требования зданий как в интерфейсе)" if strict
              else "БЕЗ КУЗНИЦЫ (как принимает движок; законность решает игрок)")
-    print(f"поиск первого бойца: каталог игры {d}, результаты {файл}, "
+    print(f"поиск: цель {goal} бойцов, каталог игры {d}, результаты {файл}, "
           f"уже сыграно {len(rows)}, режим {режим}", flush=True)
     сыграно = 0
     # Первую попытку можно сыграть на уже идущей партии, если она только началась.
@@ -407,7 +526,7 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         br = Bridge(d, слот[0])
         print(f"     партия уже идёт с {_int(слот[1], 'gametime')} с — беру её", flush=True)
     while True:
-        очередь = план(rows, repeat, strict)
+        очередь = план(rows, repeat, strict, goal)
         if not очередь:
             print("сочетания кончились: лучший не улучшается ни одним соседом", flush=True)
             break
@@ -426,17 +545,19 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         rows.append(r)
         with open(файл, "a", encoding="utf-8") as f:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
-        сводка(rows, отчёт, seed)
+        сводка(rows, отчёт, seed, goal)
         print(f"     {p.label()}: {r['end']}; ратуша {r['t_center']}, кузница {r['t_smith']}, "
-              f"казарма {r['t_ba']}, БОЕЦ {r['t_soldier']} "
+              f"казарма {r['t_ba']}, шахта {r['t_mine']}, 1-й боец {r['t_soldier']}, "
+              f"10-й {r['t_10']}, ЦЕЛЬ {r['t_goal']}; к концу {r['last']} "
               f"({r['wall']} с реального времени)", flush=True)
         if r["fails"]:
             print(f"     отказы: {r['fails'][-1][1]}", flush=True)
         сыграно += 1
         br = None
-    лучшая = min(rows, key=время, default=None)
-    if лучшая and лучшая.get("t_soldier") is not None:
-        print(f"\nЛУЧШЕЕ: {лучшая['label']} — боец на {лучшая['t_soldier']} с", flush=True)
+    свои = [r for r in rows if int(r["params"].get("goal", 1)) == goal]
+    лучшая = min(свои, key=время, default=None)
+    if лучшая and время(лучшая) != float("inf"):
+        print(f"\nЛУЧШЕЕ: {лучшая['label']} — цель на {время(лучшая):.0f} с", flush=True)
     return 0
 
 
@@ -446,7 +567,8 @@ def run_from_policy(a) -> int:
     return поиск(a.dir, io, int(a.opening_seed), int(a.opening_horizon),
                  int(a.opening_attempts), int(a.opening_repeat),
                  float(getattr(a, "new_timeout", 240) or 240),
-                 int(getattr(a, "opening_strict", 1)))
+                 int(getattr(a, "opening_strict", 1)),
+                 int(getattr(a, "opening_goal", 1)))
 
 
 def main() -> int:
@@ -455,6 +577,7 @@ def main() -> int:
     ap.add_argument("--dir", default=os.path.expandvars(os.path.expanduser("~/coss3-io")))
     ap.add_argument("--io", default="", help="куда писать opening.jsonl и opening.md (по умолчанию --dir)")
     ap.add_argument("--seed", type=int, default=12345)
+    ap.add_argument("--goal", type=int, default=1, help="сколько бойцов нужно (1 = первый боец)")
     ap.add_argument("--horizon", type=int, default=300, help="игровых секунд на попытку")
     ap.add_argument("--attempts", type=int, default=0, help="сколько партий сыграть (0 = пока есть что мерить)")
     ap.add_argument("--repeat", type=int, default=2, help="сколько раз играть первое сочетание (проверка повторяемости)")
@@ -463,7 +586,7 @@ def main() -> int:
                     help="1 — требования зданий как в интерфейсе; 0 — как принимает движок (без кузницы)")
     a = ap.parse_args()
     return поиск(a.dir, a.io or os.path.expandvars(os.path.expanduser(a.dir)), a.seed,
-                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict)
+                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal)
 
 
 if __name__ == "__main__":
