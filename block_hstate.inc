@@ -498,6 +498,22 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'squad_hdef', gFormation[hssqf].bonusshieldhold);
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_shooters', hsshoot);
+      [*] = ;         // OUR OWN losses from the same engine statistics: peasants and fighters of
+      [*] = ;         // ours that died since the game began. Until now the trace could only
+      [*] = ;         // guess losses from army deltas, and hiring hid them.
+      [*] = ;         var hslp, hslm, hslk : Integer;
+      [*] = ;         for hslk := 0 to gc_country_maxmembers-1 do
+      [*] = ;         begin
+      [*] = ;            var hslu : Integer = gObjProp[hscid][hslk].usage;
+      [*] = ;            if (hslu = gc_obj_usage_peasant) then
+      [*] = ;            hslp := hslp + gPlayer[plind].stat.killed[hscid][hslk];
+      [*] = ;            if (hslu = gc_obj_usage_lightinfantry) or (hslu = gc_obj_usage_weak) or (hslu = gc_obj_usage_grenadier) or
+      [*] = ;               (hslu = gc_obj_usage_shooter) or (hslu = gc_obj_usage_archer) or (hslu = gc_obj_usage_fasthorse) or
+      [*] = ;               (hslu = gc_obj_usage_hardhorse) or (hslu = gc_obj_usage_horseshooter) then
+      [*] = ;            hslm := hslm + gPlayer[plind].stat.killed[hscid][hslk];
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_pea_lost', hslp);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_mil_lost', hslm);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_cav',      hscav);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
@@ -1074,6 +1090,27 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // LOSSES FROM THE ENGINE'S OWN STATISTICS (20.09). gPlayer[pl].stat.killed[cid][id]
+      [*] = ;            // is incremented in _unit_RemoveObjFromPlayerCounters (lib/unit.script:3900) for
+      [*] = ;            // the OWNER of the dead unit, capture excluded - so for player hspl it is how
+      [*] = ;            // many of HIS units of that type have died. The peasant counter alone could not
+      [*] = ;            // tell a kill from a peasant walking into a mine: 20.09 our wave stood seven
+      [*] = ;            // cells away and his count fell 23 -> 16, and the bridge called it a milestone.
+      [*] = ;            // Here the engine says how many of his peasants and fighters really died.
+      [*] = ;            var hselc : Integer = gPlayer[hspl].cid;
+      [*] = ;            var hselp, hselm, hselk : Integer;
+      [*] = ;            for hselk := 0 to gc_country_maxmembers-1 do
+      [*] = ;            begin
+      [*] = ;               var hselu : Integer = gObjProp[hselc][hselk].usage;
+      [*] = ;               if (hselu = gc_obj_usage_peasant) then
+      [*] = ;               hselp := hselp + gPlayer[hspl].stat.killed[hselc][hselk];
+      [*] = ;               if (hselu = gc_obj_usage_lightinfantry) or (hselu = gc_obj_usage_weak) or (hselu = gc_obj_usage_grenadier) or
+      [*] = ;                  (hselu = gc_obj_usage_shooter) or (hselu = gc_obj_usage_archer) or (hselu = gc_obj_usage_fasthorse) or
+      [*] = ;                  (hselu = gc_obj_usage_hardhorse) or (hselu = gc_obj_usage_horseshooter) then
+      [*] = ;               hselm := hselm + gPlayer[hspl].stat.killed[hselc][hselk];
+      [*] = ;            end;
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_pea_lost', hselp);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mil_lost', hselm);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_peasants', hsepea);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_bldgs',    hsebld);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_army',     hsemil);

@@ -220,11 +220,17 @@ def враг(st: dict) -> dict:
     """Что видно о враге в этот такт: армия, крестьяне, кто идёт, где его
     крестьяне без охраны и сколько до них идти нашей пехоте."""
     армия = крестьяне = идут = 0
+    потери_кр = потери_мил = 0
+    есть_счёт = False
     for k in range(8):
         if _int(st, f"p{k}_enemy"):
             армия += _int(st, f"p{k}_army")
             крестьяне += _int(st, f"p{k}_peasants")
             идут += _int(st, f"p{k}_mv_n")
+            if f"p{k}_pea_lost" in st:
+                есть_счёт = True
+                потери_кр += _int(st, f"p{k}_pea_lost")
+                потери_мил += _int(st, f"p{k}_mil_lost")
     клетки = coss3_map.крестьяне_врага(st, топ=3)
     n = _int(st, "grid_n") or 16
     клетка_ед = (_int(st, "map_w") or 256) / n
@@ -234,7 +240,11 @@ def враг(st: dict) -> dict:
         c["клеток"] = round(d, 1)
         c["ход_с"] = int(round(d * клетка_ед / СКОРОСТЬ_ПЕХОТЫ))
     return {"армия": армия, "крестьяне": крестьяне, "идут": идут,
-            "рядом": _int(st, "en_near_dist"), "клетки": клетки}
+            "рядом": _int(st, "en_near_dist"), "клетки": клетки,
+            # счёт движка (блок 20.09): None, если блок старый
+            "потери_кр": потери_кр if есть_счёт else None,
+            "потери_мил": потери_мил if есть_счёт else None,
+            "наши_мил": _int(st, "my_mil_lost") if "my_mil_lost" in st else None}
 
 
 # --- слот и новая партия ------------------------------------------------------
@@ -328,7 +338,9 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
             # волна: когда ушла, куда, когда пришла, что убила, что потеряла
             "t_wave": None, "wave_to": None, "t_arrive": None, "t_kill": None,
             "t_win": None, "kills": 0, "en_start": None, "en_min": None,
-            "en_army_at_arrive": None, "ours_min_after": None}
+            "en_army_at_arrive": None, "ours_min_after": None,
+            # счёт движка: веха и убитые по gPlayer.stat.killed, наши погибшие
+            "t_kill_engine": None, "kills_engine": None, "my_mil_lost": None}
     t0 = time.monotonic()
     последний_gt = -1
     train_gt = -100          # когда последний раз слали TRAIN (игровые секунды)
@@ -395,6 +407,11 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
                     итог["kills"] += en_prev - en
                 if итог["t_kill"] is None and итог["en_start"] and en < итог["en_start"]:
                     итог["t_kill"] = gt
+                if в["потери_кр"] is not None:
+                    итог["kills_engine"] = в["потери_кр"]
+                    итог["my_mil_lost"] = в["наши_мил"]
+                    if итог["t_kill_engine"] is None and в["потери_кр"] > 0:
+                        итог["t_kill_engine"] = gt
                 ноль_подряд = ноль_подряд + 1 if en == 0 else 0
                 if (итог["t_win"] is None and ноль_подряд >= 2 and итог["en_start"]
                         and gt - итог["t_wave"] > 20):
@@ -636,15 +653,16 @@ def сводка_волны(rows: list[dict], путь: str, seed: int) -> None:
         строки.append(f"**Повторяемость:** {Params(**json.loads(k)).label()} сыграна {len(v)} раз: "
                       f"(приход, веха, победа) = {v}.")
         строки.append("")
-    строки += ["| сочетание | ушла | ход с | пришла | его армия при приходе | веха | победа | убито (оценка) "
-               "| его крестьян старт → мин | наших ушло → мин после | конец на |",
-               "|---|---|---|---|---|---|---|---|---|---|---|"]
+    строки += ["| сочетание | ушла | ход с | пришла | его армия при приходе | веха (счётчик) | веха (движок) "
+               "| убито (движок) | убито (оценка) | победа "
+               "| его крестьян старт → мин | наших ушло → мин после | наших погибло (движок) | конец на |",
+               "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in порядок:
         д = lambda k: r.get(k) if r.get(k) is not None else "—"
         строки.append(f"| {r['label']} | {д('t_wave')} | {д('wave_march')} | {д('t_arrive')} | {д('en_army_at_arrive')} "
-                      f"| {д('t_kill')} | {д('t_win')} | {r.get('kills', 0)} "
+                      f"| {д('t_kill')} | {д('t_kill_engine')} | {д('kills_engine')} | {r.get('kills', 0)} | {д('t_win')} "
                       f"| {д('en_start')} → {д('en_min')} | {д('wave_n_sent')} → {д('ours_min_after')} "
-                      f"| {r.get('end', '')} {r.get('gt_end')} |")
+                      f"| {д('my_mil_lost')} | {r.get('end', '')} {r.get('gt_end')} |")
     строки.append("")
     строки.append("Сочетание: волнаN — N бойцов уходят, как только готовы; cell — в лучшую клетку его "
                   "крестьян без охраны, peasants — к ближайшему крестьянину, base — к его зданию.")
@@ -722,11 +740,13 @@ def план_волны(rows: list[dict], repeat: int, strict: int, goal: int, t
 
 
 def время_волны(r: dict) -> float:
-    """Чем раньше победа, тем лучше; без победы — чем раньше веха; иначе бесконечность."""
+    """Чем раньше победа, тем лучше; без победы — чем раньше веха (по счёту
+    движка, если он есть); иначе бесконечность."""
     if r.get("t_win") is not None:
         return float(r["t_win"])
-    if r.get("t_kill") is not None:
-        return 10000.0 + float(r["t_kill"])
+    веха = r.get("t_kill_engine") if r.get("kills_engine") is not None else r.get("t_kill")
+    if веха is not None:
+        return 10000.0 + float(веха)
     return float("inf")
 
 
