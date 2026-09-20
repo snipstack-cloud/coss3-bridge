@@ -50,6 +50,9 @@ import time
 from dataclasses import asdict, dataclass
 
 from coss3_bridge import Bridge, build, train, builders, balance
+import coss3_map
+
+СКОРОСТЬ_ПЕХОТЫ = 2.0      # единиц карты в секунду, как в llm_policy
 
 БОЙЦЫ = ("mil_inf", "mil_shooters", "mil_cav")
 # роль в приказе -> счётчик ГОТОВЫХ зданий в состоянии
@@ -94,12 +97,15 @@ class Params:
     mine_cap: int = 99
     wood: int = 0
     order: int = 1
+    scout: int = 0     # 1 — после цели не выходить, а наблюдать врага до горизонта
 
     def key(self) -> str:
         return json.dumps(asdict(self), sort_keys=True)
 
     def label(self) -> str:
         режим = "честно" if self.strict else "без-кузницы"
+        if self.scout:
+            return f"разведка/цель{self.goal}/{режим}"
         if self.goal <= 1:
             return f"c{self.center_cap}/s{self.smith_cap}/b{self.ba_cap}/{режим}"
         return (f"шахта{self.mine_at}/стр{self.mine_cap}/дерево{self.wood}/"
@@ -178,6 +184,27 @@ def такт(st: dict, p: Params, train_ok: bool = True) -> list:
         elif очередь_пуста(st):
             cmds.append(train("infantry17", min(p.order, p.goal - есть)))
     return cmds
+
+
+def враг(st: dict) -> dict:
+    """Что видно о враге в этот такт: армия, крестьяне, кто идёт, где его
+    крестьяне без охраны и сколько до них идти нашей пехоте."""
+    армия = крестьяне = идут = 0
+    for k in range(8):
+        if _int(st, f"p{k}_enemy"):
+            армия += _int(st, f"p{k}_army")
+            крестьяне += _int(st, f"p{k}_peasants")
+            идут += _int(st, f"p{k}_mv_n")
+    клетки = coss3_map.крестьяне_врага(st, топ=3)
+    n = _int(st, "grid_n") or 16
+    клетка_ед = (_int(st, "map_w") or 256) / n
+    mx, my = _int(st, "my_cx"), _int(st, "my_cy")
+    for c in клетки:
+        d = ((c["x"] - mx) ** 2 + (c["y"] - my) ** 2) ** 0.5
+        c["клеток"] = round(d, 1)
+        c["ход_с"] = int(round(d * клетка_ед / СКОРОСТЬ_ПЕХОТЫ))
+    return {"армия": армия, "крестьяне": крестьяне, "идут": идут,
+            "рядом": _int(st, "en_near_dist"), "клетки": клетки}
 
 
 # --- слот и новая партия ------------------------------------------------------
@@ -266,7 +293,7 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
     итог = {"params": asdict(p), "label": p.label(), "seed": None,
             "t_center": None, "t_smith": None, "t_ba": None, "t_mine": None,
             "t_soldier": None, "t_10": None, "t_goal": None,
-            "laid": {}, "crew": {}, "fails": [], "series": [],
+            "laid": {}, "crew": {}, "fails": [], "series": [], "scout": [],
             "end": "", "gt_end": 0, "wall": 0.0, "gt_start": None, "last": {}}
     t0 = time.monotonic()
     последний_gt = -1
@@ -310,10 +337,15 @@ def сыграть(br: Bridge, p: Params, horizon: int, тихо: float = 45.0) 
             итог["series"].append([gt] + [_int(st, k) for k in РЕСУРСЫ]
                                   + [_int(st, "idle_pea"), _int(st, "on_wood"),
                                      _int(st, "on_iron"), есть])
+            if p.scout:
+                в = враг(st)
+                в["gt"], в["наши"], в["крестьяне_наши"] = gt, есть, _int(st, "peasants")
+                итог["scout"].append(в)
         итог["last"] = {k: _int(st, k) for k in РЕСУРСЫ}
         итог["last"]["queue"] = str(st.get("ba_queues", "") or "")
-        if есть >= p.goal:
+        if есть >= p.goal and итог["t_goal"] is None:
             итог["t_goal"] = gt
+        if есть >= p.goal and not p.scout:
             итог["end"] = "цель"
             break
         if gt >= horizon:
@@ -482,10 +514,48 @@ def сводка(rows: list[dict], путь: str, seed: int, goal: int) -> None:
         f.write("\n".join(строки) + "\n")
 
 
-def план(rows: list[dict], repeat: int, strict: int, goal: int) -> list[Params]:
+def разведка_в_файл(rows: list[dict], путь: str) -> None:
+    """Хронология врага по партиям: раз в 10 с — его армия, крестьяне, кто идёт,
+    лучшая клетка без охраны и сколько до неё идти. Нужна, чтобы назвать ОКНО:
+    до какой секунды его крестьяне стоят без бойцов рядом."""
+    строки = ["# Разведка: враг по секундам", ""]
+    for i, r in enumerate(rows, 1):
+        if not r.get("scout"):
+            continue
+        строки += [f"## Партия {i}: {r['label']}, {r.get('end', '')} на {r.get('gt_end')} с; "
+                   f"наш 1-й боец {r.get('t_soldier')}, цель {r.get('t_goal')}", "",
+                   "| с | наши | его армия | его крестьяне | идут | ближайший отряд | "
+                   "клетка без охраны: крестьян/бойцов рядом | клеток / ход с | ещё клетки |",
+                   "|---|---|---|---|---|---|---|---|---|"]
+        окно = None
+        for в in r["scout"]:
+            к = в.get("клетки") or []
+            лучшая = к[0] if к else None
+            if лучшая and лучшая["бойцов_рядом"] == 0:
+                окно = в["gt"]
+            л = (f"({лучшая['x']},{лучшая['y']}) {лучшая['крестьян']}/{лучшая['бойцов_рядом']}"
+                 if лучшая else "—")
+            ход = f"{лучшая['клеток']} / {лучшая['ход_с']}" if лучшая else "—"
+            ещё = "; ".join(f"({c['x']},{c['y']}) {c['крестьян']}/{c['бойцов_рядом']}" for c in к[1:])
+            строки.append(f"| {в['gt']} | {в['наши']} | {в['армия']} | {в['крестьяне']} | {в['идут']} "
+                          f"| {в['рядом']} | {л} | {ход} | {ещё} |")
+        строки.append("")
+        строки.append(f"Последняя секунда, когда была клетка с крестьянами БЕЗ бойцов в ней и вокруг: "
+                      f"{окно if окно is not None else 'не было ни разу'}.")
+        строки.append("")
+    with open(путь, "w", encoding="utf-8") as f:
+        f.write("\n".join(строки) + "\n")
+
+
+def план(rows: list[dict], repeat: int, strict: int, goal: int, scout: int = 0) -> list[Params]:
     """Кого играть дальше. Сначала стартовый список (первый — repeat раз, это
     проверка повторяемости), потом подъём по соседям лучшего. Уже измеренные
-    сочетания не повторяются."""
+    сочетания не повторяются. Разведка — одно сочетание repeat раз, и всё."""
+    if scout:
+        p = Params(strict=strict, goal=goal, scout=1,
+                   **({} if goal <= 1 else dict(mine_at=1, order=goal)))
+        было = sum(1 for r in rows if _params(r).key() == p.key())
+        return [p] * max(0, repeat - было)
     измерено = лучшее_по_ключу(rows)
     раз: dict[str, int] = {}
     for r in rows:
@@ -508,7 +578,7 @@ def план(rows: list[dict], repeat: int, strict: int, goal: int) -> list[Para
 
 
 def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: int,
-          new_timeout: float, strict: int = 1, goal: int = 1) -> int:
+          new_timeout: float, strict: int = 1, goal: int = 1, scout: int = 0) -> int:
     d = os.path.expandvars(os.path.expanduser(d))
     os.makedirs(io, exist_ok=True)
     файл = os.path.join(io, "opening.jsonl")
@@ -526,7 +596,7 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         br = Bridge(d, слот[0])
         print(f"     партия уже идёт с {_int(слот[1], 'gametime')} с — беру её", flush=True)
     while True:
-        очередь = план(rows, repeat, strict, goal)
+        очередь = план(rows, repeat, strict, goal, scout)
         if not очередь:
             print("сочетания кончились: лучший не улучшается ни одним соседом", flush=True)
             break
@@ -546,6 +616,8 @@ def поиск(d: str, io: str, seed: int, horizon: int, attempts: int, repeat: 
         with open(файл, "a", encoding="utf-8") as f:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
         сводка(rows, отчёт, seed, goal)
+        if p.scout:
+            разведка_в_файл(rows, os.path.join(io, "scout.md"))
         print(f"     {p.label()}: {r['end']}; ратуша {r['t_center']}, кузница {r['t_smith']}, "
               f"казарма {r['t_ba']}, шахта {r['t_mine']}, 1-й боец {r['t_soldier']}, "
               f"10-й {r['t_10']}, ЦЕЛЬ {r['t_goal']}; к концу {r['last']} "
@@ -568,7 +640,8 @@ def run_from_policy(a) -> int:
                  int(a.opening_attempts), int(a.opening_repeat),
                  float(getattr(a, "new_timeout", 240) or 240),
                  int(getattr(a, "opening_strict", 1)),
-                 int(getattr(a, "opening_goal", 1)))
+                 int(getattr(a, "opening_goal", 1)),
+                 int(getattr(a, "opening_scout", 0)))
 
 
 def main() -> int:
@@ -584,9 +657,11 @@ def main() -> int:
     ap.add_argument("--new-timeout", type=float, default=240)
     ap.add_argument("--strict", type=int, default=1,
                     help="1 — требования зданий как в интерфейсе; 0 — как принимает движок (без кузницы)")
+    ap.add_argument("--scout", type=int, default=0,
+                    help="1 — разведка: после цели наблюдать врага до горизонта, без перебора")
     a = ap.parse_args()
     return поиск(a.dir, a.io or os.path.expandvars(os.path.expanduser(a.dir)), a.seed,
-                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal)
+                 a.horizon, a.attempts, a.repeat, a.new_timeout, a.strict, a.goal, a.scout)
 
 
 if __name__ == "__main__":

@@ -52,7 +52,7 @@ for _s in (sys.stdout, sys.stderr):
            # сказал движку и что тот ответил.
            "мост_в_игре.log",
            # Поиск первого бойца без модели (opening.py): партии и сводка.
-           "opening.jsonl", "opening.md"]
+           "opening.jsonl", "opening.md", "scout.md"]
 # Что отправляем хвостом: строк и сколько.
 ХВОСТОМ = {"policy.log": 400, "coss3_llm.log": 400, "game.log": 300,
            "install.log": 200, "report.txt": 800}
