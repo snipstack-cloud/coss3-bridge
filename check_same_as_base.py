@@ -20,7 +20,7 @@
 включённого ключа этим не проверяется никак, и не должно: в том и смысл идеи,
 что она ведёт себя иначе.
 """
-import difflib, glob, hashlib, json, subprocess, sys
+import difflib, glob, hashlib, json, os, subprocess, sys
 
 ТРАССЫ = '/Users/gs/coss3-res/2026-09-21/base24'
 ШАГ = 17          # берём каждое N-е состояние: нужен разброс, а не все подряд
@@ -35,9 +35,19 @@ def запросы(путь_версии, трассы):
     молча пользовался бы состоянием первого.
     """
     код = f'''
-import json, glob, sys
-sys.path.insert(0, {путь_версии!r})
+import json, glob, os, sys
+# ПУТЬ ПРОВЕРЯЕМ, А НЕ ДОВЕРЯЕМ. 21.09 каталог со старой версией был удалён, и
+# sys.path.insert молча уронил импорт на текущий каталог: инструмент сравнил
+# ветку САМУ С СОБОЙ и сказал «отличие ровно одно». Проверка, которая
+# оправдывает при пустом входе, хуже отсутствующей.
+_путь = os.path.abspath({путь_версии!r})
+if not os.path.isfile(os.path.join(_путь, "llm_policy.py")):
+    raise SystemExit("НЕТ ВЕРСИИ: " + os.path.join(_путь, "llm_policy.py"))
+sys.path.insert(0, _путь)
 import llm_policy as L
+if os.path.abspath(os.path.dirname(L.__file__)) != _путь:
+    raise SystemExit("импортирован ЧУЖОЙ llm_policy: " + L.__file__)
+print("ВЗЯТО:", L.__file__, file=sys.stderr)
 состояния = []
 for ф in sorted(glob.glob({трассы!r} + "/*/coss3_bot.jsonl")):
     for строка in open(ф, encoding="utf-8"):
@@ -60,6 +70,9 @@ print(json.dumps(готово, ensure_ascii=False))
     if вывод.returncode:
         print(вывод.stderr[-2000:])
         raise SystemExit(f"версия {путь_версии} не отработала")
+    for строка in вывод.stderr.splitlines():
+        if строка.startswith("ВЗЯТО:"):
+            print(" ", строка)
     return json.loads(вывод.stdout.strip().splitlines()[-1])
 
 
@@ -68,8 +81,10 @@ def main():
         print(__doc__)
         raise SystemExit(2)
     база, трассы = sys.argv[1], (sys.argv[2] if len(sys.argv) > 2 else ТРАССЫ)
+    if os.path.abspath(база) == os.getcwd():
+        raise SystemExit("база и идея — один каталог: сравнивать нечего")
     а = запросы(база, трассы)
-    б = запросы(".", трассы)
+    б = запросы(os.getcwd(), трассы)
     if len(а) != len(б):
         raise SystemExit(f"разное число запросов: {len(а)} против {len(б)}")
     плохих = 0

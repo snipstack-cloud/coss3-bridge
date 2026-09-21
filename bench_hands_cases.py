@@ -14,7 +14,11 @@
     python3 bench_hands_cases.py [<каталог с трассами>] > задачи_руки.json
 """
 import json, glob, sys
-sys.path.insert(0, '/Users/gs/coss3-bridge')
+import os
+# Путь к мосту берём ОТ ЭТОГО ФАЙЛА, а не абсолютом: иначе копия стенда из
+# git worktree молча импортирует llm_policy рабочей копии и померит не ту
+# версию. 21.09 так и вышло при сравнении форматов.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
 
 КАТАЛОГ = sys.argv[1] if len(sys.argv) > 1 else '/Users/gs/coss3-res/2026-09-21/base24'
