@@ -22,7 +22,10 @@
     python3 стенд_найма.py --облако <id>                # через OPENROUTER_BASE_URL
 """
 import json, os, sys, time, urllib.request, statistics as stx
-sys.path.insert(0, '/Users/gs/coss3-bridge')
+# Путь к мосту берём ОТ ЭТОГО ФАЙЛА, а не абсолютом: иначе копия стенда из
+# git worktree молча импортирует llm_policy рабочей копии и померит не ту
+# версию. 21.09 так и вышло при сравнении форматов на стенде рук.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
 
 АДРЕС = "http://localhost:11434/api/generate"
