@@ -28,3 +28,10 @@ __pycache__/
 coss3_deploy*
 id_ed25519*
 *.pem
+
+# Хвосты живых прогонов на Windows: 21.09 пустой run.err уехал в коммит
+# вместе с git add -A. Трассы и логи партии в репозитории не место.
+run.log
+run.err
+run_*.log
+run_*.err
