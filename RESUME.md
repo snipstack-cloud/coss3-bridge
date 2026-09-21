@@ -216,19 +216,21 @@ TRAIN 12–28, UPGRADE 4–12, еда ниже 500 медианно 15 % так�
 
 ### Как запускать этот прогон (WSL, 3 копии по 3 партии)
 
-**Секция `[free_hands]` живёт ТОЛЬКО в ветке**, а контейнер читает
-`experiments.ini` из своего клона по `COSS3_BRIDGE_REF`. Поэтому ref задаётся
-веткой — иначе идея «не взята» и прогон не начнётся (так и задумано).
+**УСТАРЕЛО 21.09 ВЕЧЕРОМ: ветка ВЛИТА в `master`, и ref теперь `master`.**
+Ниже сохранён прежний порядок, но `COSS3_BRIDGE_REF=idea/free-hands` брать
+НЕЛЬЗЯ: в ветке НЕТ параллельного слота, и прогон по ней померил бы идею ровно
+в тех условиях, вред которых она сама и назвала (событие вытесняет такт).
+Секция `[free_hands]` теперь живёт на `master`, `ref = master` в ней же.
 
 ```bash
 # 1. КОНТРОЛЬ ДО СТАРТА
 docker ps --filter name=coss3- --format "{{.Names}} {{.Status}}"   # должно быть пусто
 git -C ~/coss3-git fetch --all --tags --force
-git -C ~/coss3-git show origin/idea/free-hands:docker/experiments.ini | grep -n "^\[free_hands\]"
+grep -n "^\[free_hands\]" ~/coss3-git/docker/experiments.ini   # теперь на master
 git -C ~/coss3-git pull          # entrypoint.sh монтируется отсюда, он с master
 
 # 2. ТОМА: профиль каждой копии свой, иначе игра не дойдёт до меню
-for n in 1 2 3; do
+for n in 1 2 3; do            # 21.09 гнали ДВЕ копии
   rm -rf ~/io-fh$n ~/profile-fh$n
   mkdir -p ~/io-fh$n ~/profile-fh$n
   cp -a ~/profile/. ~/profile-fh$n/
@@ -239,7 +241,7 @@ done
 for n in 1 2 3; do
   docker run -d --name coss3-fh$n --env-file ~/coss3.env --entrypoint /usr/bin/tini \
     -e COSS3_BRIDGE_GIT=git@github.com:snipstack-cloud/coss3-bridge.git \
-    -e COSS3_BRIDGE_REF=idea/free-hands \
+    -e COSS3_BRIDGE_REF=master \
     -e COSS3_EXPERIMENT=free_hands \
     -e COSS3_RESULTS_NAME=free_hands/$n \
     -e COSS3_RESULTS_GIT=git@github.com:snipstack-cloud/coss3-results.git \
@@ -257,7 +259,7 @@ docker logs -f coss3-fh1
 **Пять строк лога, и только потом ждать.** Четыре обычные плюс пятая, своя:
 
 ```
-мост обновлён: 22e605d            (или новее по ветке)
+мост обновлён: 0900de1            (слияние: реестр + параллельный слот)
 идея «free_hands»: ВТОРОЙ ПОВОД…  нет строки — гасить, прогон мерит базу
   флаги: … --free-hands 3         нет ключа — то же самое
 пульс есть: тик Progress жив
