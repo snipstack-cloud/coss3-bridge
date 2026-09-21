@@ -4761,13 +4761,27 @@ def кого_спросить_по_сроку(st: dict):
     Если пустых нет — первое своё, чтобы состав можно было сменить на ходу
     (ради этого вопрос по сроку и заводился).
     """
+    def номер_здания(кусок: str):
+        """«1:pikeman:inf» -> ("ba17", 1); «s2:none» -> ("stable", 2).
+
+        Что угодно другое -> None. Поле не всегда список очередей: когда
+        кующих зданий нет вовсе, блок кладёт туда слово `none-built`
+        (block_hstate.inc:602), и попытка прочесть в нём номер роняла партию
+        на старте — поймано мак-тестом 21.09, `int('none-built')`.
+        """
+        голова = кусок.split(":")[0].strip()
+        цифры = голова[1:] if голова.startswith("s") else голова
+        if not цифры.isdigit():
+            return None
+        return ("stable" if голова.startswith("s") else "ba17", int(цифры))
+
     куски = [к.strip() for к in str(st.get("ba_queues") or "").split(",") if к.strip()]
-    if not куски:
+    годные = [(к, номер_здания(к)) for к in куски]
+    годные = [(к, н) for к, н in годные if н]
+    if not годные:
         return None
-    пустые = [к.split(":")[0] for к in куски if ":none" in к]
-    номер = (пустые or [к.split(":")[0] for к in куски])[0]
-    роль = "stable" if номер.startswith("s") else "ba17"
-    return (роль, int(номер.lstrip("s") or 1))
+    пустые = [н for к, н in годные if ":none" in к]
+    return (пустые or [н for _, н in годные])[0]
 
 
 def срок_найма(ключ) -> tuple[int, int]:
