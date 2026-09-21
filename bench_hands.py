@@ -1,0 +1,178 @@
+# -*- coding: utf-8 -*-
+"""Годится ли модель для событийного вызова «куда людей».
+
+Стенд-близнец `bench_hire.py`, тот же порядок и те же правила счёта. Вопрос
+узкий: запрос около 1100-1600 символов против ~6800 у обычного такта, ответ
+короткой схемой {"куда","сколько","why"}.
+
+Что проверяется и почему именно это. У вопроса «куда людей» НЕТ единственно
+верного ответа — он зависит от замысла партии. Поэтому меряется не совпадение
+с чьим-то мнением, а ГОДНОСТЬ ответа: примет ли его мост и не уйдёт ли он в
+пустоту.
+
+  1. JSON разобрался;
+  2. `куда` — из шести ресурсов или `wait`;
+  3. `сколько` — целое, и не отрицательное;
+  4. ответ проходит `руки_в_команды`, то есть превращается в настоящий BALANCE.
+
+Отдельно, и это главное наблюдение стенда: НЕ ПОСЛАЛ ЛИ В ПУСТОТУ — на еду без
+мельницы, в шахту, которой нет или где все места заняты, на землю, где нет
+свободных мест. Мост про каждый такой случай сказал прямо в запросе, так что
+это проверка не знания игры, а чтения условия.
+
+    python3 bench_hands.py <модель> [<модель> ...]     # локальные, через ollama
+    python3 bench_hands.py --облако <id>               # через OPENROUTER_BASE_URL
+    python3 bench_hands.py --задачи <файл.json> ...    # свой набор задач
+"""
+import json, os, sys, time, urllib.request, statistics as stx
+sys.path.insert(0, '/Users/gs/coss3-bridge')
+import llm_policy as L
+
+АДРЕС = "http://localhost:11434/api/generate"
+КУДА = [к for к, _, _ in L.КУДА_РУКИ]
+
+
+def спросить_локально(модель, промпт, таймаут=180):
+    """Со СХЕМОЙ — так и надо звать локальную модель (вывод стенда найма 21.09):
+    единственная их ошибка на узком вопросе это выдуманное имя, а схема с
+    перечислением закрывает её целиком.
+
+    `keep_alive` обязателен: без него ollama выгружает модель между вызовами, и
+    замер меряет загрузку с диска, а не работу.
+    """
+    тело = {"model": модель, "prompt": L.SYSTEM_РУКИ + "\n\n" + промпт,
+            "stream": False, "keep_alive": "10m",
+            "options": {"num_predict": 80, "num_ctx": 2048, "temperature": 0},
+            "format": {"type": "object",
+                       "properties": {"куда": {"type": "string",
+                                               "enum": КУДА + ["wait"]},
+                                      "сколько": {"type": "integer"},
+                                      "why": {"type": "string"}},
+                       "required": ["куда", "сколько"]}}
+    тело = json.dumps(тело).encode()
+    t = time.time()
+    d = json.load(urllib.request.urlopen(urllib.request.Request(
+        АДРЕС, тело, {"Content-Type": "application/json"}), timeout=таймаут))
+    return d.get("response", ""), time.time() - t
+
+
+def спросить_облако(клиент, модель, промпт):
+    t = time.time()
+    d = L.ask(клиент, модель, промпт, False, system=L.SYSTEM_РУКИ)
+    return json.dumps(d, ensure_ascii=False), time.time() - t
+
+
+def разобрать(текст):
+    i, j = текст.find("{"), текст.rfind("}")
+    if i < 0 or j <= i:
+        return None
+    try:
+        return json.loads(текст[i:j + 1])
+    except json.JSONDecodeError:
+        return None
+
+
+def годен(d, задача):
+    """Примет ли мост этот ответ. Возвращает (годен, причина)."""
+    if not isinstance(d, dict):
+        return False, "не JSON"
+    куда = str(d.get("куда") or "").strip().lower()
+    if куда not in КУДА + ["wait", "ждать", "none"]:
+        return False, f"неизвестное «{куда}»"
+    сколько = d.get("сколько", 0)
+    if not isinstance(сколько, int) or isinstance(сколько, bool):
+        try:
+            сколько = int(сколько)
+        except (TypeError, ValueError):
+            return False, "«сколько» не число"
+    if сколько < 0:
+        return False, "«сколько» отрицательное"
+    перевод = L.руки_в_команды(d, задача["состояние"])
+    if куда in ("wait", "ждать", "none"):
+        return True, "ждать"
+    if not перевод.get("commands"):
+        return False, "мост ответ не принял: " + перевод.get("why", "")[:40]
+    return True, ""
+
+
+def в_пустоту(d, st):
+    """Ушёл бы приказ в никуда? Мост про это сказал прямо в запросе."""
+    куда = str(d.get("куда") or "").strip().lower()
+    ч = L._чис
+    if куда == "food" and not ч(st.get("mills")):
+        return "на еду без мельницы"
+    if куда in ("gold", "iron", "coal"):
+        if not ч(st.get(f"mines_{куда}")):
+            return f"в шахту {куда}, которой нет"
+        мест, занято = ч(st.get(f"cap_{куда}")), ч(st.get(f"on_{куда}"))
+        if мест and занято >= мест:
+            return f"в шахту {куда}, где мест больше нет"
+    if куда in ("wood", "stone"):
+        своб = st.get(f"{куда}_slots_free")
+        if своб not in (None, "", -1, "-1") and ч(своб) <= 0:
+            return f"на {куда}, где все места заняты"
+    return ""
+
+
+def прогон(имя, спросить, задачи):
+    годных, времена, пустых, ответы = 0, [], [], []
+    for з in задачи:
+        try:
+            текст, сек = спросить(з["запрос"])
+        except Exception as e:
+            print(f"    gt={з['gt']:>4}  СБОЙ: {str(e)[:60]}")
+            ответы.append(None)
+            continue
+        d = разобрать(текст)
+        ок, причина = годен(d or {}, з)
+        пусто = в_пустоту(d or {}, з["состояние"]) if ок else ""
+        времена.append(сек)
+        годных += int(ок)
+        if пусто:
+            пустых.append(пусто)
+        ответы.append(d)
+        куда = (d or {}).get("куда", "-")
+        print(f"    gt={з['gt']:>4} своб={з['свободных']:>3}  {сек:5.1f} с  "
+              f"{'ГОДЕН' if ок else 'НЕТ  '}  {куда:>6} {(d or {}).get('сколько', '')}"
+              + (f"   ← {пусто}" if пусто else "")
+              + (f"   [{причина}]" if причина and причина != "ждать" else ""))
+    print(f"  {имя}: годных {годных}/{len(задачи)}, "
+          f"в пустоту {len(пустых)}, "
+          f"время медиана {stx.median(времена):.1f} с" if времена else f"  {имя}: нет ответов")
+    return {"модель": имя, "годных": годных, "всего": len(задачи),
+            "в_пустоту": пустых, "время": stx.median(времена) if времена else None,
+            "ответы": ответы}
+
+
+def main():
+    арг = sys.argv[1:]
+    файл = None
+    if "--задачи" in арг:
+        i = арг.index("--задачи")
+        файл = арг[i + 1]
+        del арг[i:i + 2]
+    задачи = (json.load(open(файл, encoding="utf-8")) if файл else
+              json.loads(os.popen(f"{sys.executable} bench_hands_cases.py 2>/dev/null").read()))
+    print(f"задач: {len(задачи)}, длина запроса "
+          f"{min(len(з['запрос']) for з in задачи)}-{max(len(з['запрос']) for з in задачи)} символов")
+    итоги = []
+    if "--облако" in арг:
+        i = арг.index("--облако")
+        модель = арг[i + 1]
+        from openai import OpenAI
+        клиент = OpenAI(base_url=L.BASE_URL, api_key=os.environ["OPENROUTER_API_KEY"])
+        print(f"\n  облако {модель}")
+        итоги.append(прогон(модель, lambda p: спросить_облако(клиент, модель, p), задачи))
+    else:
+        for модель in арг:
+            print(f"\n  {модель}")
+            итоги.append(прогон(модель, lambda p, м=модель: спросить_локально(м, p), задачи))
+    print()
+    for и in итоги:
+        print(f"{и['модель']:>18}: годных {и['годных']}/{и['всего']}, "
+              f"в пустоту {len(и['в_пустоту'])}, медиана {и['время']:.1f} с"
+              if и["время"] else f"{и['модель']}: нет ответов")
+
+
+if __name__ == "__main__":
+    main()
