@@ -213,6 +213,84 @@ TRAIN 12–28, UPGRADE 4–12, еда ниже 500 медианно 15 % так�
 база `base24`. Меры названы там же. Разбор — `python3 idle_report.py <идея>
 <база>`.
 
+
+### Как запускать этот прогон (WSL, 3 копии по 3 партии)
+
+**Секция `[free_hands]` живёт ТОЛЬКО в ветке**, а контейнер читает
+`experiments.ini` из своего клона по `COSS3_BRIDGE_REF`. Поэтому ref задаётся
+веткой — иначе идея «не взята» и прогон не начнётся (так и задумано).
+
+```bash
+# 1. КОНТРОЛЬ ДО СТАРТА
+docker ps --filter name=coss3- --format "{{.Names}} {{.Status}}"   # должно быть пусто
+git -C ~/coss3-git fetch --all --tags --force
+git -C ~/coss3-git show origin/idea/free-hands:docker/experiments.ini | grep -n "^\[free_hands\]"
+git -C ~/coss3-git pull          # entrypoint.sh монтируется отсюда, он с master
+
+# 2. ТОМА: профиль каждой копии свой, иначе игра не дойдёт до меню
+for n in 1 2 3; do
+  rm -rf ~/io-fh$n ~/profile-fh$n
+  mkdir -p ~/io-fh$n ~/profile-fh$n
+  cp -a ~/profile/. ~/profile-fh$n/
+done
+
+# 3. ПОДНЯТЬ. Имя идеи пишется БУКВАЛЬНО — пустая переменная оболочки
+#    однажды стоила пятнадцати минут игры
+for n in 1 2 3; do
+  docker run -d --name coss3-fh$n --env-file ~/coss3.env --entrypoint /usr/bin/tini \
+    -e COSS3_BRIDGE_GIT=git@github.com:snipstack-cloud/coss3-bridge.git \
+    -e COSS3_BRIDGE_REF=idea/free-hands \
+    -e COSS3_EXPERIMENT=free_hands \
+    -e COSS3_RESULTS_NAME=free_hands/$n \
+    -e COSS3_RESULTS_GIT=git@github.com:snipstack-cloud/coss3-results.git \
+    -e COSS3_RESULTS_KEY=/ssh/results_key \
+    -v ~/io-fh$n:/io -v ~/profile-fh$n:/profile \
+    -v ~/.ssh/coss3_deploy:/ssh/deploy_key:ro \
+    -v ~/.ssh/coss3_results:/ssh/results_key:ro \
+    -v ~/coss3-git/docker/entrypoint.sh:/opt/bridge/entrypoint.sh:ro \
+    coss3:2 -- /bin/bash /opt/bridge/entrypoint.sh
+done
+
+docker logs -f coss3-fh1
+```
+
+**Пять строк лога, и только потом ждать.** Четыре обычные плюс пятая, своя:
+
+```
+мост обновлён: 22e605d            (или новее по ветке)
+идея «free_hands»: ВТОРОЙ ПОВОД…  нет строки — гасить, прогон мерит базу
+  флаги: … --free-hands 3         нет ключа — то же самое
+пульс есть: тик Progress жив
+партия идёт: coss3_eco_P0.dat
+вопрос «куда людей»: когда стройка кончилась и свободных 3 и больше, …
+```
+
+Последняя строка печатается при старте политики и означает, что ключ дошёл.
+Само событие видно так (ожидание циклом, имена переменных ТОЛЬКО латиницей):
+
+```bash
+n=0; while [ "$n" -lt 40 ]; do
+  grep -q '"повод": "руки"' ~/io-fh1/coss3_bot.jsonl 2>/dev/null && { echo ДОЕХАЛО; break; }
+  docker ps --format "{{.Names}}" | grep -q coss3-fh1 || { echo "контейнер погас"; break; }
+  sleep 15; n=$((n+1))
+done
+```
+
+**Гасить сразу после `отправлено: results/…`** — дальше контейнер занимает место
+зря. Разбор:
+
+```bash
+docker rm -f $(docker ps -aq --filter name=coss3-fh)
+python3 ~/coss3-git/idle_report.py ~/coss3-results/<дата>/free_hands ~/coss3-results/2026-09-21/base24
+python3 ~/coss3-git/series_report.py ~/coss3-results/<дата>/free_hands ~/coss3-results/2026-09-21/base24
+```
+
+**Законность сравнения проверена ДО прогона:** код моста между `bd8b25b`
+(на нём снята база) и `7ae68ad` (точка ветвления) не менялся ни в одном `.py`
+и `.inc`, а при выключенном ключе ветка даёт дословно тот же обычный запрос —
+25 запросов на настоящих состояниях `base24` сошлись хэш в хэш
+(`check_same_as_base.py`).
+
 ## Где мы (21.09, НОЧЬ, Windows) — ИСТОРИЯ, действующее состояние выше
 
 **Метка `verified` = `a89589e`, `HEAD` = `78ce2c0`, между ними ДЕСЯТЬ коммитов.**
