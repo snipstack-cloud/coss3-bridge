@@ -15,13 +15,17 @@
 Отдельно считается ГЛАВНОЕ: не отказался ли заказывать (wait) там, где денег
 хватает — ради этого повод и заведён.
 
-    python3 bench_rebuy.py --облако <id> [<каталог трасс>]
-    python3 bench_rebuy.py <модель> [<каталог трасс>]     # локальная, ollama
+    python3 bench_rebuy.py --облако <id> <каталог трасс>
+    python3 bench_rebuy.py <модель> <каталог трасс>       # локальная, ollama
+
+Каталог ОБЯЗАТЕЛЕН в обоих ходах: без него стенд не найдёт ни одного мига
+«денег хватило» и остановится.
 """
-import json, os, sys, time, glob, statistics as stx
+import json, os, sys, time, glob, urllib.request, statistics as stx
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
+import bench_local as BL
 
 ОТКАЗ = "NOT ENOUGH RESOURCES"
 
@@ -51,6 +55,39 @@ def задачи(каталог):
     return из
 
 
+АДРЕС = os.environ.get("OLLAMA_URL", "http://localhost:11434") + "/api/generate"
+
+
+def спросить_локально(модель, системная, промпт, роль, таймаут=600):
+    """Локальный ход, которого у этого стенда не было (найдено 22.09: usage
+    его обещал, а кода не было вовсе, и повод «докупка» на локальной модели
+    остался незамеренным).
+
+    СО СХЕМОЙ — как в стендах найма и рук: единственная ошибка локальных на
+    узком вопросе это выдуманное имя, а перечисление закрывает её целиком.
+    Здесь выбор всего из двух: та роль, о которой спросили, либо `wait`.
+
+    `keep_alive` обязателен, иначе замер меряет загрузку модели с диска.
+    """
+    тело = {"model": модель, "prompt": системная + "\n\n" + промпт,
+            "stream": False, "keep_alive": "10m",
+            "options": {"num_predict": 200, "num_ctx": 2048, "temperature": 0},
+            "format": {"type": "object",
+                       "properties": {
+                           "что": {"type": "string", "enum": [роль, "wait"]},
+                           "строителей": {"type": "integer"},
+                           "why": BL.ПРЕДЕЛ_ПОЧЕМУ},
+                       "required": ["что", "строителей"]}}
+    BL.поправить(тело, модель)
+    т = time.time()
+    d = json.load(urllib.request.urlopen(urllib.request.Request(
+        АДРЕС, json.dumps(тело).encode(), {"Content-Type": "application/json"}),
+        timeout=таймаут))
+    # Токенов у ollama другое имя; отдаём их той же тройкой, что облако.
+    return (BL.вынуть(d), time.time() - т,
+            d.get("prompt_eval_count", 0), d.get("eval_count", 0))
+
+
 def спросить_облако(клиент, модель, системная, промпт):
     т = time.time()
     о = клиент.chat.completions.create(
@@ -74,19 +111,28 @@ def main():
     длины = [len(L.запрос_докупки(s, s, р)) for s, р in набор]
     print(f"задач: {len(набор)}, длина запроса {min(длины)}-{max(длины)} символов")
 
-    if "--облако" not in арг:
-        raise SystemExit("локальный ход не настроен в этом стенде; --облако <id>")
-    модель = арг[арг.index("--облако") + 1]
-    from openai import OpenAI
-    клиент = OpenAI(base_url=L.BASE_URL, api_key=os.environ["OPENROUTER_API_KEY"])
-    print(f"\n  облако {модель}")
+    if "--облако" in арг:
+        модель = арг[арг.index("--облако") + 1]
+        from openai import OpenAI
+        клиент = OpenAI(base_url=L.BASE_URL, api_key=os.environ["OPENROUTER_API_KEY"])
+        спросить = lambda п, роль: спросить_облако(клиент, модель, L.SYSTEM_ДОКУПКА, п)
+        print(f"\n  облако {модель}")
+    else:
+        модель = next((a for a in арг if a != каталог), "")
+        if not модель:
+            raise SystemExit("нужна модель: bench_rebuy.py <модель> <каталог> "
+                             "или --облако <id> <каталог>")
+        спросить = lambda п, роль: спросить_локально(модель, L.SYSTEM_ДОКУПКА, п, роль)
+        print(f"\n  локальная {модель}"
+              + (" (думающая: рассуждение отдельным полем, потолок "
+                 f"{BL.ЗАПАС})" if BL.думающая(модель) else ""))
 
     времена, вх, вых = [], [], []
     годных = ждал = чужая_роль = без_строителей = пусто = 0
     for i, (s, роль) in enumerate(набор, 1):
         п = L.запрос_докупки(s, s, роль)
         try:
-            текст, сек, t_in, t_out = спросить_облако(клиент, модель, L.SYSTEM_ДОКУПКА, п)
+            текст, сек, t_in, t_out = спросить(п, роль)
         except Exception as e:
             print(f"  {i:>2}. ОШИБКА: {str(e)[:80]}")
             continue

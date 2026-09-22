@@ -27,6 +27,7 @@ import json, os, sys, time, urllib.request, statistics as stx
 # версию. 21.09 так и вышло при сравнении форматов на стенде рук.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
+import bench_local as BL
 
 # Адрес ollama. Умолчание прежнее, но стенд теперь можно гнать С ДРУГОЙ
 # МАШИНЫ: 22.09 модели живут на маке, а стенд запускается с Windows, где
@@ -50,18 +51,27 @@ def спросить_локально(модель, промпт, таймаут
     # чтение + 0,6 ответ), второй — 0,6 с.
     тело = {"model": модель, "prompt": L.SYSTEM_НАЙМ + "\n\n" + промпт,
             "stream": False, "keep_alive": "10m",
-            "options": {"num_predict": 80, "num_ctx": 2048, "temperature": 0}}
+            # 200, а не 80: обрыв по длине неотличим в отчёте от «не JSON», и
+            # 22.09 одна задача из 11 так и была записана в ошибку модели, хотя
+            # роль и число она назвала верно, а не влезло словесное `why`.
+            # Потолок связывает только того, кто в него упёрся, — у нежующих
+            # моделей ответ кончается сам (done=stop), их числа не меняются.
+            "options": {"num_predict": 200, "num_ctx": 2048, "temperature": 0}}
     if кандидаты:
         тело["format"] = {"type": "object",
                           "properties": {"role": {"type": "string", "enum": list(кандидаты) + ["wait"]},
                                          "total": {"type": "integer"},
-                                         "why": {"type": "string"}},
+                                         "why": BL.ПРЕДЕЛ_ПОЧЕМУ},
                           "required": ["role", "total"]}
+    # ДУМАЮЩЕЙ модели нужен отдельный карман под рассуждение и потолок выше:
+    # с `num_predict: 80` она не успевает начать JSON, и ноль был бы счётом
+    # стенда. Нежующих не трогает (bench_local.поправить).
+    BL.поправить(тело, модель)
     тело = json.dumps(тело).encode()
     t = time.time()
     d = json.load(urllib.request.urlopen(urllib.request.Request(
         АДРЕС, тело, {"Content-Type": "application/json"}), timeout=таймаут))
-    return d.get("response", ""), time.time() - t
+    return BL.вынуть(d), time.time() - t
 
 
 def спросить_облако(клиент, модель, промпт):

@@ -31,6 +31,7 @@ import os
 # версию. 21.09 так и вышло при сравнении форматов.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
+import bench_local as BL
 
 # Стенд должен уметь спросить ОБЕ версии вопроса, иначе дуэль «без расхода
 # против с расходом» гонялась бы правкой кода, а это разные запуски и разный
@@ -83,13 +84,16 @@ def спросить_локально(модель, промпт, таймаут
                                         "сколько": {"type": "integer"}},
                                     "required": ["куда", "сколько"]}}]},
                            "сколько": {"type": "integer"},
-                           "why": {"type": "string"}},
+                           "why": BL.ПРЕДЕЛ_ПОЧЕМУ},
                        "required": ["куда"]}}
+    # То же, что в стенде найма: думающей модели — отдельное поле под
+    # рассуждение и потолок 2500 вместо 200.
+    BL.поправить(тело, модель)
     тело = json.dumps(тело).encode()
     t = time.time()
     d = json.load(urllib.request.urlopen(urllib.request.Request(
         АДРЕС, тело, {"Content-Type": "application/json"}), timeout=таймаут))
-    return d.get("response", ""), time.time() - t
+    return BL.вынуть(d), time.time() - t
 
 
 def спросить_облако(клиент, модель, промпт):
