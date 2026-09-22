@@ -8670,7 +8670,12 @@ def одна_партия(a, client, br: Bridge, plind: int,
         mm, ss = divmod(box["gt"], 60)
         n = box.get("tries", 1)
         помета = f"   [с {n}-й попытки]" if n > 1 else ""
-        if box.get("model") and box["model"] != a.model:
+        # У СОБЫТИЯ своя основная модель (--event-model): сравнивать с a.model
+        # значило бы клеить «запасная» на каждый локальный ответ. 22.09 в
+        # смоуке так и было: [запасная: qwen2.5:7b] при том, что запасной у
+        # локального события нет по построению.
+        положено = (getattr(a, "_модель_событий", "") or a.model) if box.get("повод") else a.model
+        if box.get("model") and box["model"] != положено:
             помета += f" [запасная: {box['model'].split('/')[-1]}]"
         print(f"{mm}:{ss:02d}  {why}{помета}")
         if подхват:
