@@ -28,7 +28,12 @@ import json, os, sys, time, urllib.request, statistics as stx
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import llm_policy as L
 
-АДРЕС = "http://localhost:11434/api/generate"
+# Адрес ollama. Умолчание прежнее, но стенд теперь можно гнать С ДРУГОЙ
+# МАШИНЫ: 22.09 модели живут на маке, а стенд запускается с Windows, где
+# ollama нет вовсе. На маке нужен OLLAMA_HOST=0.0.0.0:11434, иначе он
+# слушает только петлю и снаружи молчит.
+АДРЕС = os.environ.get("OLLAMA_URL",
+                       "http://localhost:11434") + "/api/generate"
 
 
 def спросить_локально(модель, промпт, таймаут=180, кандидаты=None):
@@ -135,7 +140,7 @@ def прогнать(имя, задачи, спросить):
 
 
 def main(argv):
-    задачи = json.load(open("задачи_найма.json"))
+    задачи = json.load(open("задачи_найма.json", encoding="utf-8"))
     print(f"задач {len(задачи)} (казарма/конюшня, запрос ~940 символов)\n")
     print(f'{"модель":26s} {"годных":>7s} {"медиана":>8s} {"макс":>7s} {"стрелки без угля":>17s}')
     итоги = []
@@ -157,7 +162,8 @@ def main(argv):
               f'{r["стрелки_без_угля"]:>17d}')
         for п in r["причины"][:4]:
             print(f'      × {п}')
-    json.dump(итоги, open("итоги_найма.json", "w"), ensure_ascii=False, indent=1)
+    json.dump(итоги, open("итоги_найма.json", "w", encoding="utf-8"),
+              ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":

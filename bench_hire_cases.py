@@ -42,7 +42,9 @@ if not файлов:
                      f"python3 bench_hire_cases.py <каталог с прогонами>")
 print(f'трасс: {len(файлов)} в {КАТАЛОГ}')
 for f in файлов:
-    for l in open(f):
+    # encoding ЯВНО: на маке умолчание utf-8, на Windows — cp1252, и стенд
+    # там падал на первой же трассе (22.09). Умолчание системы читать нельзя.
+    for l in open(f, encoding="utf-8"):
         l = l.strip()
         if not l:
             continue
@@ -122,7 +124,8 @@ for о in отобраны:
                        'шахта_угля': L._чис(st.get('mines_coal')),
                        'стрелков': L._чис(st.get('mil_shooters'))})
 ВЫХОД = os.path.abspath(sys.argv[2] if len(sys.argv) > 2 else 'задачи_найма.json')
-json.dump(задачи, open(ВЫХОД, 'w'), ensure_ascii=False, indent=1)
+json.dump(задачи, open(ВЫХОД, 'w', encoding='utf-8'),
+          ensure_ascii=False, indent=1)
 print('задач собрано:', len(задачи), '->', ВЫХОД)
 if задачи:
     print('длина запроса: медиана', sorted(len(з['запрос']) for з in задачи)[len(задачи)//2], 'символов')
