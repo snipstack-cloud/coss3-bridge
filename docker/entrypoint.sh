@@ -417,6 +417,13 @@ if [ -s "$COSS3_IO/coss3_bot.jsonl" ]; then
     mv "$COSS3_IO/coss3_bot.jsonl" "$ARCH"
     log "трасса прошлого запуска отложена: $(basename "$ARCH")"
 fi
+# Снимок состояния — по той же причине: он тоже пишется дописыванием, и партии
+# разных запусков в нём различались бы только откатом игрового времени.
+if [ -s "$COSS3_IO/coss3_snap.jsonl" ]; then
+    ARCH="$COSS3_IO/coss3_snap.$(date +%Y%m%d-%H%M%S).jsonl"
+    mv "$COSS3_IO/coss3_snap.jsonl" "$ARCH"
+    log "снимок прошлого запуска отложен: $(basename "$ARCH")"
+fi
 log "запускаю cossacks.exe"
 wine cossacks.exe >"$COSS3_IO/game.log" 2>&1 &
 GAME_PID=$!
@@ -638,6 +645,7 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
         --episodes "$COSS3_EPISODES" \
         --ban market,ba18 \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
+        --snaplog "$COSS3_IO/coss3_snap.jsonl" \
         --log "$COSS3_IO/coss3_llm.log" \
         ${COSS3_EXTRA_FLAGS:-} > >(tee -a "$COSS3_IO/policy.log") 2>&1
     rc=$?
