@@ -2167,7 +2167,8 @@ TRANSIENT = ("500", "502", "503", "504", "timed out", "timeout",
 
 
 def think_worker(box: dict, client, model: str, prompt: str, think: bool,
-                 tries: int = 3, spare: str = "", system: str = "") -> None:
+                 tries: int = 3, spare: str = "", system: str = "",
+                 схема: dict | None = None) -> None:
     """Зовёт модель в фоне. Цикл тем временем живёт своей жизнью.
 
     500-е и таймаумы у бесплатного тира — обычное дело. Раз вызов не держит
@@ -2182,7 +2183,8 @@ def think_worker(box: dict, client, model: str, prompt: str, think: bool,
             попытка += 1
             t = time.time()
             try:
-                box["data"] = ask(client, кто, prompt, think, system=system)
+                box["data"] = ask(client, кто, prompt, think, system=system,
+                                  схема=схема)
                 box["ready"] = time.time()   # когда ОТВЕТ готов, а не когда его забрали
                 # Кто обслужил и сколько написал: у OpenRouter один и тот же id
                 # уходит к разным провайдерам, и медленный вызов — обычно не
@@ -5885,11 +5887,9 @@ def запрос_запаса(st: dict, mp: dict, данные, такт: int = 
                          ("железо", _приход.get("iron", 0)))))
     свои = combat_math.разобрать(st.get("fighters"))
     # Только те, кого есть ГДЕ ковать: предлагать драгуна без конюшни значит
-    # звать в пустоту, и мост про это уже однажды молчал.
-    доступно = []
-    for роль, поле in (("ba17", "ba17"), ("stable", "stables")):
-        if _чис(st.get(поле)) > 0:
-            доступно += [и for и in КОГО_КУЕТ.get(роль, ()) if и in свои]
+    # звать в пустоту, и мост про это уже однажды молчал. Список строит
+    # доступные_бойцы — тот же, что идёт в схему ответа.
+    доступно = доступные_бойцы(st)
     из.append("")
     из.append("## Кого можно купить сейчас")
     из.append("unit,food,gold,iron,coal,have,affordable,limit")
@@ -5939,26 +5939,77 @@ def запас_в_команды(данные: dict, st: dict):
             "why": f"по событию: пачка {кого} x{сколько}; " + почему}
 
 
+def доступные_бойцы(st: dict) -> list[str]:
+    """Кого есть ГДЕ ковать: роли зданий, что стоят, и только те бойцы, чьи
+    карточки пришли в состоянии. Один код на вопрос «запас» и на его схему —
+    иначе перечисление в схеме разошлось бы с таблицей в вопросе."""
+    свои = combat_math.разобрать(st.get("fighters"))
+    доступно: list[str] = []
+    for роль, поле in (("ba17", "ba17"), ("stable", "stables")):
+        if _чис(st.get(поле)) > 0:
+            доступно += [и for и in КОГО_КУЕТ.get(роль, ()) if и in свои]
+    return доступно
+
+
+def _схема_выбора(поле: str, варианты: list[str], число: str) -> dict:
+    """Форма «выбери одно из перечисленного и назови число». Перечисление —
+    ровно то, что мост знает сам (КОГО_КУЕТ, КУДА_РУКИ), плюс wait: стенды
+    21.09 показали, что единственная ошибка локальных моделей на узком вопросе
+    — выдуманное имя, и enum закрывает её целиком."""
+    return {"type": "object",
+            "properties": {поле: {"type": "string",
+                                  "enum": sorted(set(варианты)) + ["wait"]},
+                           число: {"type": "integer"},
+                           "why": {"type": "string"}},
+            "required": [поле, число, "why"],
+            "additionalProperties": False}
+
+
+def схема_рук(st: dict, д) -> dict:
+    """Обе формы, как принимает руки_в_команды: строка либо список пар."""
+    куда = [к for к, _, _ in КУДА_РУКИ]
+    return {"type": "object",
+            "properties": {
+                "куда": {"anyOf": [
+                    {"type": "string", "enum": куда + ["wait"]},
+                    {"type": "array", "minItems": 1,
+                     "items": {"type": "object",
+                               "properties": {"куда": {"type": "string",
+                                                       "enum": куда},
+                                              "сколько": {"type": "integer"}},
+                               "required": ["куда", "сколько"],
+                               "additionalProperties": False}}]},
+                "сколько": {"type": "integer"},
+                "why": {"type": "string"}},
+            "required": ["куда", "why"],
+            "additionalProperties": False}
+
+
 ПОВОДЫ = {
     "найм": {"system": lambda: SYSTEM_НАЙМ,
+             "схема": lambda st, д: _схема_выбора(
+                 "role", list(КОГО_КУЕТ.get(д[0], ())), "total"),
              "запрос": lambda st, mp, д, такт: запрос_найма(st, mp, д[0], д[1], такт=такт),
              "метка": lambda д: f"{д[0]}#{д[1]}",
              "словами": lambda д: f"{ИМЯ_ЗДАНИЯ.get(д[0], д[0])} №{д[1]} достроена"
                                   f" — спрашиваю, кого нанимать",
              "ответ": найм_в_команды},
     "докупка": {"system": lambda: SYSTEM_ДОКУПКА,
+                "схема": lambda st, д: _схема_выбора("что", [str(д)], "строителей"),
                 "запрос": lambda st, mp, д, такт: запрос_докупки(st, mp, д, такт=такт),
                 "метка": lambda д: f"докупка#{д}",
                 "словами": lambda д: f"денег хватило на {д}"
                                      f" — спрашиваю, докладывать ли",
                 "ответ": докупка_в_команды},
     "запас": {"system": lambda: SYSTEM_ЗАПАС,
+              "схема": lambda st, д: _схема_выбора("кого", доступные_бойцы(st), "сколько"),
               "запрос": lambda st, mp, д, такт: запрос_запаса(st, mp, д, такт=такт),
               "метка": lambda д: f"запас#{int(д)}",
               "словами": lambda д: f"еда вернулась выше порога ({int(д)})"
                                    f" — спрашиваю, какую пачку купить",
               "ответ": запас_в_команды},
     "руки": {"system": система_рук,
+             "схема": схема_рук,
              "запрос": lambda st, mp, д, такт: запрос_рук(st, mp, int(д), такт=такт),
              "метка": lambda д: f"руки#{int(д)}",
              "словами": lambda д: f"стройка кончилась, {int(д)} крестьян без дела"
@@ -7536,12 +7587,20 @@ _КОМАНДА_СХЕМА = {
 
 
 def ask(client, model: str, prompt: str, think: bool = False,
-        retry: int = 1, max_tokens: int = 0, system: str = "") -> dict:
+        retry: int = 1, max_tokens: int = 0, system: str = "",
+        схема: dict | None = None) -> dict:
     """Один вызов модели. `system` задаётся ЯВНО там, где роль другая.
 
     Подменять глобальный SYSTEM для этого нельзя: событийный вопрос о найме
     уходит из ФОНОВОГО потока, и подмена гонялась бы с обычным тактом.
     Пусто — берётся общий SYSTEM, как было.
+
+    `схема` — СВОЯ форма ответа для ЭТОГО вызова, поверх глобального флага
+    --schema и независимо от него. Нужна событийному каналу на локальной
+    модели (22.09): без схемы qwen2.5:7b на вопросе «куда людей» выдумал поля
+    («people», «destination») и назвал ресурс по-русски — мост такой ответ
+    отверг бы; со схемой поля и перечисление соблюдены. Обычный такт этого
+    параметра не получает и играет как прежде.
     """
     if REPLAY:                              # --replay: модель не зовём вовсе
         return следующий_ответ()
@@ -7552,7 +7611,13 @@ def ask(client, model: str, prompt: str, think: bool = False,
         temperature=0.4,
         max_tokens=max_tokens or MAX_TOKENS,
     )
-    if СХЕМОЙ:
+    if схема is not None:
+        kw["response_format"] = {
+            "type": "json_schema",
+            "json_schema": {"name": "coss3_event", "strict": True,
+                            "schema": схема},
+        }
+    elif СХЕМОЙ:
         kw["response_format"] = {
             "type": "json_schema",
             "json_schema": {"name": "coss3_move", "strict": True,
@@ -7616,10 +7681,16 @@ def ask(client, model: str, prompt: str, think: bool = False,
                 w in msg.lower() for w in
                 ("response_format", "json_schema", "structured output",
                  "schema", "json mode")):
-            globals()["СХЕМОЙ"] = False
             kw.pop("response_format")
-            print("        провайдер не принял СХЕМУ ОТВЕТА — снимаю её до конца "
-                  "прогона, дальше как раньше: просьбой вернуть JSON")
+            if схема is not None:
+                # Своя схема на вызов: глобальный флаг НЕ трогаем — отказ
+                # одного адреса не повод раздевать обычный такт.
+                print("        сервер не принял СХЕМУ СОБЫТИЯ — этот вызов идёт "
+                      "без неё, просьбой вернуть JSON")
+            else:
+                globals()["СХЕМОЙ"] = False
+                print("        провайдер не принял СХЕМУ ОТВЕТА — снимаю её до конца "
+                      "прогона, дальше как раньше: просьбой вернуть JSON")
             return_r = client.chat.completions.create(**kw)
             r = return_r
         else:
@@ -8178,12 +8249,18 @@ def одна_партия(a, client, br: Bridge, plind: int,
             _мд = getattr(a, "_модель_событий", "") or a.model
             # Запасной облачной у локального события нет: см. --event-model.
             _зп = "" if getattr(a, "_client_событий", None) else a.spare
+            # СХЕМА — ТОЛЬКО ЛОКАЛЬНОЙ МОДЕЛИ. Облачные события идут как в
+            # base25, иначе у любого плеча появилась бы вторая разница и база
+            # снова стала бы негодной — ровно как погиб base24. Локальной же
+            # схема нужна: без неё она выдумывает поля и имена (замер 22.09).
+            _сх = (_повод["схема"](st, _данные)
+                   if getattr(a, "_client_событий", None) else None)
             print(f"        СОБЫТИЕ: {_повод['словами'](_данные)} "
-                  f"(параллельно такту)")
+                  f"(параллельно такту{', со схемой' if _сх else ''})")
             th_н = threading.Thread(
                 target=think_worker,
                 args=(box_н, _кл, _мд, box_н["prompt"], a.think,
-                      a.tries, _зп, _повод["system"]()),
+                      a.tries, _зп, _повод["system"](), _сх),
                 daemon=True)
             th_н.start()
             pending_событие = (th_н, box_н)
