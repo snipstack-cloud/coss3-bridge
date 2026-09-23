@@ -2168,7 +2168,7 @@ TRANSIENT = ("500", "502", "503", "504", "timed out", "timeout",
 
 def think_worker(box: dict, client, model: str, prompt: str, think: bool,
                  tries: int = 3, spare: str = "", system: str = "",
-                 схема: dict | None = None) -> None:
+                 схема: dict | None = None, усилие: str = "") -> None:
     """Зовёт модель в фоне. Цикл тем временем живёт своей жизнью.
 
     500-е и таймаумы у бесплатного тира — обычное дело. Раз вызов не держит
@@ -2184,7 +2184,7 @@ def think_worker(box: dict, client, model: str, prompt: str, think: bool,
             t = time.time()
             try:
                 box["data"] = ask(client, кто, prompt, think, system=system,
-                                  схема=схема)
+                                  схема=схема, усилие=усилие)
                 box["ready"] = time.time()   # когда ОТВЕТ готов, а не когда его забрали
                 # Кто обслужил и сколько написал: у OpenRouter один и тот же id
                 # уходит к разным провайдерам, и медленный вызов — обычно не
@@ -7666,7 +7666,7 @@ _КОМАНДА_СХЕМА = {
 
 def ask(client, model: str, prompt: str, think: bool = False,
         retry: int = 1, max_tokens: int = 0, system: str = "",
-        схема: dict | None = None) -> dict:
+        схема: dict | None = None, усилие: str = "") -> dict:
     """Один вызов модели. `system` задаётся ЯВНО там, где роль другая.
 
     Подменять глобальный SYSTEM для этого нельзя: событийный вопрос о найме
@@ -7679,6 +7679,15 @@ def ask(client, model: str, prompt: str, think: bool = False,
     («people», «destination») и назвал ресурс по-русски — мост такой ответ
     отверг бы; со схемой поля и перечисление соблюдены. Обычный такт этого
     параметра не получает и играет как прежде.
+
+    `усилие` — `reasoning_effort` ДУМАЮЩЕЙ модели (`--event-reasoning none`).
+    Замер 22.09 через `/v1` на qwen3:30b-a3b, один и тот же вопрос найма: со
+    схемой — 48 с и ПУСТОЙ content (обрыв по max_tokens на рассуждении); без
+    схемы — 28,8 с и верный JSON после 864 токенов рассуждения; со схемой и
+    `reasoning_effort="none"` — 1,1 с, 19 токенов, тот же ответ. `think=false`
+    и `chat_template_kwargs.enable_thinking=false` через `/v1` не делают
+    НИЧЕГО (34 и 35 с с полным рассуждением) — выключатель один. Пусто —
+    ключ не посылается вовсе: облачным он чужой.
     """
     if REPLAY:                              # --replay: модель не зовём вовсе
         return следующий_ответ()
@@ -7702,6 +7711,8 @@ def ask(client, model: str, prompt: str, think: bool = False,
                             "schema": СХЕМА_ОТВЕТА},
         }
     extra: dict = {}
+    if усилие:
+        extra["reasoning_effort"] = усилие
     if ONLY:
         extra["provider"] = {"order": list(ONLY), "allow_fallbacks": False}
     elif BANNED:
@@ -7732,7 +7743,8 @@ def ask(client, model: str, prompt: str, think: bool = False,
                 BANNED.add(имя.group(1))
                 print(f"        {имя.group(1)} не обслуживает наш регион — "
                       f"исключаю его из маршрутизации")
-                return ask(client, model, prompt, think, retry)
+                return ask(client, model, prompt, think, retry,
+                           max_tokens, system, схема, усилие)
         if "404" in msg or "not found" in msg.lower():
             # Пресет — не модель, и совет про каталог NVIDIA тут вреден: он
             # уводит от настоящей причины. 12.09 на этом потеряли круг: мост
@@ -7780,6 +7792,12 @@ def ask(client, model: str, prompt: str, think: bool = False,
             if "extra_body" not in kw or not отказ:
                 raise
             kw.pop("extra_body")            # ключ рассуждений понимают не все
+            if усилие:
+                # Молчать тут нельзя: без reasoning_effort думающая модель
+                # уходит на 48 с и возвращает ПУСТО, а в трассе это выглядит
+                # как молчание модели, а не как отвергнутый ключ.
+                print(f"        сервер не принял reasoning_effort={усилие!r} — "
+                      f"думание НЕ выключено, ответа можно ждать десятки секунд")
             r = client.chat.completions.create(**kw)
     global LAST_TOKENS, LAST_PROVIDER
     LAST_TOKENS = getattr(getattr(r, "usage", None), "completion_tokens", 0) or 0
@@ -7792,7 +7810,12 @@ def ask(client, model: str, prompt: str, think: bool = False,
         return (rich or objs)[-1]          # последний непустой: он и есть ответ
     fin = getattr(ch, "finish_reason", "") or "?"
     if retry > 0:                          # мусор бывает разовым — переспросим
-        return ask(client, model, prompt, think, retry - 1)
+        # Переспрашивать ТЕМ ЖЕ вызовом. До 23.09 здесь терялись и роль, и
+        # схема, и выключатель думания: событийный переспрос уходил с ролью
+        # общего такта, без схемы и с думанием обратно включённым — то есть
+        # заведомо в пустой ответ за 48 с.
+        return ask(client, model, prompt, think, retry - 1,
+                   max_tokens, system, схема, усилие)
     if fin == "length":
         raise ValueError(
             f"ответ обрезан на {MAX_TOKENS} токенах, до JSON модель не дошла. "
@@ -8335,10 +8358,15 @@ def одна_партия(a, client, br: Bridge, plind: int,
                    if getattr(a, "_client_событий", None) else None)
             print(f"        СОБЫТИЕ: {_повод['словами'](_данные)} "
                   f"(параллельно такту{', со схемой' if _сх else ''})")
+            # Выключатель думания идёт ровно там же, где схема: у локального
+            # клиента. Думающая модель без него отвечает ПУСТО за 48 с, и в
+            # трассе это неотличимо от молчания.
+            _ус = (getattr(a, "_усилие_событий", "")
+                   if getattr(a, "_client_событий", None) else "")
             th_н = threading.Thread(
                 target=think_worker,
                 args=(box_н, _кл, _мд, box_н["prompt"], a.think,
-                      a.tries, _зп, _повод["system"](), _сх),
+                      a.tries, _зп, _повод["system"](), _сх, _ус),
                 daemon=True)
             th_н.start()
             pending_событие = (th_н, box_н)
@@ -10249,6 +10277,16 @@ def main() -> int:
                          "основной модели: например http://localhost:11434/v1 "
                          "для ollama. Ключ там обычно не нужен, посылаем "
                          "заглушку. Пусто — тот же адрес, что у основной")
+    ap.add_argument("--event-reasoning", default="", metavar="none",
+                    dest="event_reasoning",
+                    help="reasoning_effort для СОБЫТИЙНОЙ модели, если она "
+                         "думающая. Нужен qwen3: через /v1 схема думание НЕ "
+                         "выключает, и замер 22.09 дал 48 с и ПУСТОЙ ответ "
+                         "(обрыв по max_tokens на рассуждении); с "
+                         "reasoning_effort=none — 1,1 с и тот же JSON. "
+                         "think=false и enable_thinking=false через /v1 не "
+                         "делают ничего. Пусто — ключ не посылается: qwen2.5 "
+                         "не думает, а облачным он чужой")
     ap.add_argument("--auto-seed", type=int, default=0, metavar="0|1",
                     help="поле выкошено (мельница есть, готовых участков ноль) "
                          "— мост сеет сам; повтор чаще половины срока "
@@ -10477,8 +10515,16 @@ def main() -> int:
                          else os.environ.get("EVENT_API_KEY", "local")),
                 timeout=a.timeout, max_retries=0)
             a._модель_событий = a.event_model or a.model
+            # Выключатель думания — ТОЛЬКО событийному вызову: обычный такт
+            # ведёт облачная модель, и чужой ключ она отвергнет четырёхсотым.
+            a._усилие_событий = a.event_reasoning
             print(f"события спрашиваются отдельно: модель {a._модель_событий}"
-                  + (f", адрес {a.event_base_url}" if a.event_base_url else ""))
+                  + (f", адрес {a.event_base_url}" if a.event_base_url else "")
+                  + (f", reasoning_effort={a.event_reasoning}"
+                     if a.event_reasoning else ""))
+            if a.event_reasoning and not a.event_base_url:
+                print("  ВНИМАНИЕ: reasoning_effort задан, а адрес событий тот "
+                      "же, что у такта — ключ уйдёт облачному провайдеру")
     # РАЗБОР ГОТОВОЙ ТРАССЫ — до всего игрового: ни игры, ни моста здесь не
     # нужно, нужен только клиент модели. Стоит сразу за его созданием, чтобы
     # не тащить за собой проверки каталога игры и состояния.
