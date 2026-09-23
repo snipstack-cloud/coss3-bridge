@@ -38,6 +38,7 @@ for _s in (_sys.stdout, _sys.stderr):
 import argparse
 import json
 import os
+import urllib.request
 import configparser
 import re
 import subprocess
@@ -7680,6 +7681,80 @@ _КОМАНДА_СХЕМА = {
 СХЕМОЙ = False         # --schema включает; отказ провайдера снимает обратно
 
 
+class Родной:
+    """Клиент РОДНОГО пути ollama: схема идёт ГРАММАТИКОЙ, а не просьбой.
+
+    Замер 23.09 на тех же девяти событийных запросах, что и всё остальное.
+    Через `/v1/chat/completions` думающая `qwen3:30b-a3b` сперва рассуждает —
+    700-1400 токенов, 48-344 с, один вызов сорвался по таймауту вовсе, другой
+    занял 1190 токенов при потолке 1200. Ни один из ШЕСТИ выключателей думания
+    на этом пути не работает: `reasoning_effort=none` и `low`,
+    `chat_template_kwargs.enable_thinking=false`, `think=false`, `/no_think` в
+    тексте, схема ответа.
+
+    На `/api/generate` со схемой ollama строит ГРАММАТИКУ: модель физически не
+    может выдать токен вне JSON, и рассуждению негде начаться. Те же запросы:
+    **2,2-2,5 с и 27 токенов**. То есть негодна была не модель, а путь.
+
+    Две ловушки родного пути, обе куплены стендом 22.09 (`bench_local.py`):
+      * со схемой ollama кладёт готовый ответ в поле `thinking`, оставляя
+        `response` пустым — пустой `response` тут НЕ молчание модели;
+      * `num_predict` обрывает ответ по длине, и обрыв неотличим от «не JSON».
+        Событийный ответ укладывается в 27 токенов, потолок 200 с запасом.
+    """
+
+    def __init__(self, база: str):
+        # Адрес приходит с хвостом /v1 (его ждёт OpenAI-клиент) — родному пути
+        # нужен корень.
+        self.база = база.rstrip("/")
+        if self.база.endswith("/v1"):
+            self.база = self.база[:-3]
+
+    def __repr__(self):
+        return f"Родной({self.база})"
+
+
+def _спросить_ollama(кл: "Родной", model: str, prompt: str, system: str,
+                     схема: dict | None, потолок: int) -> dict:
+    """Один вызов родным путём. Возвращает разобранный JSON, как `ask`."""
+    тело = {"model": model, "prompt": prompt, "stream": False,
+            "options": {"num_predict": потолок, "temperature": 0.4}}
+    if system:
+        тело["system"] = system
+    if схема is not None:
+        тело["format"] = схема
+    req = urllib.request.Request(кл.база + "/api/generate",
+                                 json.dumps(тело).encode(),
+                                 {"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=EVENT_TIMEOUT) as r:
+        d = json.load(r)
+    global LAST_TOKENS, LAST_PROVIDER
+    LAST_TOKENS = d.get("eval_count") or 0
+    LAST_PROVIDER = "ollama"
+    текст = (d.get("response") or "").strip() or (d.get("thinking") or "")
+    # Под грамматикой ответ — РОВНО один объект заданной формы, поэтому
+    # разбираем прямо. `json_objects` здесь не годится: он пропускает только
+    # объекты с `why` или `commands` (форма обычного такта), а схема повода
+    # может быть любой — и тогда годный ответ был бы выброшен как мусор.
+    try:
+        прямо = json.loads(текст)
+        if isinstance(прямо, dict):
+            return прямо
+    except ValueError:
+        pass
+    объекты = json_objects(текст)
+    if not объекты:
+        обрыв = d.get("done_reason") == "length"
+        raise ValueError(
+            f"родной путь ollama: JSON не разобран"
+            f"{' (ОБРЫВ по num_predict=%d)' % потолок if обрыв else ''}. "
+            f"Хвост: ...{текст[-160:]}")
+    return объекты[-1]
+
+
+EVENT_TIMEOUT = 90       # родной путь: событие короткое, ждать дольше незачем
+
+
 def ask(client, model: str, prompt: str, think: bool = False,
         retry: int = 1, max_tokens: int = 0, system: str = "",
         схема: dict | None = None, усилие: str = "") -> dict:
@@ -7707,6 +7782,11 @@ def ask(client, model: str, prompt: str, think: bool = False,
     """
     if REPLAY:                              # --replay: модель не зовём вовсе
         return следующий_ответ()
+    if isinstance(client, Родной):
+        # Родной путь ollama: схема грамматикой. `усилие` здесь не нужно —
+        # выключать нечего, рассуждению негде начаться.
+        return _спросить_ollama(client, model, prompt, system or SYSTEM,
+                                схема, max_tokens or 200)
     kw = dict(
         model=model,
         messages=[{"role": "system", "content": system or SYSTEM},
@@ -10312,6 +10392,18 @@ def main() -> int:
                          "think=false и enable_thinking=false через /v1 не "
                          "делают ничего. Пусто — ключ не посылается: qwen2.5 "
                          "не думает, а облачным он чужой")
+    ap.add_argument("--event-native", type=int, default=1, metavar="0|1",
+                    dest="event_native",
+                    help="событийный вопрос к локальной ollama слать РОДНЫМ "
+                         "путём (/api/generate), где схема работает "
+                         "ГРАММАТИКОЙ. Включено, если адрес оказался ollama. "
+                         "Замер 23.09 на девяти настоящих запросах: думающая "
+                         "qwen3:30b-a3b через /v1 думает 700-1400 токенов и "
+                         "отвечает 48-344 с (один вызов сорвался вовсе), а "
+                         "родным путём - 2,2-2,5 с и 27 токенов. Ни один из "
+                         "шести выключателей думания на /v1 не работает. 0 - "
+                         "как раньше, через /v1 (нужно, чтобы сравнивать с "
+                         "прежними плечами)")
     ap.add_argument("--auto-seed", type=int, default=0, metavar="0|1",
                     help="поле выкошено (мельница есть, готовых участков ноль) "
                          "— мост сеет сам; повтор чаще половины срока "
@@ -10547,7 +10639,26 @@ def main() -> int:
             # переехал на другой адрес (DHCP), и узнать об этом посреди партии
             # значит потерять повод. Спрашиваем список моделей: дёшево, и
             # сразу видно, ЕСТЬ ЛИ ТАМ НУЖНАЯ.
-            if a.event_base_url:
+            if a.event_base_url and a.event_native:
+                # ЭТО ollama? Спрашиваем родным путём. Если да — событие
+                # пойдёт им, и схема станет грамматикой вместо просьбы.
+                try:
+                    _к = Родной(a.event_base_url)
+                    with urllib.request.urlopen(_к.база + "/api/tags",
+                                                timeout=5) as _r:
+                        _сп = [м.get("name") for м in json.load(_r).get("models", [])]
+                    if a._модель_событий in _сп:
+                        a._client_событий = _к
+                        print(f"  адрес событий — ollama, идём РОДНЫМ путём "
+                              f"(схема грамматикой): {_к.база}/api/generate")
+                    else:
+                        print(f"  ollama отвечает, а модели "
+                              f"{a._модель_событий!r} там НЕТ. Есть: "
+                              f"{', '.join(x for x in _сп[:6] if x)}")
+                except Exception as _e:
+                    print(f"  родного пути нет ({str(_e)[:60]}) — событие "
+                          f"пойдёт через /v1, как раньше")
+            if a.event_base_url and not isinstance(a._client_событий, Родной):
                 try:
                     _мдл = a._client_событий.models.list()
                     _имена = [getattr(м, "id", "") for м in getattr(_мдл, "data", [])]
