@@ -913,6 +913,12 @@
       [*] = ;         const cHmGrid = 16;
       [*] = ;         var hmbase : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmforce : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // Where his moving soldiers are GOING, per destination cell (24.09).
+      [*] = ;         // p<n>_mv_cx/cy below give ONE average target for all of them: two
+      [*] = ;         // detachments heading apart average to a point between them, and the
+      [*] = ;         // model cannot tell a march on our base from a march past it. Same
+      [*] = ;         // marks as frow; python splits it into detachments and directions.
+      [*] = ;         var hmdest : array [0..15] of array [0..15] of Integer;
       [*] = ;         // Enemy PEASANTS per cell (open information, 18.09): the goal of
       [*] = ;         // the match is their peasants, and a wave aimed 'at peasants' walks
       [*] = ;         // to the nearest one, which stands under their army. With this grid
@@ -930,6 +936,7 @@
       [*] = ;         begin
       [*] = ;            hmbase[hmi][hmj] := 0;
       [*] = ;            hmforce[hmi][hmj] := 0;
+      [*] = ;            hmdest[hmi][hmj] := 0;
       [*] = ;            hmpea[hmi][hmj] := 0;
       [*] = ;         end;
       [*] = ;         var hmw : Integer = GetMapWidth;
@@ -1026,6 +1033,10 @@
       [*] = ;                        hsymvn := hsymvn + 1;
       [*] = ;                        hsymx := hsymx + floor((hsytx+hmhw)*cHmGrid/hmw);
       [*] = ;                        hsymz := hsymz + floor((hsytz+hmhh)*cHmGrid/hmh);
+      [*] = ;                        var hmdx : Integer = floor((hsytx+hmhw)*cHmGrid/hmw);
+      [*] = ;                        var hmdy : Integer = floor((hsytz+hmhh)*cHmGrid/hmh);
+      [*] = ;                        if (hmdx>=0) and (hmdx<cHmGrid) and (hmdy>=0) and (hmdy<cHmGrid) then
+      [*] = ;                        hmdest[hmdx][hmdy] := hmdest[hmdx][hmdy] + 1;
       [*] = ;                        if (hscen > 0) then
       [*] = ;                        if (VectorDistance(hsytx, 0, hsytz, hscx, 0, hscz) < 60) then
       [*] = ;                        hsymvb := hsymvb + 1;
@@ -1413,6 +1424,20 @@
       [*] = ;                  if (hmq > 35) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'prow'+IntToStr(hmj), hmrow);
+      [*] = ;            end;
+      [*] = ;            // Destinations of his moving soldiers, same marks as frow.
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               hmrow := '';
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  var hmd : Integer = hmdest[hmi][hmj];
+      [*] = ;                  if (hmd = 0) then hmrow := hmrow + '.';
+      [*] = ;                  if (hmd > 0) and (hmd <= 9) then hmrow := hmrow + IntToStr(hmd);
+      [*] = ;                  if (hmd > 9) and (hmd <= 35) then hmrow := hmrow + SubStr(hmalpha, hmd-9, 1);
+      [*] = ;                  if (hmd > 35) then hmrow := hmrow + '+';
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'drow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
