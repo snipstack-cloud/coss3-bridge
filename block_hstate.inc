@@ -1237,8 +1237,14 @@
       [*] = ;            // squad gets fAddDamage/fAddShield (miscext2.script:428, :351), the LINE
       [*] = ;            // shapes give +2/+2 marching and +7/+7 holding (formations.cfg). He trains
       [*] = ;            // officers in 40 games of 52. Read like our own squads far above, own names.
+      [*] = ;            // LIVE GAME 25.09 (Windows, 915 s): the count and the largest squad were right
+      [*] = ;            // (1 -> 5 squads, 36 men), but the shape was read off the LARGEST squad, and
+      [*] = ;            // that one is the officerless crowd with fFormation -1: the shape fields never
+      [*] = ;            // appeared while an officer stood on the field. So the shape is now taken from
+      [*] = ;            // the squads that HAVE a bonus shape: how many there are, how many of them
+      [*] = ;            // hold, and the best one (largest bonus, then largest squad).
       [*] = ;            var hsysqn : Integer = gPlayer[hspl].squads.GetCount;
-      [*] = ;            var hsysqu, hsysqi, hsysqh : Integer;
+      [*] = ;            var hsysqu, hsysqi, hsysqh, hsysqfn, hsysqfh, hsysqbb, hsysqbu : Integer;
       [*] = ;            var hsysqf : Integer = -1;
       [*] = ;            for hsysqi := 0 to hsysqn-1 do
       [*] = ;            begin
@@ -1248,20 +1254,40 @@
       [*] = ;                  if (TSquad(hsypsq).fHoldMode) then
       [*] = ;                  hsysqh := hsysqh + 1;
       [*] = ;                  if (TSquad(hsypsq).GetCount > hsysqu) then
+      [*] = ;                  hsysqu := TSquad(hsypsq).GetCount;
+      [*] = ;                  var hsyff : Integer = TSquad(hsypsq).fFormation;
+      [*] = ;                  if (hsyff >= 0) then
       [*] = ;                  begin
-      [*] = ;                     hsysqu := TSquad(hsypsq).GetCount;
-      [*] = ;                     hsysqf := TSquad(hsypsq).fFormation;
+      [*] = ;                     var hsyfb : Integer = gFormation[hsyff].bonusdamage + gFormation[hsyff].bonusshield +
+      [*] = ;                          gFormation[hsyff].bonusdamagehold + gFormation[hsyff].bonusshieldhold;
+      [*] = ;                     if (hsyfb > 0) then
+      [*] = ;                     begin
+      [*] = ;                        hsysqfn := hsysqfn + 1;
+      [*] = ;                        if (TSquad(hsypsq).fHoldMode) then
+      [*] = ;                        hsysqfh := hsysqfh + 1;
+      [*] = ;                        if (hsyfb > hsysqbb) or ((hsyfb = hsysqbb) and (TSquad(hsypsq).GetCount > hsysqbu)) then
+      [*] = ;                        begin
+      [*] = ;                           hsysqbb := hsyfb;
+      [*] = ;                           hsysqbu := TSquad(hsypsq).GetCount;
+      [*] = ;                           hsysqf := hsyff;
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads', hsysqn);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_units', hsysqu);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_hold', hsysqh);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads_form', hsysqfn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads_form_hold', hsysqfh);
       [*] = ;            if (hsysqf >= 0) then
       [*] = ;            begin
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_form', gFormation[hsysqf].sid);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_form_units', hsysqbu);
       [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_dmg', gFormation[hsysqf].bonusdamage);
       [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_def', gFormation[hsysqf].bonusshield);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_hdmg', gFormation[hsysqf].bonusdamagehold);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_hdef', gFormation[hsysqf].bonusshieldhold);
       [*] = ;            end;
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_n', hsymvn);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_mv_base', hsymvb);

@@ -602,10 +602,19 @@ class Мир:
              "p0_train": "pikeman:inf,peasant:inf" if self.t > 90 else "",
              # Его отряды (ветка idea/formation, 24.09): после 400 с у него
              # один строй, стоящий дома, — так проверяется ветка «+7/+7».
-             "p0_squads": 1 if self.t > 400 else 0,
-             "p0_squad_units": 15 if self.t > 400 else 0,
-             "p0_squad_hold": 1 if self.t > 400 and not self.набег() else 0,
+             # Как в живой игре 25.09: отрядов больше, чем со строем, —
+             # крупнейший без офицера, строй у меньшего.
+             "p0_squads": 3 if self.t > 400 else 0,
+             "p0_squad_units": 36 if self.t > 400 else 0,
+             "p0_squad_hold": 0,
+             "p0_squads_form": 1 if self.t > 400 else 0,
+             "p0_squads_form_hold": 1 if self.t > 400 and not self.набег() else 0,
              "p0_squad_form": "LINE15" if self.t > 400 else "",
+             "p0_squad_form_units": 15 if self.t > 400 else 0,
+             "p0_squad_dmg": 2 if self.t > 400 else 0,
+             "p0_squad_def": 2 if self.t > 400 else 0,
+             "p0_squad_hdmg": 7 if self.t > 400 else 0,
+             "p0_squad_hdef": 7 if self.t > 400 else 0,
              "p0_mv_n": 23 if self.набег() else 0,
              "p0_mv_base": 23 if self.набег() else 0,
              "p0_mv_cx": 12 if self.набег() else 3,
