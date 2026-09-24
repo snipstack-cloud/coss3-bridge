@@ -438,6 +438,44 @@ def крестьян_снаружи(state: dict) -> int:
     return sum(счёт(c) for y in range(n) for c in _s(state, f"prow{y}"))
 
 
+def походы_врага(state: dict) -> list[dict]:
+    """Его идущие бойцы ПО ОТРЯДАМ: куда идёт каждый отряд, откуда, и когда дойдёт.
+
+    Источник — сетка `drow` (block_hstate.inc, 24.09): клетки ЦЕЛЕЙ приказов
+    его бойцов, теми же знаками, что frow. До неё модель знала лишь среднюю
+    клетку всех идущих (`p1_mv_cx/cy`): два отряда врозь давали точку между
+    ними. Отряд = клетка целей с бойцами; откуда — ближайшая к цели клетка
+    его силы по frow (пары «боец — его цель» в состоянии нет, ближайший
+    источник — честная догадка, и так и названа); время — расстояние
+    источник→цель по скорости пехоты. Пусто, если сетки нет."""
+    n = _i(state, "grid_n")
+    if n <= 0 or not any(f"drow{y}" in state for y in range(n)):
+        return []
+    всего = _i(state, "p1_mv_n") or None
+    цели = клетки_силы(state, "drow", всего)
+    if not цели:
+        return []
+    источники = клетки_силы(state, "frow")
+    мой_x, мой_y = _i(state, "my_cx"), _i(state, "my_cy")
+    wx, wy, wn = _i(state, "wave_cx"), _i(state, "wave_cy"), _i(state, "wave_n")
+    клетка_в_ед = (_i(state, "map_w") or 256) / n
+    out = []
+    for ц in цели:
+        d_нас = max(abs(ц["x"] - мой_x), abs(ц["y"] - мой_y))
+        куда = "к ТВОЕЙ РАТУШЕ" if d_нас <= 1 else ("к твоей базе" if d_нас <= 5 else "")
+        if not куда and wn > 0 and "wave_cx" in state and max(abs(ц["x"] - wx), abs(ц["y"] - wy)) <= 2:
+            куда = "к ТВОЕЙ ВОЛНЕ"
+        ист = min(источники, key=lambda k: max(abs(k["x"] - ц["x"]), abs(k["y"] - ц["y"]))) if источники else None
+        путь = (max(abs(ист["x"] - ц["x"]), abs(ист["y"] - ц["y"])) if ист else None)
+        out.append({"n": ц["n"], "x": ц["x"], "y": ц["y"], "до_нас": d_нас,
+                    "сторона": compass(ц["x"] - мой_x, ц["y"] - мой_y), "куда": куда,
+                    "откуда": (ист["x"], ист["y"]) if ист else None,
+                    "клеток": путь,
+                    "сек": int(round(путь * клетка_в_ед / 2.0)) if путь is not None else None})
+    out.sort(key=lambda o: (o["до_нас"], -o["n"]))
+    return out
+
+
 def фланг(state: dict) -> dict:
     """Кто из врага стоит ближе к НАШЕЙ базе, чем к своей.
 
