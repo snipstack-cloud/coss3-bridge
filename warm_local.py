@@ -50,7 +50,7 @@ JSON. Пока схема не передаётся на событийном в
 import argparse, json, sys, time, urllib.request, urllib.error
 
 МОДЕЛЬ = "qwen3:30b-a3b"
-АДРЕС = "10.41.2.77"        # мак переезжает по DHCP: найти_ollama.py
+АДРЕС = "10.41.3.184"        # мак переезжает по DHCP: найти_ollama.py
 
 
 def запрос(url, тело=None, таймаут=300):
