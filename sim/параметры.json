@@ -1,0 +1,2601 @@
+{
+ "нация": "net",
+ "группа_построек": "eur",
+ "константы": {
+  "gc_pixels_to_tile": 53.3333333,
+  "gc_frames_to_time": 0.03125,
+  "gc_buildtime_modifier": 10.0,
+  "gc_unit_meleeattackradius": 3.5,
+  "gc_obj_speed_default": 32.0,
+  "gc_obj_speed_peasant": 40.0,
+  "gc_obj_speed_hardhorse": 56.0,
+  "gc_obj_speed_fasthorse": 96.0,
+  "gc_obj_speed_cannon": 20.0,
+  "gc_obj_speed_mortar": 24.0,
+  "gc_obj_speed_howitzer": 20.0,
+  "gc_obj_speed_multicannon": 16.0,
+  "gc_obj_speed_fishboat": 16.0,
+  "gc_obj_speed_ferry": 28.0,
+  "gc_obj_speed_yacht": 40.0,
+  "gc_obj_speed_yachttur": 70.0,
+  "gc_obj_speed_chaika": 55.0,
+  "gc_obj_speed_galley": 40.0,
+  "gc_obj_speed_frigate": 30.0,
+  "gc_obj_speed_xebec": 28.0,
+  "gc_obj_speed_battleship": 16.0
+ },
+ "темпы_из_трасс": {
+  "файлов": 52,
+  "шагов": 12171,
+  "добыча_на_крестьянина_в_сек": {
+   "food": {
+    "n": 7149,
+    "медиана": 1.085,
+    "кв1": 0.5852,
+    "кв3": 1.837
+   },
+   "wood": {
+    "n": 5621,
+    "медиана": 1.4,
+    "кв1": 0.9333,
+    "кв3": 2.24
+   },
+   "stone": {
+    "n": 4133,
+    "медиана": 2.0,
+    "кв1": 1.3333,
+    "кв3": 3.3333
+   },
+   "gold": {
+    "n": 9304,
+    "медиана": 1.575,
+    "кв1": 1.4769,
+    "кв3": 1.6783
+   },
+   "iron": {
+    "n": 8351,
+    "медиана": 0.8,
+    "кв1": 0.3,
+    "кв3": 1.16
+   },
+   "coal": {
+    "n": 1980,
+    "медиана": 1.65,
+    "кв1": 1.55,
+    "кв3": 1.76
+   }
+  },
+  "еда_расход_на_голову_в_сек": {
+   "n": 1646,
+   "медиана": 0.1,
+   "кв1": 0.0926,
+   "кв3": 0.11
+  },
+  "найм_пехоты_в_мин_на_казарму": {
+   "n": 1901,
+   "медиана": 10.9091,
+   "кв1": 5.7778,
+   "кв3": 13.0435
+  },
+  "найм_крестьян_в_мин_на_ратушу": {
+   "n": 2566,
+   "медиана": 4.4444,
+   "кв1": 3.0,
+   "кв3": 5.4545
+  },
+  "марш_ед_в_сек": {
+   "значение": 1.1,
+   "источник": "[замер] живая игра: 136 единиц за 122 с (world.md)"
+  }
+ },
+ "объекты": {
+  "pikeman": {
+   "sids": [
+    "pikeman",
+    "pikemanpol",
+    "pikemantur",
+    "pikemanrus",
+    "pikemansco",
+    "pikemanpor",
+    "pikemanspa",
+    "pikemanswi"
+   ],
+   "строки": [
+    630,
+    692
+   ],
+   "значения": {
+    "maxhp": 90,
+    "price": {
+     "food": 25,
+     "wood": 0,
+     "stone": 0,
+     "gold": 3,
+     "iron": 20,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 8,
+      "pause_frames": 0,
+      "radiusmin_px": 35,
+      "radiusmax_px": 100,
+      "kind": "pike",
+      "shot_cost_iron": 0,
+      "shot_cost_coal": 0,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.656,
+      "radiusmax_tiles": 1.875
+     }
+    ],
+    "protection": {
+     "pike": 3,
+     "sword": 2,
+     "bullet": 4,
+     "cannister": 210,
+     "arrow": 6,
+     "cannonball": 40
+    },
+    "buildtime": 144.0,
+    "usage": "lightinfantry",
+    "aiforce": 10,
+    "is_building": false,
+    "buildtime_s": 45.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "protection": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "pikeman18": {
+   "sids": [
+    "pikeman18",
+    "pikeman18swe"
+   ],
+   "строки": [
+    693,
+    711
+   ],
+   "значения": {
+    "maxhp": 85,
+    "price": {
+     "food": 30,
+     "wood": 0,
+     "stone": 0,
+     "gold": 2,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 9,
+      "pause_frames": 0,
+      "radiusmin_px": 45,
+      "radiusmax_px": 100,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.844,
+      "radiusmax_tiles": 1.875
+     }
+    ],
+    "buildtime": 40.0,
+    "usage": "lightinfantry",
+    "aiforce": 10,
+    "is_building": false,
+    "buildtime_s": 12.5
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "lightinfantry": {
+   "sids": [
+    "lightinfantry",
+    "lightinfantrydip"
+   ],
+   "строки": [
+    712,
+    734
+   ],
+   "значения": {
+    "maxhp": 55,
+    "price": {
+     "food": 25,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0,
+     "iron": 1,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 5,
+      "pause_frames": 0,
+      "radiusmin_px": 15,
+      "radiusmax_px": 50,
+      "kind": "sword",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.281,
+      "radiusmax_tiles": 0.938
+     }
+    ],
+    "buildtime": 32.0,
+    "usage": "lightinfantry",
+    "aiforce": 3,
+    "is_building": false,
+    "buildtime_s": 10.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "roundshier": {
+   "sids": [
+    "roundshier",
+    "roundshierdip",
+    "swordsmansco"
+   ],
+   "строки": [
+    735,
+    770
+   ],
+   "значения": {
+    "maxhp": 100,
+    "price": {
+     "food": 20,
+     "wood": 0,
+     "stone": 0,
+     "gold": 3,
+     "iron": 25,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 6,
+      "pause_frames": 0,
+      "radiusmin_px": 25,
+      "radiusmax_px": 60,
+      "kind": "sword",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.469,
+      "radiusmax_tiles": 1.125
+     }
+    ],
+    "protection": {
+     "pike": 3,
+     "sword": 3,
+     "bullet": 7,
+     "cannister": 225,
+     "arrow": 16,
+     "cannonball": 80
+    },
+    "buildtime": 128.0,
+    "usage": "lightinfantry",
+    "aiforce": 5,
+    "is_building": false,
+    "buildtime_s": 40.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "protection": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "musketeer": {
+   "sids": [
+    "musketeer",
+    "musketeerpol",
+    "musketeernet",
+    "pandur",
+    "chasseur",
+    "highlander",
+    "serdiuk",
+    "jannisary",
+    "musketeersco",
+    "gauduk",
+    "pandurhun",
+    "jagerpor",
+    "jagerswi"
+   ],
+   "строки": [
+    771,
+    897
+   ],
+   "значения": {
+    "maxhp": 65,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 8,
+     "iron": 4,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 10,
+      "pause_frames": 120,
+      "radiusmin_px": 300,
+      "radiusmax_px": 900,
+      "shot_cost_iron": 1,
+      "shot_cost_coal": 3,
+      "pause_s": 3.75,
+      "radiusmin_tiles": 5.625,
+      "radiusmax_tiles": 16.875
+     }
+    ],
+    "buildtime": 160,
+    "usage": "shooter",
+    "aiforce": 3,
+    "is_building": false,
+    "buildtime_s": 50.0
+   },
+   "источники": {
+    "maxhp": "модель, поправка sid=musketeernet",
+    "price": "модель, поправка sid=musketeernet",
+    "weapons": "модель, поправка sid=musketeernet",
+    "buildtime": "модель, поправка sid=musketeernet",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель, поправка sid=musketeernet",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": [
+    "sid=musketeernet"
+   ]
+  },
+  "musketeerspa": {
+   "sids": [
+    "musketeerspa",
+    "musketeeraus",
+    "strelet"
+   ],
+   "строки": [
+    898,
+    940
+   ],
+   "значения": {
+    "maxhp": 50,
+    "price": {
+     "food": 45,
+     "wood": 0,
+     "stone": 0,
+     "gold": 6,
+     "iron": 10,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 9,
+      "pause_frames": 90,
+      "radiusmin_px": 400,
+      "radiusmax_px": 800,
+      "kind": "bullet",
+      "shot_cost_iron": 2,
+      "shot_cost_coal": 4,
+      "index": 0,
+      "pause_s": 2.812,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 15.0
+     }
+    ],
+    "buildtime": 600.0,
+    "usage": "shooter",
+    "aiforce": 3,
+    "is_building": false,
+    "buildtime_s": 187.5
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "musketeer18": {
+   "sids": [
+    "musketeer18",
+    "musketeer18pru",
+    "musketeer18bav",
+    "musketeer18den",
+    "musketeer18sax"
+   ],
+   "строки": [
+    941,
+    996
+   ],
+   "значения": {
+    "maxhp": 100,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 40,
+     "iron": 40,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 10,
+      "pause_frames": 0,
+      "radiusmin_px": 35,
+      "radiusmax_px": 65,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.656,
+      "radiusmax_tiles": 1.219
+     },
+     {
+      "damage": 16,
+      "pause_frames": 150,
+      "radiusmin_px": 400,
+      "radiusmax_px": 900,
+      "kind": "bullet",
+      "shot_cost_iron": 2,
+      "shot_cost_coal": 3,
+      "pause_s": 4.688,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 16.875
+     }
+    ],
+    "buildtime": 144.0,
+    "usage": "shooter",
+    "aiforce": 20,
+    "is_building": false,
+    "buildtime_s": 45.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "archer": {
+   "sids": [
+    "archer",
+    "archerdip",
+    "archertur",
+    "archerturdip",
+    "archersco",
+    "archerscodip"
+   ],
+   "строки": [
+    997,
+    1061
+   ],
+   "значения": {
+    "maxhp": 40,
+    "price": {
+     "food": 20,
+     "wood": 2,
+     "stone": 0,
+     "gold": 1,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 15,
+      "pause_frames": 75,
+      "radiusmin_px": 400,
+      "radiusmax_px": 700,
+      "kind": "arrow",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 2.344,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 13.125
+     },
+     {
+      "damage": 150,
+      "pause_frames": 125,
+      "radiusmin_px": 400,
+      "radiusmax_px": 600,
+      "kind": "firearrow",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "pause_s": 3.906,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 11.25
+     }
+    ],
+    "buildtime": 32,
+    "usage": "archer",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 10.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "модель!",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "officer": {
+   "sids": [
+    "officer",
+    "officerrus",
+    "officertur",
+    "officersco"
+   ],
+   "строки": [
+    1062,
+    1099
+   ],
+   "значения": {
+    "maxhp": 125,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 150,
+     "iron": 30,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 30,
+      "pause_frames": 0,
+      "radiusmin_px": 35,
+      "radiusmax_px": 65,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.656,
+      "radiusmax_tiles": 1.219
+     }
+    ],
+    "protection": {
+     "pike": 2,
+     "sword": 2,
+     "bullet": 5,
+     "cannister": 200,
+     "arrow": 10,
+     "cannonball": 30
+    },
+    "buildtime": 320.0,
+    "usage": "lightinfantry",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 100.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "protection": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "officer18": {
+   "sids": [
+    "officer18"
+   ],
+   "строки": [
+    1100,
+    1113
+   ],
+   "значения": {
+    "maxhp": 125,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 200,
+     "iron": 10,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 50,
+      "pause_frames": 0,
+      "radiusmin_px": 35,
+      "radiusmax_px": 65,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.656,
+      "radiusmax_tiles": 1.219
+     }
+    ],
+    "buildtime": 192.0,
+    "usage": "lightinfantry",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 60.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "drummer": {
+   "sids": [
+    "drummer",
+    "drummerrus",
+    "drummertur",
+    "bagpiper",
+    "drummer18"
+   ],
+   "строки": [
+    1114,
+    1150
+   ],
+   "значения": {
+    "maxhp": 75,
+    "price": {
+     "food": 60,
+     "wood": 0,
+     "stone": 0,
+     "gold": 20,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 160.0,
+    "usage": "lightinfantry",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 50.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель"
+   },
+   "поправки_нации": []
+  },
+  "priest": {
+   "sids": [
+    "priest",
+    "pope",
+    "mullah",
+    "padre"
+   ],
+   "строки": [
+    1151,
+    1189
+   ],
+   "значения": {
+    "maxhp": 100,
+    "price": {
+     "food": 60,
+     "wood": 0,
+     "stone": 0,
+     "gold": 25,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 20,
+      "pause_frames": 0,
+      "radiusmin_px": 0,
+      "radiusmax_px": 400,
+      "kind": "heal",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.0,
+      "radiusmax_tiles": 7.5
+     }
+    ],
+    "buildtime": 640.0,
+    "usage": "lightinfantry",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 200.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "peaaus": {
+   "sids": [
+    "peaaus",
+    "peatur",
+    "pearus",
+    "peapol",
+    "peaspa",
+    "peaeng",
+    "peaukr",
+    "peasco"
+   ],
+   "строки": [
+    1190,
+    1225
+   ],
+   "значения": {
+    "maxhp": 50,
+    "price": {
+     "food": 100,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 20,
+      "pause_frames": 0,
+      "radiusmin_px": 10,
+      "radiusmax_px": 65,
+      "kind": "sword",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.188,
+      "radiusmax_tiles": 1.219
+     }
+    ],
+    "buildtime": 400.0,
+    "usage": "peasant",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 125.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "grenadier": {
+   "sids": [
+    "grenadier",
+    "grenadierdip",
+    "grenadierden",
+    "grenadierpru",
+    "grenadierbav",
+    "grenadiersax",
+    "grenadierhun"
+   ],
+   "строки": [
+    1226,
+    1318
+   ],
+   "значения": {
+    "maxhp": 120,
+    "price": {
+     "food": 80,
+     "wood": 0,
+     "stone": 0,
+     "gold": 60,
+     "iron": 40,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 18,
+      "pause_frames": 0,
+      "radiusmin_px": 25,
+      "radiusmax_px": 80,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.469,
+      "radiusmax_tiles": 1.5
+     },
+     {
+      "damage": 16,
+      "pause_frames": 170,
+      "radiusmin_px": 400,
+      "radiusmax_px": 900,
+      "kind": "bullet",
+      "shot_cost_iron": 2,
+      "shot_cost_coal": 3,
+      "pause_s": 5.312,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 16.875
+     },
+     {
+      "damage": 110,
+      "pause_frames": 75,
+      "radiusmin_px": 200,
+      "radiusmax_px": 500,
+      "kind": "mortarball",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "pause_s": 2.344,
+      "radiusmin_tiles": 3.75,
+      "radiusmax_tiles": 9.375
+     }
+    ],
+    "buildtime": 192.0,
+    "usage": "grenadier",
+    "aiforce": 20,
+    "is_building": false,
+    "buildtime_s": 60.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "croat": {
+   "sids": [
+    "croat",
+    "hussar",
+    "hussarpru",
+    "wingedhussar",
+    "cossacksich",
+    "cossacksichdip",
+    "hackapell",
+    "raidersco",
+    "hussarhun",
+    "hussarswi"
+   ],
+   "строки": [
+    1320,
+    1417
+   ],
+   "значения": {
+    "maxhp": 200,
+    "price": {
+     "food": 75,
+     "wood": 0,
+     "stone": 0,
+     "gold": 2,
+     "iron": 5,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 9,
+      "pause_frames": 0,
+      "radiusmin_px": 25,
+      "radiusmax_px": 65,
+      "kind": "pike",
+      "shot_cost_iron": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.469,
+      "radiusmax_tiles": 1.219
+     }
+    ],
+    "buildtime": 528.0,
+    "usage": "fasthorse",
+    "is_building": false,
+    "buildtime_s": 165.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "reiter": {
+   "sids": [
+    "reiter",
+    "cuirassier",
+    "reiterswe",
+    "reiterpol",
+    "hetman",
+    "cossackdon",
+    "vityaz",
+    "cossackregister",
+    "spakh",
+    "mameluke",
+    "guardcavalrysax",
+    "lancersco",
+    "sipahi"
+   ],
+   "строки": [
+    1418,
+    1543
+   ],
+   "значения": {
+    "maxhp": 300,
+    "price": {
+     "food": 120,
+     "wood": 0,
+     "stone": 0,
+     "gold": 10,
+     "iron": 40,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 15,
+      "pause_frames": 0,
+      "radiusmin_px": 20,
+      "radiusmax_px": 65,
+      "kind": "pike",
+      "shot_cost_iron": 0,
+      "shot_cost_coal": 0,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.375,
+      "radiusmax_tiles": 1.219
+     }
+    ],
+    "protection": {
+     "pike": 2,
+     "sword": 6,
+     "bullet": 6,
+     "cannister": 190,
+     "arrow": 14,
+     "cannonball": 40
+    },
+    "buildtime": 768.0,
+    "usage": "hardhorse",
+    "is_building": false,
+    "buildtime_s": 240.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "protection": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "dragoon": {
+   "sids": [
+    "dragoon",
+    "kingmusketeer",
+    "dragoon18fra",
+    "dragoonpol",
+    "dragoon18",
+    "dragoon18net",
+    "dragoon18pie",
+    "dragoon18dip",
+    "lightcavalry",
+    "lightcavalrydip"
+   ],
+   "строки": [
+    1544,
+    1664
+   ],
+   "значения": {
+    "maxhp": 320,
+    "price": {
+     "food": 100,
+     "wood": 0,
+     "stone": 0,
+     "gold": 70,
+     "iron": 7,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 17,
+      "pause_frames": 160,
+      "radiusmin_px": 300,
+      "radiusmax_px": 850,
+      "kind": "bullet",
+      "shot_cost_iron": 3,
+      "shot_cost_coal": 4,
+      "pause_s": 5.0,
+      "radiusmin_tiles": 5.625,
+      "radiusmax_tiles": 15.938
+     }
+    ],
+    "buildtime": 768,
+    "usage": "horseshooter",
+    "is_building": false,
+    "buildtime_s": 240.0
+   },
+   "источники": {
+    "maxhp": "модель, поправка sid=dragoon18net",
+    "price": "модель, поправка sid=dragoon18net",
+    "weapons": "модель, поправка sid=dragoon18net",
+    "buildtime": "модель, поправка sid=dragoon18net",
+    "usage": "модель, поправка sid=dragoon18net",
+    "is_building": "модель, поправка sid=dragoon18net",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": [
+    "sid=dragoon18net"
+   ]
+  },
+  "tatar": {
+   "sids": [
+    "tatar"
+   ],
+   "строки": [
+    1665,
+    1689
+   ],
+   "значения": {
+    "maxhp": 185,
+    "price": {
+     "food": 70,
+     "wood": 2,
+     "stone": 0,
+     "gold": 6,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 15,
+      "pause_frames": 50,
+      "radiusmin_px": 500,
+      "radiusmax_px": 1100,
+      "kind": "arrow",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 1.562,
+      "radiusmin_tiles": 9.375,
+      "radiusmax_tiles": 20.625
+     },
+     {
+      "damage": 140,
+      "pause_frames": 150,
+      "radiusmin_px": 500,
+      "radiusmax_px": 1100,
+      "kind": "firearrow",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "pause_s": 4.688,
+      "radiusmin_tiles": 9.375,
+      "radiusmax_tiles": 20.625
+     }
+    ],
+    "buildtime": 11.25,
+    "usage": "archer",
+    "aiforce": 4,
+    "is_building": false,
+    "buildtime_s": 3.52
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "модель",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "cannon": {
+   "sids": [
+    "cannon"
+   ],
+   "строки": [
+    1696,
+    1731
+   ],
+   "значения": {
+    "maxhp": 9000,
+    "price": {
+     "food": 0,
+     "wood": 250,
+     "stone": 0,
+     "gold": 400,
+     "iron": 400,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 1800,
+      "pause_frames": 350,
+      "radiusmin_px": 550,
+      "radiusmax_px": 2160,
+      "kind": "cannonball",
+      "shot_cost_iron": 20,
+      "shot_cost_coal": 40,
+      "index": 0,
+      "pause_s": 10.938,
+      "radiusmin_tiles": 10.313,
+      "radiusmax_tiles": 40.5
+     },
+     {
+      "damage": 0,
+      "pause_frames": 350,
+      "radiusmin_px": 0,
+      "radiusmax_px": 450,
+      "kind": "cannister",
+      "shot_cost_iron": 24,
+      "shot_cost_coal": 21,
+      "pause_s": 10.938,
+      "radiusmin_tiles": 0.0,
+      "radiusmax_tiles": 8.438
+     }
+    ],
+    "buildtime": 2400.0,
+    "usage": "cannon",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 750.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "howitzer": {
+   "sids": [
+    "howitzer"
+   ],
+   "строки": [
+    1732,
+    1763
+   ],
+   "значения": {
+    "maxhp": 3000,
+    "price": {
+     "food": 0,
+     "wood": 250,
+     "stone": 0,
+     "gold": 350,
+     "iron": 300,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 4000,
+      "pause_frames": 600,
+      "radiusmin_px": 700,
+      "radiusmax_px": 1400,
+      "kind": "cannonball",
+      "shot_cost_iron": 20,
+      "shot_cost_coal": 100,
+      "index": 0,
+      "pause_s": 18.75,
+      "radiusmin_tiles": 13.125,
+      "radiusmax_tiles": 26.25
+     }
+    ],
+    "buildtime": 3008.0,
+    "usage": "mortar",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 940.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "mortar": {
+   "sids": [
+    "mortar"
+   ],
+   "строки": [
+    1764,
+    1793
+   ],
+   "значения": {
+    "maxhp": 400,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 0,
+     "gold": 75,
+     "iron": 200,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 200,
+      "pause_frames": 250,
+      "radiusmin_px": 1250,
+      "radiusmax_px": 2600,
+      "kind": "mortarball",
+      "shot_cost_iron": 20,
+      "shot_cost_coal": 30,
+      "index": 0,
+      "pause_s": 7.812,
+      "radiusmin_tiles": 23.438,
+      "radiusmax_tiles": 48.75
+     }
+    ],
+    "buildtime": 800.0,
+    "usage": "supermortar",
+    "is_building": false,
+    "buildtime_s": 250.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "multicannon": {
+   "sids": [
+    "multicannon"
+   ],
+   "строки": [
+    1794,
+    1822
+   ],
+   "значения": {
+    "maxhp": 2000,
+    "price": {
+     "food": 0,
+     "wood": 200,
+     "stone": 0,
+     "gold": 400,
+     "iron": 250,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 500,
+      "pause_frames": 60,
+      "radiusmin_px": 10,
+      "radiusmax_px": 700,
+      "kind": "cannister",
+      "shot_cost_iron": 40,
+      "shot_cost_coal": 30,
+      "index": 0,
+      "pause_s": 1.875,
+      "radiusmin_tiles": 0.188,
+      "radiusmax_tiles": 13.125
+     }
+    ],
+    "protection": {
+     "pike": null,
+     "sword": null,
+     "bullet": null,
+     "cannister": 500,
+     "arrow": null,
+     "cannonball": null
+    },
+    "buildtime": 1600.0,
+    "usage": "mcannon",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 500.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "protection": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "framegun": {
+   "sids": [
+    "framegun"
+   ],
+   "строки": [
+    1823,
+    1853
+   ],
+   "значения": {
+    "maxhp": 3000,
+    "price": {
+     "food": 0,
+     "wood": 200,
+     "stone": 0,
+     "gold": 300,
+     "iron": 150,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 500,
+      "pause_frames": 90,
+      "radiusmin_px": 200,
+      "radiusmax_px": 1800,
+      "kind": "cannonball",
+      "shot_cost_iron": 30,
+      "shot_cost_coal": 40,
+      "index": 0,
+      "pause_s": 2.812,
+      "radiusmin_tiles": 3.75,
+      "radiusmax_tiles": 33.75
+     }
+    ],
+    "buildtime": 1600.0,
+    "usage": "cannon",
+    "aiforce": 1,
+    "is_building": false,
+    "buildtime_s": 500.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "fishboat": {
+   "sids": [
+    "fishboat"
+   ],
+   "строки": [
+    1855,
+    1872
+   ],
+   "значения": {
+    "maxhp": 300,
+    "price": {
+     "food": 0,
+     "wood": 600,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "costpercent": 105,
+    "usage": "fisher",
+    "is_building": false,
+    "buildtime": 1280.0,
+    "buildtime_s": 400.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "costpercent": "модель",
+    "usage": "модель",
+    "is_building": "модель",
+    "buildtime": "код"
+   },
+   "поправки_нации": []
+  },
+  "yacht": {
+   "sids": [
+    "yacht",
+    "yachttur"
+   ],
+   "строки": [
+    1873,
+    1921
+   ],
+   "значения": {
+    "maxhp": 31000,
+    "price": {
+     "food": 0,
+     "wood": 900,
+     "stone": 0,
+     "gold": 450,
+     "iron": 150,
+     "coal": 200
+    },
+    "weapons": [
+     {
+      "damage": 1000,
+      "pause_frames": 350,
+      "radiusmin_px": 300,
+      "radiusmax_px": 1100,
+      "kind": "cannonball",
+      "shot_cost_iron": 4,
+      "shot_cost_coal": 9,
+      "index": 0,
+      "pause_s": 10.938,
+      "radiusmin_tiles": 5.625,
+      "radiusmax_tiles": 20.625
+     }
+    ],
+    "buildtime": 1536.0,
+    "costpercent": 105,
+    "usage": "yacht",
+    "is_building": false,
+    "buildtime_s": 480.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "модель",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "galley": {
+   "sids": [
+    "galley"
+   ],
+   "строки": [
+    1922,
+    1958
+   ],
+   "значения": {
+    "maxhp": 35000,
+    "price": {
+     "food": 0,
+     "wood": 9500,
+     "stone": 0,
+     "gold": 900,
+     "iron": 800,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 100,
+      "pause_frames": 150,
+      "radiusmin_px": 300,
+      "radiusmax_px": 1200,
+      "kind": "cannonball",
+      "shot_cost_iron": 4,
+      "shot_cost_coal": 9,
+      "index": 0,
+      "pause_s": 4.688,
+      "radiusmin_tiles": 5.625,
+      "radiusmax_tiles": 22.5
+     },
+     {
+      "damage": 1000,
+      "pause_frames": 50,
+      "radiusmin_px": 1100,
+      "radiusmax_px": 3100,
+      "kind": "mortarball",
+      "shot_cost_iron": 4,
+      "shot_cost_coal": 9,
+      "pause_s": 1.562,
+      "radiusmin_tiles": 20.625,
+      "radiusmax_tiles": 58.125
+     }
+    ],
+    "buildtime": 1600.0,
+    "usage": "galley",
+    "is_building": false,
+    "buildtime_s": 500.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "frigate": {
+   "sids": [
+    "frigate",
+    "xebec",
+    "battleship",
+    "chaika"
+   ],
+   "строки": [
+    1959,
+    2032
+   ],
+   "значения": {
+    "maxhp": 50000,
+    "price": {
+     "food": 0,
+     "wood": 5000,
+     "stone": 0,
+     "gold": 1100,
+     "iron": 600,
+     "coal": 800
+    },
+    "weapons": [
+     {
+      "damage": 1800,
+      "pause_frames": 75,
+      "radiusmin_px": 400,
+      "radiusmax_px": 1650,
+      "kind": "cannonball",
+      "shot_cost_iron": 25,
+      "shot_cost_coal": 35,
+      "index": 0,
+      "pause_s": 2.344,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 30.938
+     }
+    ],
+    "buildtime": 7360.0,
+    "usage": "frigate",
+    "is_building": false,
+    "buildtime_s": 2300.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель!",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "ferry": {
+   "sids": [
+    "ferry"
+   ],
+   "строки": [
+    2033,
+    2049
+   ],
+   "значения": {
+    "maxhp": 62000,
+    "price": {
+     "food": 0,
+     "wood": 300,
+     "stone": 0,
+     "gold": 50,
+     "iron": 100,
+     "coal": 0
+    },
+    "buildtime": 1792.0,
+    "usage": "transport",
+    "is_building": false,
+    "buildtime_s": 560.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "is_building": "модель"
+   },
+   "поправки_нации": []
+  },
+  "unitbox": {
+   "sids": [
+    "unitbox"
+   ],
+   "строки": [
+    2050,
+    2055
+   ],
+   "значения": {
+    "maxhp": 100,
+    "price": {
+     "food": 100,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 100.0,
+    "is_building": false,
+    "buildtime_s": 31.25
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "is_building": "модель"
+   },
+   "поправки_нации": []
+  },
+  "misdonkey": {
+   "sids": [
+    "misdonkey",
+    "mistrader",
+    "misflagman"
+   ],
+   "строки": [
+    2056,
+    2076
+   ],
+   "значения": {
+    "maxhp": 150,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 10,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 150.0,
+    "usage": "lightinfantry",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 46.88
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель"
+   },
+   "поправки_нации": []
+  },
+  "misgeneral": {
+   "sids": [
+    "misgeneral"
+   ],
+   "строки": [
+    2077,
+    2090
+   ],
+   "значения": {
+    "maxhp": 150,
+    "price": {
+     "food": 50,
+     "wood": 0,
+     "stone": 0,
+     "gold": 225,
+     "iron": 15,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 140,
+      "pause_frames": 0,
+      "radiusmin_px": 15,
+      "radiusmax_px": 95,
+      "kind": "sword",
+      "shot_cost_iron": null,
+      "shot_cost_coal": null,
+      "index": 0,
+      "pause_s": 0.0,
+      "radiusmin_tiles": 0.281,
+      "radiusmax_tiles": 1.781
+     }
+    ],
+    "buildtime": 150.0,
+    "usage": "lightinfantry",
+    "aiforce": 2,
+    "is_building": false,
+    "buildtime_s": 46.88
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "модель",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "commonsid+'mil'": {
+   "sids": [
+    "mil"
+   ],
+   "строки": [
+    2141,
+    2151
+   ],
+   "значения": {
+    "maxhp": 20000,
+    "price": {
+     "food": 0,
+     "wood": 30,
+     "stone": 150,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 300.0,
+    "costpercent": 200.0,
+    "usage": "mill",
+    "is_building": true,
+    "buildtime_s": 93.75
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "commonpor": {
+   "sids": [
+    "por"
+   ],
+   "строки": [
+    2152,
+    2188
+   ],
+   "значения": {
+    "maxhp": 50000,
+    "price": {
+     "food": 0,
+     "wood": 1600,
+     "stone": 800,
+     "gold": 0,
+     "iron": 400,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 1000,
+      "pause_frames": 280,
+      "radiusmin_px": 550,
+      "radiusmax_px": 1500,
+      "kind": "cannonball",
+      "shot_cost_iron": 10,
+      "shot_cost_coal": 30,
+      "index": 0,
+      "pause_s": 8.75,
+      "radiusmin_tiles": 10.313,
+      "radiusmax_tiles": 28.125
+     }
+    ],
+    "buildtime": 5000.0,
+    "costpercent": 150.0,
+    "usage": "port",
+    "is_building": true,
+    "buildtime_s": 1562.5
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "common:mar": {
+   "sids": [
+    "mar"
+   ],
+   "строки": [
+    2189,
+    2203
+   ],
+   "значения": {
+    "maxhp": 4000,
+    "price": {
+     "food": 0,
+     "wood": 450,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 750.0,
+    "costpercent": 2000.0,
+    "usage": "X",
+    "is_building": true,
+    "buildtime_s": 234.38
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "common:sto": {
+   "sids": [
+    "sto"
+   ],
+   "строки": [
+    2204,
+    2222
+   ],
+   "значения": {
+    "maxhp": 10000,
+    "price": {
+     "food": 0,
+     "wood": 50,
+     "stone": 20,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 100.0,
+    "costpercent": 150.0,
+    "usage": "storage",
+    "is_building": true,
+    "buildtime_s": 31.25
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "tow": {
+   "sids": [
+    "tow"
+   ],
+   "строки": [
+    2223,
+    2257
+   ],
+   "значения": {
+    "maxhp": 20000,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 100,
+     "gold": 150,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 1000,
+      "pause_frames": 400,
+      "radiusmin_px": 550,
+      "radiusmax_px": 1500,
+      "kind": "cannonball",
+      "shot_cost_iron": 10,
+      "shot_cost_coal": 30,
+      "index": 0,
+      "pause_s": 12.5,
+      "radiusmin_tiles": 10.313,
+      "radiusmax_tiles": 28.125
+     }
+    ],
+    "buildtime": 3937.0,
+    "costpercent": 120.0,
+    "usage": "tower",
+    "is_building": true,
+    "buildtime_s": 1230.31
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "commonswa": {
+   "sids": [
+    "swa",
+    "sga"
+   ],
+   "строки": [
+    2258,
+    2284
+   ],
+   "значения": {
+    "maxhp": 50000,
+    "price": {
+     "food": 0,
+     "wood": 0,
+     "stone": 50,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 288.0,
+    "costpercent": 0.0,
+    "usage": "hardwall",
+    "is_building": true,
+    "buildtime_s": 90.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "ukrwwa": {
+   "sids": [
+    "ukrwwa",
+    "ukrwga"
+   ],
+   "строки": [
+    2285,
+    2310
+   ],
+   "значения": {
+    "maxhp": 1500,
+    "price": {
+     "food": 0,
+     "wood": 10,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 18.0,
+    "costpercent": 0.0,
+    "usage": "weakwall",
+    "is_building": true,
+    "buildtime_s": 5.62
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "gol": {
+   "sids": [
+    "gol",
+    "iro",
+    "coa"
+   ],
+   "строки": [
+    2311,
+    2323
+   ],
+   "значения": {
+    "maxhp": 2500,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 100,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 300.0,
+    "costpercent": 0.0,
+    "usage": "mine",
+    "is_building": true,
+    "buildtime_s": 93.75
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "cen": {
+   "sids": [
+    "cen"
+   ],
+   "строки": [
+    2370,
+    2401
+   ],
+   "значения": {
+    "maxhp": 4950,
+    "price": {
+     "food": 0,
+     "wood": 700,
+     "stone": 700,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 500.0,
+    "costpercent": 300.0,
+    "usage": "center",
+    "is_building": true,
+    "buildtime_s": 156.25
+   },
+   "источники": {
+    "maxhp": "модель, поправка nation=net",
+    "price": "модель, поправка nation=net",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "модель, поправка nation=net"
+   },
+   "поправки_нации": [
+    "nation=net"
+   ]
+  },
+  "csid+hous": {
+   "sids": [
+    "hou"
+   ],
+   "строки": [
+    2402,
+    2419
+   ],
+   "значения": {
+    "maxhp": 4500,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 100,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 100.0,
+    "costpercent": 104.0,
+    "usage": "farm",
+    "is_building": true,
+    "buildtime_s": 31.25
+   },
+   "источники": {
+    "maxhp": "модель, поправка nation=net",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "модель, поправка nation=net"
+   },
+   "поправки_нации": [
+    "nation=net"
+   ]
+  },
+  "aca": {
+   "sids": [
+    "aca"
+   ],
+   "строки": [
+    2420,
+    2438
+   ],
+   "значения": {
+    "maxhp": 63000,
+    "price": {
+     "food": 0,
+     "wood": 1050,
+     "stone": 1230,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 2000.0,
+    "costpercent": 300,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 625.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "модель, поправка nation=net",
+    "buildtime": "код",
+    "costpercent": "модель, поправка nation=net",
+    "usage": "модель, поправка nation=net",
+    "is_building": "модель, поправка nation=net"
+   },
+   "поправки_нации": [
+    "nation=net"
+   ]
+  },
+  "art": {
+   "sids": [
+    "art"
+   ],
+   "строки": [
+    2439,
+    2450
+   ],
+   "значения": {
+    "maxhp": 40000,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 1000,
+     "gold": 0,
+     "iron": 0,
+     "coal": 1400
+    },
+    "weapons": [
+     {
+      "kind": "artillery",
+      "shot_cost_iron": 0
+     }
+    ],
+    "buildtime": 787.0,
+    "costpercent": 200.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 245.94
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "dip": {
+   "sids": [
+    "dip"
+   ],
+   "строки": [
+    2451,
+    2460
+   ],
+   "значения": {
+    "maxhp": 4500,
+    "price": {
+     "food": 0,
+     "wood": 4900,
+     "stone": 1700,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 1000.0,
+    "costpercent": 100.0,
+    "usage": "dipcenter",
+    "is_building": true,
+    "buildtime_s": 312.5
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "tem": {
+   "sids": [
+    "tem"
+   ],
+   "строки": [
+    2461,
+    2470
+   ],
+   "значения": {
+    "maxhp": 4200,
+    "price": {
+     "food": 0,
+     "wood": 1000,
+     "stone": 1200,
+     "gold": 0,
+     "iron": 500,
+     "coal": 0
+    },
+    "buildtime": 500.0,
+    "costpercent": 300.0,
+    "usage": "none",
+    "aiforce": 0,
+    "is_building": true,
+    "buildtime_s": 156.25
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "bar": {
+   "sids": [
+    "bar"
+   ],
+   "строки": [
+    2471,
+    2491
+   ],
+   "значения": {
+    "maxhp": 40000,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 100,
+     "gold": 500,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 300.0,
+    "costpercent": 500.0,
+    "usage": "none",
+    "aiforce": 0,
+    "is_building": true,
+    "buildtime_s": 93.75
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "aiforce": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "csid+ba2": {
+   "sids": [
+    "ba2"
+   ],
+   "строки": [
+    2492,
+    2501
+   ],
+   "значения": {
+    "maxhp": 55000,
+    "price": {
+     "food": 0,
+     "wood": 1700,
+     "stone": 2950,
+     "gold": 4000,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": null,
+      "pause_frames": null,
+      "radiusmin_px": null,
+      "radiusmax_px": null,
+      "kind": null,
+      "shot_cost_iron": null
+     }
+    ],
+    "buildtime": 18000.0,
+    "costpercent": 200.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 5625.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "csid+'sta'": {
+   "sids": [
+    "sta"
+   ],
+   "строки": [
+    2502,
+    2512
+   ],
+   "значения": {
+    "maxhp": 20000,
+    "price": {
+     "food": 0,
+     "wood": 2500,
+     "stone": 100,
+     "gold": 600,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 2000.0,
+    "costpercent": 200.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 625.0
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "csid+bla": {
+   "sids": [
+    "bla"
+   ],
+   "строки": [
+    2513,
+    2521
+   ],
+   "значения": {
+    "maxhp": 5500,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 30,
+     "gold": 0,
+     "iron": 640,
+     "coal": 0
+    },
+    "buildtime": 300.0,
+    "costpercent": 400.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 93.75
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "misblg": {
+   "sids": [
+    "misblg",
+    "misblg2"
+   ],
+   "строки": [
+    2539,
+    2553
+   ],
+   "значения": {
+    "maxhp": 10000,
+    "price": {
+     "food": 0,
+     "wood": 100,
+     "stone": 100,
+     "gold": 150,
+     "iron": 0,
+     "coal": 0
+    },
+    "weapons": [
+     {
+      "damage": 85,
+      "pause_frames": 1,
+      "radiusmin_px": 400,
+      "radiusmax_px": 950,
+      "shot_cost_iron": 2,
+      "shot_cost_coal": 2,
+      "kind": "bullet",
+      "index": 0,
+      "pause_s": 0.031,
+      "radiusmin_tiles": 7.5,
+      "radiusmax_tiles": 17.813
+     }
+    ],
+    "buildtime": 4500.0,
+    "costpercent": 300.0,
+    "usage": "tower",
+    "is_building": true,
+    "buildtime_s": 1406.25
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "weapons": "модель",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код",
+    "weapons[0]": "код"
+   },
+   "поправки_нации": []
+  },
+  "misyurt": {
+   "sids": [
+    "misyurt"
+   ],
+   "строки": [
+    2554,
+    2562
+   ],
+   "значения": {
+    "maxhp": 10000,
+    "price": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 100.0,
+    "costpercent": 100.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 31.25
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  },
+  "miscommandcenter": {
+   "sids": [
+    "miscommandcenter"
+   ],
+   "строки": [
+    2563,
+    2571
+   ],
+   "значения": {
+    "maxhp": 25000,
+    "price": {
+     "food": 0,
+     "wood": 0,
+     "stone": 0,
+     "gold": 0,
+     "iron": 0,
+     "coal": 0
+    },
+    "buildtime": 1000.0,
+    "costpercent": 100.0,
+    "usage": "none",
+    "is_building": true,
+    "buildtime_s": 312.5
+   },
+   "источники": {
+    "maxhp": "код",
+    "price": "код",
+    "buildtime": "код",
+    "costpercent": "код",
+    "usage": "модель",
+    "is_building": "код"
+   },
+   "поправки_нации": []
+  }
+ },
+ "расхождения_модели_с_кодом": [
+  "croat: maxhp: модель 230, код 200",
+  "csid+hous: price.food: модель 100, код 0",
+  "csid+hous: price.wood: модель 104, код 100"
+ ],
+ "чисел_не_из_кода": 9,
+ "открытые_вопросы": [
+  "buildtime пикинёра 144 -> 45 с по формуле движка, а казарма выпускает 10,9 в минуту (5,5 с на бойца) по 1901 такту трасс: второе число SetObjBaseSearchBuildVisionScore — не время найма. В симулятор идёт темп из трасс.",
+  "добыча в трассах — верхняя оценка (только шаги с приростом); стройка и найм списывают ресурсы в те же шаги."
+ ]
+}
