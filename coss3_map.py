@@ -628,6 +628,11 @@ def размен_боя(state: dict) -> float | None:
     наш, ихний = наши.get("infantry17"), его.get("infantry17")
     if not наш or not ихний:
         return None
+    # Строй врага (24.09): без него перевес по клеткам врал втрое так же,
+    # как и размен по армиям. Поля отрядов — с блока ветки idea/formation,
+    # пока их нет — умолчание «идёт в строю».
+    _с = combat_math.поправка_на_строй(state.get("p1_squads"), state.get("p1_squad_hold"))
+    ихний = combat_math.со_строем(ихний, _с["урон"], _с["щит"])
     try:
         return float(combat_math.размен(наш, ихний)["отношение"])
     except (KeyError, TypeError, ValueError, ZeroDivisionError):

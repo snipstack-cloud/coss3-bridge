@@ -600,6 +600,12 @@ class Мир:
                              if self.t > 300 else
                              "infantry17=hp90,atk8,dpike3,dsword2,dbullet1 "),
              "p0_train": "pikeman:inf,peasant:inf" if self.t > 90 else "",
+             # Его отряды (ветка idea/formation, 24.09): после 400 с у него
+             # один строй, стоящий дома, — так проверяется ветка «+7/+7».
+             "p0_squads": 1 if self.t > 400 else 0,
+             "p0_squad_units": 15 if self.t > 400 else 0,
+             "p0_squad_hold": 1 if self.t > 400 and not self.набег() else 0,
+             "p0_squad_form": "LINE15" if self.t > 400 else "",
              "p0_mv_n": 23 if self.набег() else 0,
              "p0_mv_base": 23 if self.набег() else 0,
              "p0_mv_cx": 12 if self.набег() else 3,
