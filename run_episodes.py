@@ -75,7 +75,7 @@ class Episode:
     """Один эпизод: старт по сиду, наблюдение, завершение, строка результата."""
 
     def __init__(self, br: Bridge, horizon: int, quiet: float, dry: bool,
-                 speed: int = 0, model: bool = False, policy: str = "rush",
+                 speed: int = -1, model: bool = False, policy: str = "rush",
                  wave: int = 1, wave_every: int = 20):
         self.br, self.horizon, self.quiet, self.dry = br, horizon, quiet, dry
         self.speed = speed
@@ -266,7 +266,7 @@ def main() -> int:
     ap.add_argument("--every", type=int, default=60, help="шаг отчёта по ходу эпизода, игровых секунд")
     ap.add_argument("--quiet", type=float, default=90, help="сколько молчания считать концом, с")
     ap.add_argument("--csv", default="episodes.csv")
-    ap.add_argument("--speed", type=int, default=0,
+    ap.add_argument("--speed", type=int, default=-1,
                     help="скорость игры для эпизода (1..3), 0 — как в шаблоне")
     ap.add_argument("--check", action="store_true",
                     help="проверить блок эпизодов и шаблон матча, ничего не запуская")

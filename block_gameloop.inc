@@ -67,6 +67,14 @@
       [*] = ;         // it at 11:24-16:17 in every match. Forbidding the century closes
       [*] = ;         // that door on BOTH sides, which is what makes it fair.
       [*] = ;         var brctlcent  : Integer = -1;
+      [*] = ;         // GAME SPEED (25.09). The engine has three modes and the factors
+      [*] = ;         // live in dmscript.global:1027 - slow 7, normal 10, fast 14 (the
+      [*] = ;         // fourth, 20, is commented out there). -1 means DO NOT TOUCH: the
+      [*] = ;         // key has been travelling in the control file since the start and
+      [*] = ;         // nobody read it, so callers still send 0 - and 0 is the SLOW mode.
+      [*] = ;         // Reading it as a mode without this guard would quietly slow every
+      [*] = ;         // container game down.
+      [*] = ;         var brctlspd  : Integer = -1;
       [*] = ;         if ParserLoadFromFileByHandle(hctl, brctlpath) then
       [*] = ;         begin
       [*] = ;            brctlcmd := ParserGetValueByKeyByHandle(hctl, 'cmd');
@@ -86,6 +94,8 @@
       [*] = ;            brctlmark := ParserGetIntValueByKeyByHandle(hctl, 'market');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'century18') <> '') then
       [*] = ;            brctlcent := ParserGetIntValueByKeyByHandle(hctl, 'century18');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'speed') <> '') then
+      [*] = ;            brctlspd := ParserGetIntValueByKeyByHandle(hctl, 'speed');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
@@ -129,6 +139,33 @@
       [*] = ;            gMap.settings.additional.marketdip := brctlmark;
       [*] = ;            if (brctlcent >= 0) then
       [*] = ;            gMap.settings.additional.century18 := brctlcent;
+      [*] = ;            // Flat ifs on purpose: a case with one-line branches once killed
+      [*] = ;            // the tick, and a scalar in a nested begin is the other known trap.
+      [*] = ;            //
+      [*] = ;            // THE PROFILE MUST BE SET TOO, and this was measured 25.09: setting
+      [*] = ;            // only the factor changes what GetTimeSpeedFactor returns AND NOTHING
+      [*] = ;            // ELSE, because the map load right after NEW runs
+      [*] = ;            // _control_SetGameSpeedByMode(gProfile.igamespeed, True)
+      [*] = ;            // (common.inc/onloadfull.inc:120) and restores the profile value over
+      [*] = ;            // ours. The receipt looked right (14, then 10) because it is written
+      [*] = ;            // before the load; the clock told the truth - 1.40 game seconds per
+      [*] = ;            // real second BOTH times. gProfile.igamespeed is what the GUI state
+      [*] = ;            // WriteTimeSpeed writes next to the factor, so we write both.
+      [*] = ;            if (brctlspd = 0) then
+      [*] = ;            begin
+      [*] = ;               SetTimeSpeedFactor(gc_settings_gamespeed_0);
+      [*] = ;               gProfile.igamespeed := 0;
+      [*] = ;            end;
+      [*] = ;            if (brctlspd = 1) then
+      [*] = ;            begin
+      [*] = ;               SetTimeSpeedFactor(gc_settings_gamespeed_1);
+      [*] = ;               gProfile.igamespeed := 1;
+      [*] = ;            end;
+      [*] = ;            if (brctlspd = 2) then
+      [*] = ;            begin
+      [*] = ;               SetTimeSpeedFactor(gc_settings_gamespeed_2);
+      [*] = ;               gProfile.igamespeed := 2;
+      [*] = ;            end;
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
       [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
@@ -173,6 +210,7 @@
       [*] = ;            // market. On 20.09 that meant waiting until 4:20 game time.
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'market', gMap.settings.additional.marketdip);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'century18', gMap.settings.additional.century18);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'speed', floor(GetTimeSpeedFactor));
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
       [*] = ;            GUIExecuteState('DoNewGame');
       [*] = ;         end;
