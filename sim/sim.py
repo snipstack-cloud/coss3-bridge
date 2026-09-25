@@ -358,7 +358,7 @@ class Симулятор:
             з = core.значения(self.п, core.ЗДАНИЯ[роль][0])
             bt = з.get("buildtime_s") or 60.0
             # допущение §3.5: время делится на строителей линейно
-            self.стройки.append({"роль": роль, "поле": поле, "осталось": bt / max(строителей, 1), "строителей": строителей})
+            self.стройки.append({"роль": роль, "поле": поле, "осталось": bt / max(строителей, 1), "всего": bt / max(строителей, 1), "строителей": строителей})
             self.крест["build"] += строителей
         elif cmd == "TRAIN":
             роль = ОБР_РОЛЬ.get(c.get("a1"), c.get("role"))
@@ -625,6 +625,8 @@ class Симулятор:
         крестьян = сумма(сетка(st.get("prow"))) * масштаб_кр
         у_базы = sum(sum(г["состав"].values()) for г in self.группы
                      if math.hypot(г["x"] - self.з.en_base[0], г["y"] - self.з.en_base[1]) <= 2)
+        if self.t >= 420 and у_базы > 50:
+            self.тактов_у_его_базы = getattr(self, "тактов_у_его_базы", 0) + 1
         if self.t >= 420 and армия_его < 10 and крестьян < 10 and у_базы > 50:
             self.удержание += DT
             if self.удержание >= 30:
@@ -649,8 +651,17 @@ class Симулятор:
         s["on_build"] = round(self.крест["build"])
         s["on_mine"] = round(self.крест["gold"] + self.крест["iron"] + self.крест["coal"])
         s["building_now"] = len(self.стройки)
-        s["wip"] = ",".join(f"{x['роль']}/{x['строителей']:.0f}" for x in self.стройки)
+        # wip как в блоке: роль/котлован/строят/процент — debut.py читает четыре части
+        s["wip"] = ",".join(f"{x['роль']}/{x['строителей']:.0f}/{x['строителей']:.0f}/{100 - min(99, x['осталось'] * 100 / max(x.get('всего', x['осталось']), 1e-9)):.0f}" for x in self.стройки)
         s["train_now"] = ",".join(f"{k}:{'inf' if v is True else v}" for k, v in self.очереди.items() if v)
+        # очередь казармы как в блоке: «1:pikeman:inf» или «1:none»; без казармы — «none-built»
+        if self.эк.здания["ba17"] > 0:
+            п = self.очереди.get("pikeman")
+            s["ba_queues"] = f"1:pikeman:{'inf' if п is True else п}" if п else "1:none"
+        else:
+            s["ba_queues"] = "none-built"
+        # готовые участки поля: 32 после созревания, 0 до (истощения в горизонте нет, §3.4)
+        s["food_ready"] = 32 if (self.мельница_t is not None and self.t - self.мельница_t >= ЗРЕЕТ_ПОЛЕ) else 0
         s["my_officers"], s["my_drummers"] = round(self.офицеры), round(self.барабанщики)
         s["squads"] = 1 if self.строй else 0
         s["my_mil_lost"], s["my_pea_lost"] = round(self.my_mil_lost), round(self.my_pea_lost)
