@@ -1,0 +1,658 @@
+# -*- coding: utf-8 -*-
+"""Замкнутый симулятор партии — сборка по `СПЕЦИФИКАЦИЯ.md`.
+
+Ядро экономики (`core.py`, ворота пройдены), движение (§4, скорость 1,15 ед/с по
+воротам), бой (`combat.py`, ворота пройдены), враг — записанная партия (§5),
+команды — словарь моста (§7). Состояние наружу — тот же словарь, что отдаёт
+мост, чтобы политика, выученная здесь, читала живую игру без перевода.
+
+Что здесь ДОПУЩЕНИЕ, а не замер, помечено словом «допущение» в комментарии;
+проверка сборки — `sim/replay.py`: команды записанной партии в замкнутом цикле
+против той же трассы.
+"""
+import json
+import math
+import os
+import random
+import sys
+
+ЗДЕСЬ = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ЗДЕСЬ)
+sys.path.insert(0, os.path.expanduser("~/coss3-bridge"))
+import core         # noqa: E402
+import combat       # noqa: E402
+import combat_math  # noqa: E402
+from coss3_bridge import ROLE, RESOURCE  # noqa: E402
+
+DT = 5.0
+СКОРОСТЬ = 1.15 / 16.0          # клеток в секунду ([замер] ворота движения: 1,15 ед/с, клетка 16 ед)
+ЗРЕЕТ_ПОЛЕ = 87.0               # с после мельницы ([замер] 52 партии)
+КРЕСТЬЯН_В_СЕК_НА_БОЙЦА = 0.0053  # [замер] 1867 шагов: 885 крестьян за 166 001 бойце-секунд
+ГОРИЗОНТ = 1200.0
+СЕТКА = 16
+ОБР_РОЛЬ = {v: k for k, v in ROLE.items()}
+ОБР_РЕС = {v: k for k, v in RESOURCE.items()}
+# роль моста -> имя в очереди ядра / вид бойца / здание
+НАЙМ_РОЛИ = {"peasant": ("peaeng", None, "centers"), "infantry17": ("pikeman", "infantry17", "ba17"),
+             "musk17": ("musketeernet", "musk17", "ba17"), "dragoon17": ("dragoon", "dragoon17", "stables"),
+             "officer17": ("officer", None, "academi"), "drummer17": ("drummer", None, "academi")}
+ПРЕДПОСЫЛКИ = {"mill": "centers", "smith": "centers", "ba17": "smiths", "stable": "smiths",
+               "academi": "ba17", "store": "centers", "house": "centers",
+               "minegold": "centers", "mineiron": "centers", "minecoal": "centers"}
+# [замер] по трассам: что даёт каждая ступень (поле, прибавка)
+ЭФФЕКТЫ = {
+    "bar.pikeman.1.1": ("infantry17", {"atk": 1}), "bar.pikeman.1.2": ("infantry17", {"atk": 2}),
+    "bar.pikeman.1.3": ("infantry17", {"atk": 2}), "bar.pikeman.1.4": ("infantry17", {"atk": 1}),
+    "bar.pikeman.1.5": ("infantry17", {"atk": 2}),
+    "bar.pikeman.2.1": ("infantry17", {"dpike": 1, "dsword": 1}), "bar.pikeman.2.2": ("infantry17", {"dpike": 1, "dsword": 1}),
+    "bar.pikeman.2.3": ("infantry17", {"dpike": 2, "dsword": 2}), "bar.pikeman.2.4": ("infantry17", {"dpike": 1, "dsword": 1}),
+    "bar.pikeman.2.5": ("infantry17", {"dpike": 1, "dsword": 1}), "bar.pikeman.2.6": ("infantry17", {"dpike": 2, "dsword": 2}),
+    "bar.musketeernet.1.1": ("musk17", {"atk": 1}),
+    "bar.musketeernet.2.1": ("musk17", {"dpike": 1, "dsword": 1}), "bar.musketeernet.2.2": ("musk17", {"dpike": 1, "dsword": 1}),
+    "bar.musketeernet.2.3": ("musk17", {"dpike": 2, "dsword": 2}), "bar.musketeernet.2.4": ("musk17", {"dpike": 1, "dsword": 1}),
+    "bar.musketeernet.2.5": ("musk17", {"dpike": 1, "dsword": 1}), "bar.musketeernet.2.6": ("musk17", {"dpike": 2, "dsword": 2}),
+}
+ВИДЫ = {"infantry17": "pikeman", "musk17": "musketeer", "dragoon17": "dragoon"}
+# [код] country.script:3454 — mil.1: 750 еды, 250 золота (аргументы 12-17 вызова _country_AddUpgrade)
+ЦЕНЫ_ИЗ_КОДА = {"mil.1": {"food": 750, "gold": 250}}
+БУКВЫ = {"f": "food", "w": "wood", "s": "stone", "g": "gold", "i": "iron", "c": "coal"}
+
+
+def ч(v):
+    try:
+        return float(v or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def сетка(строки):
+    """Список строк сетки -> [[int]]; знаки как в блоке: 1-9, a-z = 10-35, '+' = 36."""
+    из = []
+    for s in строки or []:
+        ряд = []
+        for c in str(s):
+            if c == ".":
+                ряд.append(0)
+            elif c == "+":
+                ряд.append(36)
+            elif c.isdigit():
+                ряд.append(int(c))
+            elif "a" <= c <= "z":
+                ряд.append(10 + ord(c) - ord("a"))
+            else:
+                ряд.append(0)
+        из.append(ряд)
+    return из
+
+
+def сумма(сет):
+    return sum(sum(r) for r in сет)
+
+
+def центр(сет):
+    """Взвешенный центр сетки или None."""
+    s = wx = wy = 0
+    for y, r in enumerate(сет):
+        for x, v in enumerate(r):
+            s += v
+            wx += v * x
+            wy += v * y
+    return (wx / s, wy / s) if s else None
+
+
+def argmax_клетка(сет):
+    лучшая, m = None, 0
+    for y, r in enumerate(сет):
+        for x, v in enumerate(r):
+            if v > m:
+                m, лучшая = v, (x, y)
+    return лучшая
+
+
+# ------------------------------------------------------------------ запись
+class Запись:
+    """Записанная партия: враг, карта, цены апгрейдов, начальное состояние."""
+
+    def __init__(self, каталог):
+        self.каталог = каталог
+        self.снапы = []
+        for s in open(os.path.join(каталог, "coss3_snap.jsonl"), encoding="utf-8"):
+            s = s.strip()
+            if s:
+                try:
+                    x = json.loads(s)
+                except json.JSONDecodeError:
+                    continue
+                if "gametime" in x:
+                    self.снапы.append(x)
+        self.снапы.sort(key=lambda x: ч(x["gametime"]))
+        self.такты = []
+        for s in open(os.path.join(каталог, "coss3_bot.jsonl"), encoding="utf-8"):
+            s = s.strip()
+            if not s:
+                continue
+            try:
+                r = json.loads(s)
+            except json.JSONDecodeError:
+                continue
+            st = r.get("state")
+            if isinstance(st, dict) and "gametime" in st:
+                self.такты.append((ч(st["gametime"]), st, r))
+        self.такты.sort(key=lambda x: x[0])
+        гр = [i for i in range(1, len(self.такты)) if self.такты[i][0] < self.такты[i - 1][0] - 60]
+        if гр:
+            self.такты = self.такты[гр[-1]:]
+        self.цены_апгрейдов = {}
+        for _, st, _ in self.такты:
+            for поле in ("upg_shown", "upg_aca"):
+                for кусок in str(st.get(поле) or "").split(","):
+                    if "=" in кусок:
+                        имя, цена = кусок.split("=", 1)
+                        import re
+                        self.цены_апгрейдов.setdefault(имя.strip(), {БУКВЫ[m[0]]: int(m[1]) for m in re.findall(r"([fwsgic])(\d+)", цена)})
+        st0 = self.такты[0][1]
+        self.my_cx, self.my_cy = ч(st0.get("my_cx")), ч(st0.get("my_cy"))
+        # база врага: центр brow за вычетом наших зданий — берём центр его крестьян на 150–420 с, если brow нет
+        self.en_base = None
+        for gt, st, _ in self.такты:
+            b = st.get("brow")
+            if isinstance(b, list):
+                c = центр(сетка(b))
+                if c and math.hypot(c[0] - self.my_cx, c[1] - self.my_cy) > 3:
+                    self.en_base = c
+                    break
+        if self.en_base is None:
+            for gt, st, _ in self.такты:
+                if 150 <= gt <= 420 and isinstance(st.get("prow"), list):
+                    c = центр(сетка(st["prow"]))
+                    if c:
+                        self.en_base = c
+                        break
+        if self.en_base is None:
+            self.en_base = (15 - self.my_cx, 15 - self.my_cy)
+
+    def снимок_до(self, t):
+        лучший = self.снапы[0]
+        for x in self.снапы:
+            if ч(x["gametime"]) <= t:
+                лучший = x
+            else:
+                break
+        return лучший
+
+    def такт_до(self, t):
+        лучший = self.такты[0]
+        for x in self.такты:
+            if x[0] <= t:
+                лучший = x
+            else:
+                break
+        return лучший
+
+    def начальное(self):
+        s = dict(self.снапы[0])
+        st = self.такты[0][1]
+        for k in ("stables", "academi", "houses", "food_ready"):
+            s.setdefault(k, st.get(k))
+        return s
+
+
+# ------------------------------------------------------------------ симулятор
+class Симулятор:
+    def __init__(self, запись: Запись, seed: int = 0, темпы_партии: dict | None = None):
+        self.з = запись
+        self.rng = random.Random(seed)
+        self.п, self.т = core.загрузить()
+        нач = запись.начальное()
+        self.эк = core.Экономика(self.п, self.т, нач, "валовая", 20.0, темпы_партии)
+        self.t = ч(нач["gametime"])
+        self.t0 = self.t
+        self.крест = {"idle": float(нач.get("peasants") or 0), "food": 0.0, "wood": 0.0, "stone": 0.0,
+                      "gold": 0.0, "iron": 0.0, "coal": 0.0, "build": 0.0}
+        self.цели_балансa = {}
+        self.потолок_строителей = 8
+        self.стройки = []                    # {роль, поле, осталось, строителей}
+        self.очереди = {}                    # имя найма -> True | оставшееся число
+        self.апгрейды = set(x for x in str(self.з.такты[0][1].get("upg_done") or "").split(",") if x)
+        self.мельница_t = None
+        self.офицеры = 0.0
+        self.барабанщики = 0.0
+        self.строй = False
+        self.группы = [{"состав": {"infantry17": float(нач.get("mil_inf") or 0), "musk17": float(нач.get("mil_shooters") or 0),
+                                   "dragoon17": float(нач.get("mil_cav") or 0)},
+                        "x": self.з.my_cx, "y": self.з.my_cy, "цель": None, "режим": "дом", "карман": 0.0}]
+        self.my_mil_lost = 0.0
+        self.my_pea_lost = 0.0
+        self.убито_бойцов = 0.0
+        self.убито_крестьян = 0.0
+        снап0 = self.з.снапы[0]
+        self.rec_kills0 = ч(снап0.get("p1_mil_lost"))
+        self.rec_pea0 = ч(снап0.get("p1_pea_lost"))
+        self.удержание = 0.0
+        self.исход = None
+        self.квитанции = []
+        self.прежняя_армия = dict(self.эк.армия)
+        self.прежние_крестьяне = self.эк.peasants
+
+    # --- характеристики -----------------------------------------------------------
+    def наши_х(self):
+        из = {}
+        for вид, sid in ВИДЫ.items():
+            з = core.значения(self.п, sid)
+            w = (з.get("weapons") or [{}])[0]
+            pr = з.get("protection") or {}
+            х = {"hp": з.get("maxhp") or 90, "atk": w.get("damage") or 1, "wkind": {"pike": 1, "sword": 2, "bullet": 3}.get(w.get("kind"), 1),
+                 "pause": w.get("pause_frames") or 0, "rmax": round((w.get("radiusmax_tiles") or 1.875) * 100),
+                 "dpike": pr.get("pike") or 0, "dsword": pr.get("sword") or 0, "dbullet": pr.get("bullet") or 0}
+            for u in self.апгрейды:
+                if u in ЭФФЕКТЫ and ЭФФЕКТЫ[u][0] == вид:
+                    for k, v in ЭФФЕКТЫ[u][1].items():
+                        х[k] = int(х[k]) + v
+            if self.строй:
+                х = combat_math.со_строем(х, 2, 2)
+            из[вид] = х
+        return из
+
+    def его_х(self, st):
+        его = combat_math.разобрать(st.get("p1_fighters") or "")
+        стр = combat_math.поправка_на_строй(st.get("p1_squads_form"), st.get("p1_squads_form_hold"),
+                                            st.get("p1_squad_dmg"), st.get("p1_squad_def"),
+                                            st.get("p1_squad_hdmg"), st.get("p1_squad_hdef"))
+        return {и: combat_math.со_строем(х, стр["урон"], стр["щит"]) for и, х in его.items()}
+
+    # --- команды ---------------------------------------------------------------------
+    def отказ(self, текст):
+        self.квитанции.append((self.t, текст))
+
+    def свободные_бойцы(self):
+        дом = self.группы[0]
+        return sum(дом["состав"].values())
+
+    def снять_с_земли(self, n):
+        """Взять n крестьян: сперва простаивающих, потом с наземных ресурсов (не шахтёров, не строителей)."""
+        взято = 0.0
+        for job in ("idle", "wood", "stone", "food"):
+            if job in ("gold", "iron", "coal"):
+                continue
+            k = min(n - взято, self.крест[job])
+            self.крест[job] -= k
+            взято += k
+            if взято >= n:
+                break
+        return взято
+
+    def команды(self, список: list):
+        """Пачка команд одного такта. BUILDERS применяется первым: в игре потолок
+        строителей действует на закладки того же такта (трасса: BUILD center,
+        BUILDERS 18 в одном такте — и на стройке сразу 18)."""
+        for c in sorted(список, key=lambda x: 0 if x.get("cmd") == "BUILDERS" else 1):
+            self.команда(c)
+
+    def команда(self, c: dict):
+        cmd = c.get("cmd")
+        if cmd == "BALANCE":
+            рес = ОБР_РЕС.get(c.get("a1"), c.get("role"))
+            n = float(c.get("a2") if c.get("a2") is not None else c.get("total") or 0)
+            if рес not in self.крест:
+                return self.отказ(f"BALANCE: нет ресурса {рес}")
+            if рес in ("gold", "iron", "coal"):
+                шахт = self.эк.здания[{"gold": "mines_gold", "iron": "mines_iron", "coal": "mines_coal"}[рес]]
+                if шахт == 0:
+                    return self.отказ(f"BALANCE {рес}: шахты нет")
+                # цель помнится: в игре лишние ждут у шахты и заходят, когда достроится следующая
+                self.цели_балансa[рес] = n
+                n = min(n, 5 * шахт)
+            текущие = self.крест[рес]
+            if n > текущие:
+                self.крест[рес] += self.снять_с_земли(n - текущие)
+            else:
+                self.крест["idle"] += текущие - n
+                self.крест[рес] = n
+        elif cmd == "BUILDERS":
+            self.потолок_строителей = int(c.get("a1") or c.get("total") or 8)
+        elif cmd == "BUILD":
+            роль = ОБР_РОЛЬ.get(c.get("a1"), c.get("role"))
+            total = int(c.get("a2") if c.get("a2") is not None else c.get("total") or 1)
+            if роль not in core.ЗДАНИЯ:
+                return self.отказ(f"BUILD: роль {роль} не строится")
+            поле = core.ЗДАНИЯ[роль][1]
+            есть = self.эк.здания[поле] + sum(1 for s in self.стройки if s["роль"] == роль)
+            if есть >= total:
+                return
+            пред = ПРЕДПОСЫЛКИ.get(роль)
+            # заложенное здание уже открывает следующее (трасса base28/2: мельница
+            # заказана в том же такте, что и ратуша, и построена)
+            заложено = {core.ЗДАНИЯ[x["роль"]][1] for x in self.стройки}
+            if пред and self.эк.здания.get(пред, 0) == 0 and пред not in заложено:
+                return self.отказ(f"BUILD {роль}: нет {пред}")
+            цена = self.эк.цена_здания_с_ожиданием(роль, sum(1 for s in self.стройки if s["роль"] == роль))
+            if any(v > 0 and self.эк.res[r] < v for r, v in цена.items()):
+                return self.отказ(f"BUILD {роль}: не хватает {цена}")
+            # порог еды 500 стопорит ПРОИЗВОДСТВО (world.md [код]), стройку — нет
+            строителей = self.снять_с_земли(self.потолок_строителей)
+            if строителей <= 0:
+                return self.отказ(f"BUILD {роль}: некому строить")
+            self.эк.списать(цена, f"BUILD {роль}", self.t)
+            з = core.значения(self.п, core.ЗДАНИЯ[роль][0])
+            bt = з.get("buildtime_s") or 60.0
+            # допущение §3.5: время делится на строителей линейно
+            self.стройки.append({"роль": роль, "поле": поле, "осталось": bt / max(строителей, 1), "строителей": строителей})
+            self.крест["build"] += строителей
+        elif cmd == "TRAIN":
+            роль = ОБР_РОЛЬ.get(c.get("a1"), c.get("role"))
+            total = c.get("a2") if c.get("a2") is not None else c.get("total")
+            if роль not in НАЙМ_РОЛИ:
+                return self.отказ(f"TRAIN: роль {роль} не нанимается")
+            имя, вид, здание = НАЙМ_РОЛИ[роль]
+            if self.эк.здания.get(здание, 0) == 0:
+                return self.отказ(f"TRAIN {роль}: нет здания {здание}")
+            # конечный заказ поверх бесконечного не снимает бесконечный (в игре это
+            # отдельный заказ в той же очереди); бесконечный поверх любого — остаётся
+            if total is None or int(total) < 0:
+                self.очереди[имя] = True
+            elif self.очереди.get(имя) is not True:
+                self.очереди[имя] = int(self.очереди.get(имя) or 0) + int(total)
+        elif cmd == "SEED":
+            n = int(c.get("a1") or c.get("total") or 1) or 1
+            if self.эк.здания["mills"] == 0:
+                return self.отказ("SEED: мельницы нет")
+            self.эк.списать({"gold": 5 * n}, "SEED", self.t)
+        elif cmd == "UPGRADE":
+            имя = c.get("upg") or c.get("role")
+            if not имя or имя in self.апгрейды:
+                return
+            # доступен только апгрейд, который игра показывала с ценой в этой партии:
+            # base28/1 — модель просила mil.1, игра не дала, а симулятор с ценой из кода
+            # купил его и получил еду ×2,4 (82 тысячи против 6). Цена из кода — справка.
+            цена = self.з.цены_апгрейдов.get(имя)
+            if цена is None:
+                return self.отказ(f"UPGRADE {имя}: игра его не предлагала (нет в upg_shown/upg_aca)")
+            if имя.startswith("bar.") and self.эк.здания["ba17"] == 0:
+                return self.отказ(f"UPGRADE {имя}: нет казармы")
+            if (имя.startswith("aca.") or имя.startswith("mil.")) and self.эк.здания["academi"] == 0 and имя.startswith("aca."):
+                return self.отказ(f"UPGRADE {имя}: нет академии")
+            if any(v > 0 and self.эк.res[r] < v for r, v in цена.items()):
+                return self.отказ(f"UPGRADE {имя}: не хватает")
+            self.эк.списать(цена, f"UPGRADE {имя}", self.t)
+            self.апгрейды.add(имя)
+        elif cmd in ("ATTACK", "MOVE", "STAGE"):
+            self.послать(c, cmd)
+        elif cmd == "RETREAT":
+            for г in self.группы[1:]:
+                г["цель"] = (self.з.my_cx, self.з.my_cy)
+                г["режим"] = "домой"
+        elif cmd == "FORMATION":
+            if self.офицеры >= 1 and self.барабанщики >= 1:
+                self.строй = True
+            else:
+                self.отказ(f"FORMATION: офицеров {self.офицеры:.0f}, барабанщиков {self.барабанщики:.0f}")
+
+    def клетка_цели(self, target, aim, st):
+        if target == "cell" and aim:
+            return (float(aim[0]), float(aim[1]))
+        if target == "home":
+            return (self.з.my_cx, self.з.my_cy)
+        if target == "base":
+            return self.з.en_base
+        if target == "peasants":
+            k = argmax_клетка(сетка(st.get("prow")))
+            return (float(k[0]), float(k[1])) if k else self.з.en_base
+        if target == "army":
+            k = argmax_клетка(сетка(st.get("frow")))
+            return (float(k[0]), float(k[1])) if k else self.з.en_base
+        if target == "wave":
+            for г in self.группы[1:]:
+                if г["режим"] in ("марш", "удар"):
+                    return г["цель"] or (г["x"], г["y"])
+            return self.з.en_base
+        return self.з.en_base
+
+    def послать(self, c, cmd):
+        дом = self.группы[0]
+        всего = sum(дом["состав"].values())
+        n = c.get("count", c.get("attack"))
+        n = всего if n in (None, "all") or ч(n) >= 9999 else min(ч(n), всего)
+        if cmd == "STAGE":
+            n = min(ч(c.get("keep") or 0), всего)
+        if n <= 0:
+            return self.отказ(f"{cmd}: свободных бойцов нет")
+        st = self.з.такт_до(self.t)[1]
+        цель = self.клетка_цели(c.get("target"), c.get("aim") or ([c.get("cx"), c.get("cy")] if c.get("cx") is not None else None), st)
+        доля = n / всего
+        состав = {k: v * доля for k, v in дом["состав"].items()}
+        for k in состав:
+            дом["состав"][k] -= состав[k]
+        via = c.get("via")
+        группа = {"состав": состав, "x": дом["x"], "y": дом["y"], "цель": tuple(цель), "режим": "марш" if cmd != "MOVE" else "движение",
+                  "карман": 0.0, "конечная": tuple(цель)}
+        if isinstance(via, (list, tuple)) and len(via) == 2 and cmd == "ATTACK":
+            группа["цель"] = (float(via[0]), float(via[1]))
+        self.группы.append(группа)
+
+    # --- такт ----------------------------------------------------------------------------
+    def такт(self):
+        dt = DT
+        t = self.t
+        _, st, _ = self.з.такт_до(t)
+        снап = self.з.снимок_до(t)
+        # 1. стройки
+        for s in list(self.стройки):
+            s["осталось"] -= dt
+            if s["осталось"] <= 0:
+                self.эк.здания[s["поле"]] += 1
+                self.крест["build"] -= s["строителей"]
+                self.стройки.remove(s)
+                # шахту построившие заходят внутрь сами, до пяти (world.md [замер])
+                рес = {"minegold": "gold", "mineiron": "iron", "minecoal": "coal"}.get(s["роль"])
+                if рес:
+                    внутрь = min(s["строителей"], 5.0)
+                    self.крест[рес] += внутрь
+                    self.крест["idle"] += s["строителей"] - внутрь
+                else:
+                    self.крест["idle"] += s["строителей"]
+                if s["роль"] == "mill" and self.мельница_t is None:
+                    self.мельница_t = t
+        # 1а. шахты: добрать ждущих до цели, если появилось место
+        for рес, поле in (("gold", "mines_gold"), ("iron", "mines_iron"), ("coal", "mines_coal")):
+            цель = self.цели_балансa.get(рес)
+            if цель is not None:
+                можно = min(цель, 5 * self.эк.здания[поле])
+                if можно > self.крест[рес] and self.крест["idle"] > 0:
+                    k = min(можно - self.крест[рес], self.крест["idle"])
+                    self.крест["idle"] -= k
+                    self.крест[рес] += k
+        # 2. экономика
+        работники = {"on_" + r: self.крест[r] for r in core.РЕСУРСЫ}
+        работники["on_build"] = self.крест["build"]
+        if self.мельница_t is None:
+            работники["food_ready"] = 0
+        else:
+            работники["food_ready"] = 1 if t - self.мельница_t >= ЗРЕЕТ_ПОЛЕ else 0
+        заказы = {}
+        for имя, v in list(self.очереди.items()):
+            if v is True or (type(v) is int and v > 0):
+                заказы[имя] = True
+        self.прежняя_армия = dict(self.эк.армия)
+        self.прежние_крестьяне = self.эк.peasants
+        # офицеры и барабанщики нанимаются в академии тем же темпом, что пехота (допущение)
+        self.эк.шаг(dt, t, работники, {k: v for k, v in заказы.items() if k in core.НАЙМ}, {}, self.апгрейды)
+        for имя in ("officer", "drummer"):
+            if заказы.get(имя) and self.эк.здания["academi"] > 0 and self.эк.res["food"] >= core.ПОРОГ_ЕДЫ:
+                темп = self.т["найм_пехоты_в_мин_на_казарму"]["медиана"] / 60.0 * dt
+                self.эк.дробь_найма.setdefault(имя, 0.0)
+                self.эк.дробь_найма[имя] += темп
+                if self.эк.дробь_найма[имя] >= 1:
+                    self.эк.дробь_найма[имя] -= 1
+                    з = core.значения(self.п, имя)
+                    self.эк.списать(dict(з["price"]), f"TRAIN {имя}", t)
+                    if имя == "officer":
+                        self.офицеры += 1
+                    else:
+                        self.барабанщики += 1
+                    if type(self.очереди.get(имя)) is int:
+                        self.очереди[имя] -= 1
+        # новые крестьяне — простаивают; новые бойцы — домой; конечные заказы убывают
+        новые_кр = self.эк.peasants - self.прежние_крестьяне
+        if новые_кр > 0:
+            self.крест["idle"] += новые_кр
+            if type(self.очереди.get("peaeng")) is int:
+                self.очереди["peaeng"] = max(0, self.очереди["peaeng"] - int(новые_кр))
+        for поле, вид, имя in (("mil_inf", "infantry17", "pikeman"), ("mil_shooters", "musk17", "musketeernet"), ("mil_cav", "dragoon17", "dragoon")):
+            d = self.эк.армия[поле] - self.прежняя_армия[поле]
+            if d > 0:
+                self.группы[0]["состав"][вид] += d
+                if type(self.очереди.get(имя)) is int:
+                    self.очереди[имя] = max(0, self.очереди[имя] - int(d))
+        # 3. движение
+        for г in self.группы[1:]:
+            if г["цель"] is None:
+                continue
+            dx, dy = г["цель"][0] - г["x"], г["цель"][1] - г["y"]
+            d = math.hypot(dx, dy)
+            шаг = СКОРОСТЬ * dt
+            if d <= шаг:
+                г["x"], г["y"] = г["цель"]
+                if г["режим"] == "марш" and г.get("конечная") and г["цель"] != г["конечная"]:
+                    г["цель"] = г["конечная"]       # сбор пройден — к цели удара
+                elif г["режим"] == "домой":
+                    for k, v in г["состав"].items():
+                        self.группы[0]["состав"][k] += v
+                    г["состав"] = {k: 0.0 for k in г["состав"]}
+                    г["цель"] = None
+                else:
+                    г["режим"] = "удар" if г["режим"] == "марш" else г["режим"]
+                    г["цель"] = None
+            else:
+                г["x"] += dx / d * шаг
+                г["y"] += dy / d * шаг
+        self.группы = [self.группы[0]] + [г for г in self.группы[1:] if sum(г["состав"].values()) > 0.5]
+        # 4. бой
+        frow = сетка(st.get("frow"))
+        prow = сетка(st.get("prow"))
+        rec_army = ч(снап.get("p1_inf")) + ч(снап.get("p1_shoot")) + ч(снап.get("p1_cav"))
+        rec_kills = ч(снап.get("p1_mil_lost")) - self.rec_kills0
+        лишние = max(0.0, self.убито_бойцов - rec_kills)
+        масштаб = max(0.0, (rec_army - лишние) / rec_army) if rec_army > 0 else 0.0
+        rec_pea_kills = ч(снап.get("p1_pea_lost")) - self.rec_pea0
+        лишние_кр = max(0.0, self.убито_крестьян - rec_pea_kills)
+        крестьян_снаружи = сумма(prow)
+        масштаб_кр = max(0.0, (крестьян_снаружи - лишние_кр) / крестьян_снаружи) if крестьян_снаружи > 0 else 0.0
+        наши = self.наши_х()
+        его_х = self.его_х(st)
+        его_состав = {"infantry17": ч(снап.get("p1_inf")), "musk17": ч(снап.get("p1_shoot")), "dragoon17": ч(снап.get("p1_cav"))}
+        for г in self.группы:
+            n = sum(г["состав"].values())
+            if n <= 0:
+                continue
+            cx, cy = int(round(г["x"])), int(round(г["y"]))
+            if not (0 <= cy < len(frow) and 0 <= cx < len(frow[cy])):
+                continue
+            его_в_клетке = frow[cy][cx] * масштаб
+            if его_в_клетке >= 0.5 and rec_army > 0:
+                A = [(v, наши[k]) for k, v in г["состав"].items() if v > 0 and k in наши]
+                B = [(его_состав[k] / rec_army * его_в_клетке, его_х[k]) for k in его_состав if его_состав[k] > 0 and k in его_х]
+                if A and B:
+                    п = combat.бой_за_такт(A, B, dt, n, его_в_клетке, frow[cy][cx] >= 36, self.rng)
+                    # наши потери — пропорционально составу, дробь копится в кармане
+                    г["карман"] += п["наши"]
+                    целых = int(г["карман"])
+                    if целых:
+                        г["карман"] -= целых
+                        for k in г["состав"]:
+                            доля = г["состав"][k] / n
+                            г["состав"][k] = max(0.0, г["состав"][k] - целых * доля)
+                        self.my_mil_lost += целых
+                        for поле, вид in (("mil_inf", "infantry17"), ("mil_shooters", "musk17"), ("mil_cav", "dragoon17")):
+                            self.эк.армия[поле] = max(0.0, self.эк.армия[поле] - целых * (г["состав"][вид] + 1e-9) / max(n, 1e-9))
+                    self.убито_бойцов += п["его"]
+            кр_в_клетке = (prow[cy][cx] if cy < len(prow) and cx < len(prow[cy]) else 0) * масштаб_кр
+            if кр_в_клетке >= 0.5 and г["режим"] != "движение":
+                self.убито_крестьян += min(кр_в_клетке, КРЕСТЬЯН_В_СЕК_НА_БОЙЦА * n * dt)
+        # 5. время и исход
+        self.t += dt
+        self.проверить_исход(st, снап, масштаб, масштаб_кр)
+
+    def проверить_исход(self, st, снап, масштаб, масштаб_кр):
+        if self.исход:
+            return
+        армия_его = (ч(снап.get("p1_inf")) + ч(снап.get("p1_shoot")) + ч(снап.get("p1_cav"))) * масштаб
+        крестьян = сумма(сетка(st.get("prow"))) * масштаб_кр
+        у_базы = sum(sum(г["состав"].values()) for г in self.группы
+                     if math.hypot(г["x"] - self.з.en_base[0], г["y"] - self.з.en_base[1]) <= 2)
+        if self.t >= 420 and армия_его < 10 and крестьян < 10 and у_базы > 50:
+            self.удержание += DT
+            if self.удержание >= 30:
+                self.исход = "победа"
+        else:
+            self.удержание = 0.0
+        if self.эк.peasants <= 0 and sum(self.эк.армия.values()) <= 0:
+            self.исход = "поражение"
+        if self.t - self.t0 >= ГОРИЗОНТ:
+            self.исход = self.исход or "горизонт"
+
+    # --- состояние наружу --------------------------------------------------------------------
+    def состояние(self) -> dict:
+        st = self.з.такт_до(self.t)[1]
+        снап = self.з.снимок_до(self.t)
+        s = self.эк.снимок()
+        s["gametime"] = int(self.t)
+        s["peasants"] = round(self.эк.peasants)
+        for r in core.РЕСУРСЫ:
+            s["on_" + r] = round(self.крест[r])
+        s["idle_pea"] = round(self.крест["idle"])
+        s["on_build"] = round(self.крест["build"])
+        s["on_mine"] = round(self.крест["gold"] + self.крест["iron"] + self.крест["coal"])
+        s["building_now"] = len(self.стройки)
+        s["wip"] = ",".join(f"{x['роль']}/{x['строителей']:.0f}" for x in self.стройки)
+        s["train_now"] = ",".join(f"{k}:{'inf' if v is True else v}" for k, v in self.очереди.items() if v)
+        s["my_officers"], s["my_drummers"] = round(self.офицеры), round(self.барабанщики)
+        s["squads"] = 1 if self.строй else 0
+        s["my_mil_lost"], s["my_pea_lost"] = round(self.my_mil_lost), round(self.my_pea_lost)
+        s["upg_done"] = ",".join(sorted(self.апгрейды))
+        s["my_cx"], s["my_cy"], s["grid_n"] = int(self.з.my_cx), int(self.з.my_cy), СЕТКА
+        s["my_freewar"] = round(self.свободные_бойцы())
+        s["mil_away"] = round(sum(sum(г["состав"].values()) for г in self.группы[1:]))
+        s["mil_far"] = round(max([math.hypot(г["x"] - self.з.my_cx, г["y"] - self.з.my_cy) * 16 for г in self.группы] or [0]))
+        наши = self.наши_х()
+        s["fighters"] = " ".join(f"{k}={ВИДЫ[k]}," + ",".join(f"{kk}{vv}" for kk, vv in х.items()) for k, х in наши.items())
+        # наша сетка
+        arow = [[0] * СЕТКА for _ in range(СЕТКА)]
+        for г in self.группы:
+            cx, cy = int(round(г["x"])), int(round(г["y"]))
+            if 0 <= cx < СЕТКА and 0 <= cy < СЕТКА:
+                arow[cy][cx] += round(sum(г["состав"].values()))
+        for y in range(СЕТКА):
+            s[f"arow{y}"] = "".join("." if v == 0 else ("+" if v >= 36 else (str(v) if v < 10 else chr(ord("a") + v - 10))) for v in arow[y])
+        волны = self.группы[1:]
+        if волны:
+            г = max(волны, key=lambda g: sum(g["состав"].values()))
+            s["wave_cx"], s["wave_cy"], s["wave_n"] = int(round(г["x"])), int(round(г["y"])), round(sum(г["состав"].values()))
+        # враг — из записи, с поправкой на наши убийства
+        for k, v in снап.items():
+            if k.startswith("p1_"):
+                s[k] = v
+        for k, v in st.items():
+            if k.startswith("p1_") and k not in s:
+                s[k] = v
+        for y, ряд in enumerate(st.get("frow") or []):
+            s[f"frow{y}"] = ряд
+        for y, ряд in enumerate(st.get("prow") or []):
+            s[f"prow{y}"] = ряд
+        s["p1_mil_lost"] = round(self.rec_kills0 + self.убито_бойцов) if self.убито_бойцов > ч(снап.get("p1_mil_lost")) - self.rec_kills0 else снап.get("p1_mil_lost")
+        s["en_base"] = [round(self.з.en_base[0]), round(self.з.en_base[1])]
+        s["исход"] = self.исход
+        return s
+
+
+def партия(каталог, политика, seed=0, темпы_партии=None, шаг_решения=15.0):
+    """Прогнать партию: `политика(состояние) -> [команды]` раз в `шаг_решения` секунд."""
+    сим = Симулятор(Запись(каталог), seed, темпы_партии)
+    следующее = сим.t
+    история = []
+    while not сим.исход:
+        if сим.t >= следующее:
+            сим.команды(политика(сим.состояние()) or [])
+            следующее += шаг_решения
+        сим.такт()
+        история.append(сим.состояние())
+    return сим, история
