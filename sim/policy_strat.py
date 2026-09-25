@@ -24,6 +24,14 @@ import tier1 as T1
     {"cmd": "BUILD", "role": "ba17", "total": "+1"},
     {"cmd": "TRAIN", "role": "musk17", "total": -1},
     {"cmd": "RETREAT"},
+    # Присутствие (26.09, §13б): третий стратег к ступени 7 не прибавил ничего,
+    # потому что десять решений давали только «ударить», а убийства складываются
+    # из ПРИСУТСТВИЯ у крестьян (§6 п. 6). Режим присутствия — постоянный приказ:
+    # каждые 15 с всё свободное войско идёт в волну (досылка), без волны — на
+    # крестьян. Второе решение режим выключает.
+    {"cmd": "PRESENCE", "on": True},
+    {"cmd": "PRESENCE", "on": False},
+    {"cmd": "ATTACK", "count": 20, "target": "wave"},
 ]
 N_РЕШЕНИЙ = len(РЕШЕНИЯ)
 N_ВЕСОВ = P.N_ПРИЗНАКОВ * P.СКРЫТЫЙ + P.СКРЫТЫЙ + P.СКРЫТЫЙ * N_РЕШЕНИЙ + N_РЕШЕНИЙ
@@ -41,7 +49,7 @@ def развернуть(theta):
 
 def декодировать(индекс, st):
     д = РЕШЕНИЯ[индекс]
-    if д["cmd"] is None:
+    if д["cmd"] is None or д["cmd"] == "PRESENCE":
         return []
     if д["cmd"] == "UPGRADE":
         return P.декодировать(next(i for i, x in enumerate(P.ДЕЙСТВИЯ) if x.get("cmd") == "UPGRADE" and x.get("role") == д["role"]), st)
@@ -60,6 +68,7 @@ class Стратег:
         self.ярус1 = T1.Ярус1()
         self.следующее = с_секунды
         self.история = []
+        self.присутствие = False
 
     def выбрать(self, st):
         x = P.признаки(st)
@@ -79,5 +88,11 @@ class Стратег:
         t = float(st.get("gametime") or 0)
         if t >= self.следующее:
             self.следующее = t + ШАГ_РЕШЕНИЯ
-            из += декодировать(self.выбрать(st), st)
+            i = self.выбрать(st)
+            if РЕШЕНИЯ[i]["cmd"] == "PRESENCE":
+                self.присутствие = РЕШЕНИЯ[i]["on"]
+            из += декодировать(i, st)
+        if self.присутствие and float(st.get("my_freewar") or 0) > 0:
+            цель = "wave" if float(st.get("mil_away") or 0) > 0 else "peasants"
+            из.append({"cmd": "ATTACK", "count": "all", "target": цель})
         return из
