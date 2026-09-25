@@ -1048,7 +1048,10 @@ def уже_проверено(путь: str = "") -> str:
                                 "docker", "experiments.ini")
     if not os.path.exists(путь):
         return ""
-    cfg = configparser.ConfigParser()
+    # interpolation=None: одиночный «%» в описании идеи ронял чтение целиком, а
+    # except ниже глотал это МОЛЧА — описание идеи просто исчезало из запроса.
+    # Нашлось 25.09 на «79 %» в [no_gather].
+    cfg = configparser.ConfigParser(interpolation=None)
     try:
         cfg.read(путь, encoding="utf-8")
     except configparser.Error:

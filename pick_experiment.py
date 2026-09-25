@@ -41,7 +41,9 @@ def main() -> int:
     if not os.path.isfile(a.ини):
         print(f"файла идей нет: {a.ини}", file=sys.stderr)
         return 1
-    c = configparser.ConfigParser()
+    # interpolation=None, как в docker/exp.py: одиночный «%» в описании идеи
+    # ронял чтение файла целиком (найдено 25.09 на «79 %» в [no_gather]).
+    c = configparser.ConfigParser(interpolation=None)
     # utf-8-sig: Блокнот на Windows дописывает BOM, и первая секция пропадает.
     c.read(a.ини, encoding="utf-8-sig")
     if a.ид not in c.sections():

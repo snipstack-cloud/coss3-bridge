@@ -15,14 +15,23 @@
 должны быть непустые `что` и `флаги` — прогон «без флагов» под именем идеи
 выглядел бы законным и попал бы в сравнение.
 """
-import configparser, os, sys
+import configparser, io, os, sys
 
 ФАЙЛ = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                     "docker", "experiments.ini")
 ошибок = 0
 
-c = configparser.ConfigParser()          # с интерполяцией, КАК У КОНТЕЙНЕРА
+# КАК У КОНТЕЙНЕРА: docker/exp.py с 25.09 читает БЕЗ интерполяции, потому что
+# одиночный «%» в описании идеи ронял чтение файла целиком, а значения здесь —
+# русская проза с числами, и подстановка не нужна никогда. Читать иначе, чем
+# контейнер, значит проверять не то.
+c = configparser.ConfigParser(interpolation=None)
 c.read(ФАЙЛ, encoding="utf-8")
+_как_в_exp = io.open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                 "docker", "exp.py"), encoding="utf-8").read()
+if "configparser.ConfigParser(interpolation=None)" not in _как_в_exp:
+    print("  СБОЙ: docker/exp.py читает файл ИНАЧЕ, чем эта проверка")
+    ошибок += 1
 print(f"секций: {len(c.sections())}")
 
 for сек in c.sections():
