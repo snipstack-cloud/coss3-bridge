@@ -17,7 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sim as SIM   # noqa: E402
 
-СРАВНИВАЕМ = ("food", "wood", "stone", "gold", "iron", "coal", "peasants", "mil_inf", "my_mil_lost", "p1_mil_lost")
+СРАВНИВАЕМ = ("food", "wood", "stone", "gold", "iron", "coal", "peasants", "mil_inf", "my_mil_lost", "p1_mil_lost", "p1_pea_lost")
 
 
 def команды_такта(r: dict) -> list:
@@ -40,6 +40,16 @@ def прогнать(каталог, seed=0):
     if len(з.снапы) < 20 or len(з.такты) < 5:
         return None
     сим = SIM.Симулятор(з, seed)
+    # партии яруса 1: дебют шёл мостом, в `cmds` его нет — иначе реплей стоит без
+    # ратуши. Признак: ратуша появилась, а BUILD center в командах не было.
+    import debut as D
+    from tier1 import в_словарь
+    # признак: в ПЕРВОМ записанном такте ратуша уже есть (или строится) — значит,
+    # дебют шёл до первого запроса модели и в `cmds` его нет (tier1/2: первый такт
+    # на 159-й секунде с BUILD center от модели, а ратуша стоит с 15-й)
+    st0 = з.такты[0][1] if з.такты else {}
+    дебют_вне_трассы = SIM.ч(st0.get("centers")) > 0 or (з.такты and з.такты[0][0] > 100 and SIM.ч(st0.get("building_now")) > 0)
+    дебют = D.Дебют(20) if дебют_вне_трассы else None
     такты = iter(з.такты)
     ближ = next(такты, None)
     ряды = {k: [] for k in СРАВНИВАЕМ}
@@ -50,6 +60,9 @@ def прогнать(каталог, seed=0):
             первая_волна["факт"] = SIM.ч(x["gametime"])
     последний = SIM.ч(з.снапы[-1]["gametime"])
     while сим.t < последний and not сим.исход:
+        if дебют is not None and not дебют.готов(сим.состояние()):
+            cmds, _ = дебют.такт(сим.состояние(), int(сим.t))
+            сим.команды([в_словарь(c) for c in cmds])
         while ближ is not None and ближ[0] <= сим.t:
             сим.команды(команды_такта(ближ[2]))
             ближ = next(такты, None)
