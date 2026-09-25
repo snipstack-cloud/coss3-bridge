@@ -164,6 +164,21 @@ def по_истории(история, en_base):
     return ступени(сн, [(ч(s["gametime"]), s) for s in история], en_base)
 
 
+def доля_у_крестьян(история) -> float:
+    """Доля тактов после 300 с, когда хоть один наш боец стоит в клетке с его
+    крестьянами, — «дошли ли до крестьян» (по сеткам arow/prow истории)."""
+    n = у = 0
+    for s in история:
+        if ч(s.get("gametime")) < 300:
+            continue
+        n += 1
+        P = _сетка(s, "prow")
+        A = _сетка(s, "arow")
+        if any(P[yy][xx] and A[yy][xx] for yy in range(min(len(P), len(A))) for xx in range(min(len(P[yy]), len(A[yy])))):
+            у += 1
+    return у / n if n else 0.0
+
+
 def курс(история, en_base) -> tuple[set, dict]:
     """Для награды обучения: взятые ступени и прогресс по всем — по истории симулятора."""
     сн = []
