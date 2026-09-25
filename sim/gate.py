@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import core  # noqa: E402
 
 СРАВНИВАЕМ = ("food", "wood", "stone", "gold", "iron", "coal", "peasants", "mil_inf")
+ЗАДЕРЖКА = 20.0   # секунд доставки добычи, ключ --lag; 20 — [замер] ворота 25.09
 ПОРОГ = 0.15
 БУКВЫ = {"f": "food", "w": "wood", "s": "stone", "g": "gold", "i": "iron", "c": "coal"}
 
@@ -100,7 +101,7 @@ def прогнать(каталог, п, т, вариант_еды):
     т0 = такт_до(такты, ч(нач["gametime"])) or такты[0]
     for поле in ("stables", "academi"):
         нач.setdefault(поле, т0[1].get(поле))
-    эк = core.Экономика(п, т, нач, вариант_еды)
+    эк = core.Экономика(п, т, нач, вариант_еды, ЗАДЕРЖКА)
     ряды = {k: [] for k in СРАВНИВАЕМ}
     времена = []
     взятые = set(x for x in str(т0[1].get("upg_done") or "").split(",") if x)
@@ -153,7 +154,9 @@ def прогнать(каталог, п, т, вариант_еды):
                 прошлый_такт_gt = gt
         потери = {"mil_inf": ч(b.get("my_mil_lost")) - ч(a.get("my_mil_lost")),
                   "peasants": ч(b.get("my_pea_lost")) - ч(a.get("my_pea_lost"))}
-        эк.шаг(dt, t0, a, заказы_из(st_т.get("train_now")), потери)
+        входы = dict(a)
+        входы["food_ready"] = st_т.get("food_ready")
+        эк.шаг(dt, t0, входы, заказы_из(st_т.get("train_now")), потери, взятые)
         сн = эк.снимок()
         времена.append(t1)
         for k in СРАВНИВАЕМ:
@@ -236,7 +239,11 @@ def main():
     арг = [a for a in sys.argv[1:] if not a.startswith("--")]
     вариант = "обе"
     показать = 0
+    global ЗАДЕРЖКА
     for i, a in enumerate(sys.argv):
+        if a == "--lag":
+            ЗАДЕРЖКА = float(sys.argv[i + 1])
+            арг = [x for x in арг if x != sys.argv[i + 1]]
         if a == "--food":
             вариант = sys.argv[i + 1]
             арг = [x for x in арг if x != вариант]
