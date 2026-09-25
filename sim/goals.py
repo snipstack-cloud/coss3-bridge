@@ -96,6 +96,53 @@ def ступени(снимки, такты, en_base, my_lost0=0.0, p1_lost0=0.0
     return взято
 
 
+def прогресс(снимки, такты, en_base, my_lost0=0.0, p1_lost0=0.0) -> dict:
+    """Доля пути к каждой ступени, 0..1 — для курса обучения: награда за
+    приближение к ближайшей невзятой ступени, а не только за факт."""
+    def кл(x):
+        return max(0.0, min(1.0, x))
+    п = {}
+    п[1] = кл(max([ч(x.get("mil_inf")) for x in снимки if ч(x["gametime"]) <= 300] or [0]) / 20.0)
+    п[2] = кл(max([ч(x.get("mil_far")) for x in снимки if ч(x["gametime"]) <= 480] or [0]) / 180.0)
+    убито = 0.0
+    for a, b in zip(снимки, снимки[1:]):
+        if a.get("у_крестьян"):
+            убито += max(0.0, ч(b.get("p1_pea_lost")) - ч(a.get("p1_pea_lost")))
+    п[3] = кл(убито / 10.0)
+    посл = снимки[-1]
+    потери = ч(посл.get("my_mil_lost")) - my_lost0
+    его = ч(посл.get("p1_mil_lost")) - p1_lost0
+    п[4] = кл(его / (0.5 * потери)) if потери > 0 else 0.0
+    армии = [ч(x.get("p1_inf")) + ч(x.get("p1_shoot")) + ч(x.get("p1_cav")) for x in снимки if ч(x["gametime"]) >= 420]
+    п[5] = кл((30.0 - min(армии)) / 20.0) if армии else 0.0
+    у_макс = 0.0
+    кр_мин = None
+    усл_макс = 0
+    подряд = подряд_макс = 0
+    for gt, st in такты:
+        if gt < 420:
+            continue
+        сырой = st.get("prow") if isinstance(st.get("prow"), list) else [st.get(f"prow{y}") for y in range(16)]
+        if not сырой or all(not r for r in сырой):
+            continue
+        P = _сетка(st, "prow")
+        A = _сетка(st, "arow")
+        кр = SIM.сумма(P)
+        у = sum(v for y, r in enumerate(A) for x, v in enumerate(r) if math.hypot(x - en_base[0], y - en_base[1]) <= 2)
+        армия = ч(st.get("p1_inf")) + ч(st.get("p1_shoot")) + ч(st.get("p1_cav"))
+        у_макс = max(у_макс, у)
+        кр_мин = кр if кр_мин is None else min(кр_мин, кр)
+        усл = (армия < 10) + (кр < 10) + (у > 50)
+        усл_макс = max(усл_макс, усл)
+        подряд = подряд + 1 if усл == 3 else 0
+        подряд_макс = max(подряд_макс, подряд)
+    п[6] = кл(у_макс / 50.0)
+    п[7] = кл((40.0 - кр_мин) / 20.0) if кр_мин is not None else 0.0
+    п[8] = кл(усл_макс / 2.0)
+    п[9] = кл(подряд_макс / 6.0)
+    return п
+
+
 def по_записи(каталог):
     з = SIM.Запись(каталог)
     if len(з.снапы) < 20:
@@ -115,6 +162,20 @@ def по_истории(история, en_base):
                            for xx in range(min(len(P[yy]), len(A[yy]))) if P[yy][xx] and A[yy][xx]]
         сн.append(x)
     return ступени(сн, [(ч(s["gametime"]), s) for s in история], en_base)
+
+
+def курс(история, en_base) -> tuple[set, dict]:
+    """Для награды обучения: взятые ступени и прогресс по всем — по истории симулятора."""
+    сн = []
+    for s in история:
+        x = dict(s)
+        P = _сетка(s, "prow")
+        A = _сетка(s, "arow")
+        x["у_крестьян"] = [(xx, yy, P[yy][xx], A[yy][xx]) for yy in range(min(len(P), len(A)))
+                           for xx in range(min(len(P[yy]), len(A[yy]))) if P[yy][xx] and A[yy][xx]]
+        сн.append(x)
+    такты = [(ч(s["gametime"]), s) for s in история]
+    return ступени(сн, такты, en_base), прогресс(сн, такты, en_base)
 
 
 def лестница(наборы: dict):
