@@ -512,7 +512,7 @@ class Симулятор:
             дом["состав"][k] -= состав[k]
         via = c.get("via")
         группа = {"состав": состав, "x": дом["x"], "y": дом["y"], "цель": tuple(цель), "режим": "марш" if cmd != "MOVE" else "движение",
-                  "карман": 0.0, "конечная": tuple(цель),
+                  "карман": 0.0, "конечная": tuple(цель), "без_армии": c.get("target") == "peasants_free",
                   # растянутость: откуда вышли, когда, и где хвост (в клетках пути от старта)
                   "старт": (дом["x"], дом["y"]), "t_приказа": self.t, "хвост": 0.0}
         if isinstance(via, (list, tuple)) and len(via) == 2 and cmd == "ATTACK":
@@ -781,6 +781,11 @@ class Симулятор:
                     for yy in range(max(0, cy - 3), min(len(prow), cy + 4)):
                         for xx in range(max(0, cx - 3), min(len(prow[yy]), cx + 4)):
                             if prow[yy][xx] > 0:
+                                # цель «крестьяне без армии» (27.09): при преследовании
+                                # обходить клетки, в окне которых стоят его бойцы
+                                if г.get("без_армии") and frow and sum(frow[y2][x2] for y2 in range(max(0, yy - РАДИУС_КОНТАКТА), min(len(frow), yy + РАДИУС_КОНТАКТА + 1))
+                                                                         for x2 in range(max(0, xx - РАДИУС_КОНТАКТА), min(len(frow[y2]), xx + РАДИУС_КОНТАКТА + 1))) > 0:
+                                    continue
                                 d = math.hypot(xx - г["x"], yy - г["y"])
                                 if d < лучш_d and d > 0.5:
                                     лучшая, лучш_d = (float(xx), float(yy)), d

@@ -32,6 +32,10 @@ import tier1 as T1
     {"cmd": "PRESENCE", "on": True},
     {"cmd": "PRESENCE", "on": False},
     {"cmd": "ATTACK", "count": 20, "target": "wave"},
+    # 27.09: присутствие у крестьян В СТОРОНЕ от его армии (цель peasants_free,
+    # §13в-13г: в no_gather 97-122 убитых шли по клеткам без его бойцов)
+    {"cmd": "PRESENCE", "on": True, "target": "peasants_free"},
+    {"cmd": "ATTACK", "count": "all", "target": "peasants_free"},
 ]
 N_РЕШЕНИЙ = len(РЕШЕНИЯ)
 N_ВЕСОВ = P.N_ПРИЗНАКОВ * P.СКРЫТЫЙ + P.СКРЫТЫЙ + P.СКРЫТЫЙ * N_РЕШЕНИЙ + N_РЕШЕНИЙ
@@ -69,6 +73,7 @@ class Стратег:
         self.следующее = с_секунды
         self.история = []
         self.присутствие = False
+        self.цель_присутствия = "peasants"
 
     def выбрать(self, st):
         x = P.признаки(st)
@@ -91,8 +96,9 @@ class Стратег:
             i = self.выбрать(st)
             if РЕШЕНИЯ[i]["cmd"] == "PRESENCE":
                 self.присутствие = РЕШЕНИЯ[i]["on"]
+                self.цель_присутствия = РЕШЕНИЯ[i].get("target", "peasants")
             из += декодировать(i, st)
         if self.присутствие and float(st.get("my_freewar") or 0) > 0:
-            цель = "wave" if float(st.get("mil_away") or 0) > 0 else "peasants"
+            цель = "wave" if float(st.get("mil_away") or 0) > 0 else self.цель_присутствия
             из.append({"cmd": "ATTACK", "count": "all", "target": цель})
         return из
