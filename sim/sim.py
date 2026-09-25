@@ -21,6 +21,7 @@ sys.path.insert(0, ЗДЕСЬ)
 sys.path.insert(0, os.path.expanduser("~/coss3-bridge"))
 import core         # noqa: E402
 import combat       # noqa: E402
+import coss3_map
 import combat_math  # noqa: E402
 from coss3_bridge import ROLE, RESOURCE  # noqa: E402
 
@@ -106,22 +107,25 @@ def ч(v):
         return 0.0
 
 
-def сетка(строки):
-    """Список строк сетки -> [[int]]; знаки как в блоке: 1-9, a-z = 10-35, '+' = 36."""
+# Потолок знака «+»: до 26.09 блок писал «+» с 36, с 26.09 — с 62 (A-Z для 36-61,
+# coss3_map.ПОТОЛОК_ЗНАКА). По одному знаку старый «+» от нового не отличить —
+# Запись смотрит, есть ли в снимках поле `cells` (оно появилось вместе с A-Z), и
+# Симулятор выставляет потолок на время своей партии.
+ПОТОЛОК_ПЛЮС = 36
+
+
+def сетка(строки, потолок=None):
+    """Список строк сетки -> [[int]]; знаки как в блоке: 1-9, a-z = 10-35, A-Z = 36-61,
+    '+' = потолок и больше (36 в старых записях, 62 с 26.09)."""
+    потолок = ПОТОЛОК_ПЛЮС if потолок is None else потолок
     из = []
     for s in строки or []:
         ряд = []
         for c in str(s):
-            if c == ".":
-                ряд.append(0)
-            elif c == "+":
-                ряд.append(36)
-            elif c.isdigit():
-                ряд.append(int(c))
-            elif "a" <= c <= "z":
-                ряд.append(10 + ord(c) - ord("a"))
+            if c == "+":
+                ряд.append(потолок)
             else:
-                ряд.append(0)
+                ряд.append(coss3_map.счёт(c))
         из.append(ряд)
     return из
 
@@ -157,6 +161,9 @@ class Запись:
     def __init__(self, каталог):
         self.каталог = каталог
         self.снапы = []
+        # потолок знака «+» в сетках этой записи: 62, если мост уже писал точные
+        # клетки (`cells` в снимке появилось вместе с A-Z 26.09), иначе 36
+        self.потолок = 62 if any("cells" in x for x in self.снапы) else 36
         for s in open(os.path.join(каталог, "coss3_snap.jsonl"), encoding="utf-8"):
             s = s.strip()
             if s:
@@ -198,12 +205,15 @@ class Запись:
             if ч(st.get("centers")) > 0 and (ч(st.get("my_cx")) or ч(st.get("my_cy"))):
                 self.my_cx, self.my_cy = ч(st.get("my_cx")), ч(st.get("my_cy"))
                 break
-        # база врага: центр brow за вычетом наших зданий — берём центр его крестьян на 150–420 с, если brow нет
+        # база врага: центр ЕГО зданий в brow (легенда coss3_map: H наш центр, b наше
+        # здание, a союзник, e враг) — только «e», по одному на клетку; до 26.09 brow
+        # читалась как сетка чисел, и наши «b» весили 11, а «H» ноль. Если brow нет —
+        # центр его крестьян на 150–420 с
         self.en_base = None
         for gt, st, _ in self.такты:
             b = st.get("brow")
             if isinstance(b, list):
-                c = центр(сетка(b))
+                c = центр([[1 if ch == "e" else 0 for ch in str(row)] for row in b])
                 if c and math.hypot(c[0] - self.my_cx, c[1] - self.my_cy) > 3:
                     self.en_base = c
                     break
@@ -276,6 +286,8 @@ class Симулятор:
         снап0 = self.з.снапы[0]
         self.rec_kills0 = ч(снап0.get("p1_mil_lost"))
         self.rec_pea0 = ч(снап0.get("p1_pea_lost"))
+        global ПОТОЛОК_ПЛЮС
+        ПОТОЛОК_ПЛЮС = self.з.потолок
         self.удержание = 0.0
         self.исход = None
         self.квитанции = []
@@ -697,7 +709,7 @@ class Симулятор:
         # (26.09: в tier1 его армия стояла одной клеткой, симулятор считал 36 и
         # выигрывал бои, проигранные в записи — 197 его потерь против 70)
         видно = сумма(frow)
-        n_насыщ = sum(1 for row in frow for v in row if v >= combat.НАСЫЩЕНИЕ) if frow else 0
+        n_насыщ = sum(1 for row in frow for v in row if v >= ПОТОЛОК_ПЛЮС) if frow else 0
         скрыто_на_клетку = max(0.0, rec_army - видно) / n_насыщ if n_насыщ else 0.0
         наши = self.наши_х()
         его_х = self.его_х(st)
@@ -720,7 +732,7 @@ class Симулятор:
             n_всего = sum(sum(г["состав"].values()) for г in группы)
             def его_в(yy, xx):
                 v = frow[yy][xx]
-                return v + скрыто_на_клетку if v >= combat.НАСЫЩЕНИЕ else v
+                return v + скрыто_на_клетку if v >= ПОТОЛОК_ПЛЮС else v
             его_в_клетке = его_в(cy, cx) * масштаб
             if РАДИУС_КОНТАКТА:
                 его_в_клетке = масштаб * sum(его_в(yy, xx) for yy in range(max(0, cy - РАДИУС_КОНТАКТА), min(len(frow), cy + РАДИУС_КОНТАКТА + 1))
@@ -737,7 +749,7 @@ class Симулятор:
                 A = [(v, наши[k]) for k, v in состав.items() if v > 0 and k in наши]
                 B = [(его_состав[k] / rec_army * его_в_клетке, его_х[k]) for k in его_состав if его_состав[k] > 0 and k in его_х]
                 if A and B:
-                    п = combat.бой_за_такт(A, B, dt, n_всего, его_в_клетке, frow[cy][cx] >= 36, self.rng)
+                    п = combat.бой_за_такт(A, B, dt, n_всего, его_в_клетке, frow[cy][cx] >= ПОТОЛОК_ПЛЮС, self.rng)
                     self.журнал_боя.append((self.t, cx, cy, группы[0]["режим"], n_всего, его_в_клетке, п["наши"], п["его"], n_всего))
                     for г in группы:
                         n = sum(г["состав"].values())
@@ -850,7 +862,7 @@ class Симулятор:
             if 0 <= cx < СЕТКА and 0 <= cy < СЕТКА:
                 arow[cy][cx] += round(sum(г["состав"].values()))
         for y in range(СЕТКА):
-            s[f"arow{y}"] = "".join("." if v == 0 else ("+" if v >= 36 else (str(v) if v < 10 else chr(ord("a") + v - 10))) for v in arow[y])
+            s[f"arow{y}"] = "".join(coss3_map.знак(int(round(v))) for v in arow[y])
         волны = self.группы[1:]
         if волны:
             г = max(волны, key=lambda g: sum(g["состав"].values()))
