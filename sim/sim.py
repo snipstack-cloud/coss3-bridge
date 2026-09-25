@@ -455,6 +455,24 @@ class Симулятор:
         if target == "peasants":
             k = argmax_клетка(сетка(st.get("prow")))
             return (float(k[0]), float(k[1])) if k else self.з.en_base
+        if target == "peasants_free":
+            # крестьяне в стороне от его армии: клетка с наибольшим числом крестьян,
+            # в окне контакта которой нет его бойцов (26.09, §13в: в no_gather
+            # 97-122 убитых шли по таким клеткам); нет такой — как peasants
+            prow, frow = сетка(st.get("prow")), сетка(st.get("frow"))
+            лучшая, лучш = None, 0
+            for y in range(len(prow)):
+                for x in range(len(prow[y])):
+                    if prow[y][x] <= лучш:
+                        continue
+                    рядом = sum(frow[yy][xx] for yy in range(max(0, y - РАДИУС_КОНТАКТА), min(len(frow), y + РАДИУС_КОНТАКТА + 1))
+                                for xx in range(max(0, x - РАДИУС_КОНТАКТА), min(len(frow[yy]), x + РАДИУС_КОНТАКТА + 1))) if frow else 0
+                    if рядом == 0:
+                        лучшая, лучш = (float(x), float(y)), prow[y][x]
+            if лучшая:
+                return лучшая
+            k = argmax_клетка(prow)
+            return (float(k[0]), float(k[1])) if k else self.з.en_base
         if target == "army":
             k = argmax_клетка(сетка(st.get("frow")))
             return (float(k[0]), float(k[1])) if k else self.з.en_base
@@ -846,6 +864,10 @@ class Симулятор:
             s[f"prow{y}"] = ряд
         s["p1_mil_lost"] = round(self.rec_kills0 + self.убито_бойцов) if self.убито_бойцов > ч(снап.get("p1_mil_lost")) - self.rec_kills0 else снап.get("p1_mil_lost")
         s["en_base"] = [round(self.з.en_base[0]), round(self.з.en_base[1])]
+        # его армия с поправкой на наши убийства сверх записи (как в бое, §5)
+        rec_army = ч(снап.get("p1_inf")) + ч(снап.get("p1_shoot")) + ч(снап.get("p1_cav"))
+        лишние = max(0.0, self.убито_бойцов - (ч(снап.get("p1_mil_lost")) - self.rec_kills0))
+        s["p1_army_eff"] = round(max(0.0, rec_army - лишние))
         s["исход"] = self.исход
         return s
 
