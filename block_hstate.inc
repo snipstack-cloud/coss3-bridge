@@ -930,6 +930,13 @@
       [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
       [*] = ;         // only because it is an array.
       [*] = ;         var hmfx, hmfy, hmfn : Integer;
+      [*] = ;         // EXACT NUMBERS FOR CONTACT CELLS (26.09). Declared HERE, at block
+      [*] = ;         // level, and not next to the grid writers below: 17.09 six army
+      [*] = ;         // counters declared inside a nested begin read as zero at 208
+      [*] = ;         // fighters, while the array in the very same place was correct. A
+      [*] = ;         // scalar that must ACCUMULATE across a loop belongs at this level.
+      [*] = ;         var hmcs : String;
+      [*] = ;         var hmcn : Integer;
       [*] = ;         var hmwx, hmwy, hmwn : Integer;
       [*] = ;         for hmi := 0 to cHmGrid-1 do
       [*] = ;         for hmj := 0 to cHmGrid-1 do
@@ -1435,6 +1442,14 @@
       [*] = ;            // 10-35 as letters a-z, 36 and more as '+'. SubStr is 1-based and
       [*] = ;            // is what the native blocks use to pick a char out of a row.
       [*] = ;            var hmalpha : String = 'abcdefghijklmnopqrstuvwxyz';
+      [*] = ;            // SECOND ALPHABET (26.09, asked by the mac): 36-61 as A-Z, 62 and
+      [*] = ;            // more as '+'. Uppercase is unambiguous next to the lowercase a-z,
+      [*] = ;            // the row stays 16 chars wide, and every reader of 0-35 keeps
+      [*] = ;            // working - so the 213 runs already recorded stay comparable.
+      [*] = ;            // This alone does NOT close the request: one char tops out at 61,
+      [*] = ;            // and the battle that prompted it had 194 of ours in one cell.
+      [*] = ;            // The exact numbers written after the grids do close it.
+      [*] = ;            var hmbig : String = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            begin
       [*] = ;               hmrow := '';
@@ -1444,7 +1459,8 @@
       [*] = ;                  if (hmf = 0) then hmrow := hmrow + '.';
       [*] = ;                  if (hmf > 0) and (hmf <= 9) then hmrow := hmrow + IntToStr(hmf);
       [*] = ;                  if (hmf > 9) and (hmf <= 35) then hmrow := hmrow + SubStr(hmalpha, hmf-9, 1);
-      [*] = ;                  if (hmf > 35) then hmrow := hmrow + '+';
+      [*] = ;                  if (hmf > 35) and (hmf <= 61) then hmrow := hmrow + SubStr(hmbig, hmf-35, 1);
+      [*] = ;                  if (hmf > 61) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'frow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
@@ -1464,7 +1480,8 @@
       [*] = ;                  if (hmo = 0) then hmrow := hmrow + '.';
       [*] = ;                  if (hmo > 0) and (hmo <= 9) then hmrow := hmrow + IntToStr(hmo);
       [*] = ;                  if (hmo > 9) and (hmo <= 35) then hmrow := hmrow + SubStr(hmalpha, hmo-9, 1);
-      [*] = ;                  if (hmo > 35) then hmrow := hmrow + '+';
+      [*] = ;                  if (hmo > 35) and (hmo <= 61) then hmrow := hmrow + SubStr(hmbig, hmo-35, 1);
+      [*] = ;                  if (hmo > 61) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
@@ -1478,7 +1495,8 @@
       [*] = ;                  if (hmq = 0) then hmrow := hmrow + '.';
       [*] = ;                  if (hmq > 0) and (hmq <= 9) then hmrow := hmrow + IntToStr(hmq);
       [*] = ;                  if (hmq > 9) and (hmq <= 35) then hmrow := hmrow + SubStr(hmalpha, hmq-9, 1);
-      [*] = ;                  if (hmq > 35) then hmrow := hmrow + '+';
+      [*] = ;                  if (hmq > 35) and (hmq <= 61) then hmrow := hmrow + SubStr(hmbig, hmq-35, 1);
+      [*] = ;                  if (hmq > 61) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'prow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
@@ -1492,10 +1510,45 @@
       [*] = ;                  if (hmd = 0) then hmrow := hmrow + '.';
       [*] = ;                  if (hmd > 0) and (hmd <= 9) then hmrow := hmrow + IntToStr(hmd);
       [*] = ;                  if (hmd > 9) and (hmd <= 35) then hmrow := hmrow + SubStr(hmalpha, hmd-9, 1);
-      [*] = ;                  if (hmd > 35) then hmrow := hmrow + '+';
+      [*] = ;                  if (hmd > 35) and (hmd <= 61) then hmrow := hmrow + SubStr(hmbig, hmd-35, 1);
+      [*] = ;                  if (hmd > 61) then hmrow := hmrow + '+';
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'drow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
+      [*] = ;            // EXACT NUMBERS FOR CONTACT CELLS, no ceiling at all. Why the grid is not
+      [*] = ;            // enough: one mark per cell saturates. '+' used to mean 36 and more; with
+      [*] = ;            // A-Z above it means 62 and more - and the battle that prompted this had
+      [*] = ;            // 194 of ours against 36 of his in ONE cell, so both sides read as '+'
+      [*] = ;            // and the exchange could not be explained by numbers at all.
+      [*] = ;            // Only cells where OUR army stands together with his fighters or his
+      [*] = ;            // peasants: those are the ones a fight can be measured in, and there are
+      [*] = ;            // few of them, so the line stays short. Written as
+      [*] = ;            // x,y,ours,his,peasants separated by ';'. 'none' when there are none:
+      [*] = ;            // a missing key and a measured zero must not look the same (14.09).
+      [*] = ;            hmcs := '';
+      [*] = ;            hmcn := 0;
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  if (hmown[hmi][hmj] > 0) and (hmcn < 12) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmforce[hmi][hmj] > 0) or (hmpea[hmi][hmj] > 0) then
+      [*] = ;                     begin
+      [*] = ;                        if (hmcn > 0) then
+      [*] = ;                        hmcs := hmcs + ';';
+      [*] = ;                        hmcs := hmcs + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
+      [*] = ;                             IntToStr(hmown[hmi][hmj]) + ',' + IntToStr(hmforce[hmi][hmj]) + ',' +
+      [*] = ;                             IntToStr(hmpea[hmi][hmj]);
+      [*] = ;                        hmcn := hmcn + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmcs = '') then
+      [*] = ;            hmcs := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
