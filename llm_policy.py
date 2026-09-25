@@ -10765,6 +10765,15 @@ def main() -> int:
                          "12,5 процента труда крестьян, поставить их было куда "
                          "в 100 процентах этого времени, а на дереве и камне "
                          "при этом стоял ноль человек в 29 и 24 процентах")
+    ap.add_argument("--speed", type=int, default=-1, metavar="0|1|2",
+                    help="скорость игры на время партии: 0 медленно (фактор 7), "
+                         "1 нормально (10), 2 БЫСТРО (14); -1 не трогать. "
+                         "Значения из dmscript.global:1027. ОСТОРОЖНО: такт "
+                         "считается в ИГРОВЫХ секундах, а модель думает в "
+                         "реальных — на быстрой скорости на ответ остаётся в "
+                         "1,4 раза меньше времени, и прогон становится "
+                         "несравним с прежними. Для живой игры на Windows это "
+                         "удобство, для фермы — смена условий")
     ap.add_argument("--enemy-march", type=int, default=0, metavar="0|1",
                     dest="enemy_march",
                     help="его идущие бойцы ПО ОТРЯДАМ в запросе: куда идёт каждый "
@@ -11236,7 +11245,7 @@ def main() -> int:
         diagnose(d, human=a.human)
         return 1
     br = Bridge(d, plind)
-    ep = Episode(br, a.horizon, quiet=45.0, dry=False, speed=0,
+    ep = Episode(br, a.horizon, quiet=45.0, dry=False, speed=a.speed,
                  model=False, policy="none")
     итоги = []
     for номер in range(1, a.episodes + 1):

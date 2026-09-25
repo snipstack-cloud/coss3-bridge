@@ -245,6 +245,10 @@ def main() -> int:
     ap.add_argument("--cannons", type=int, default=-1,
                     help="пушки: 0 как обычно, 1 БЕЗ ПУШЕК, БАШЕН И СТЕН ни у "
                          "кого, 2 дорогие пушки (player.script:2703)")
+    ap.add_argument("--speed", type=int, default=2, metavar="0|1|2",
+                    help="скорость игры: 0 медленно, 1 нормально, 2 БЫСТРО "
+                         "(умолчание для живого запуска с Windows; факторы "
+                         "7/10/14 из dmscript.global:1027). -1 не трогать")
     ap.add_argument("--capture", type=int, default=-1,
                     help="захват: 0 как обычно, 1 не захватывать крестьян, "
                          "2 ни крестьян ни центры, 3 только артиллерией. С "
@@ -302,7 +306,7 @@ def main() -> int:
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
                           balloon=a.balloon, cannons=a.cannons,
                           capture=a.capture, market=a.market,
-                          century18=a.century18):
+                          century18=a.century18, speed=a.speed):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

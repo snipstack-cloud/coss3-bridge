@@ -449,7 +449,7 @@ class Bridge:
             raise
         return True
 
-    def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = 0,
+    def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = -1,
                 res: int = -1, peace: int = -1, ai: int = -1,
                 nation: str = "", balloon: int = -1,
                 cannons: int = -1, capture: int = -1,
