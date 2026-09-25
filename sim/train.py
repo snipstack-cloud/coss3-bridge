@@ -22,6 +22,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sim as SIM          # noqa: E402
 import replay as R          # noqa: E402
 import policy_net as P      # noqa: E402
+import policy_strat as PS   # noqa: E402
+import tier1 as T1          # noqa: E402
+
+СТРАТЕГ = "--strat" in sys.argv     # стратегический слой поверх яруса 1 вместо полного словаря
+
+
+def n_весов():
+    return PS.N_ВЕСОВ if СТРАТЕГ else P.N_ВЕСОВ
 
 ДОЛЯ_ТЕСТА = 0.25
 
@@ -106,6 +114,10 @@ class Игрок:
 
 
 def сыграть(theta, каталог, seed, температура=0.0):
+    if СТРАТЕГ:
+        игрок = PS.Стратег(theta, температура, np.random.default_rng(seed))
+        сим, _ = SIM.партия(каталог, игрок, seed=seed)
+        return награда(сим), сим, игрок
     сеть = P.Сеть(theta, температура, np.random.default_rng(seed))
     сим, _ = SIM.партия(каталог, Игрок(сеть), seed=seed)
     return награда(сим), сим, сеть
@@ -154,14 +166,14 @@ def обучить(обуч, gens, pop, k, выход):
     # и при общих семенах все 64 кандидата ходили одинаково — лучшая награда равнялась
     # средней до третьего знака 100 поколений подряд. Веса N(0, 0,5) дают логиты
     # порядка единицы, и шум σ 0,3 меняет решения.
-    theta = rng.normal(0, 0.5, P.N_ВЕСОВ).astype(np.float32)
+    theta = rng.normal(0, 0.5, n_весов()).astype(np.float32)
     sigma = 0.3
     лучший = (-1e9, theta.copy())
     t0 = time.time()
     for g in range(gens):
         выбор = [обуч[rng.integers(len(обуч))] for _ in range(k)]
         семена = [int(rng.integers(1 << 30)) for _ in range(k)]
-        шумы = rng.normal(0, 1, (pop, P.N_ВЕСОВ)).astype(np.float32)
+        шумы = rng.normal(0, 1, (pop, n_весов())).astype(np.float32)
         очки = np.zeros(pop)
         побед = 0
         for j in range(pop):
@@ -192,28 +204,38 @@ def main():
     выход = опция("--out", os.path.join(os.path.dirname(os.path.abspath(__file__)), "политика.npy"), str)
     все = партии(арг)
     обуч, тест = разбить(все)
-    print(f"партий {len(все)}: обучение {len(обуч)}, проверка {len(тест)}; действий {P.N_ДЕЙСТВИЙ}, признаков {P.N_ПРИЗНАКОВ}, весов {P.N_ВЕСОВ}", flush=True)
+    print(f"партий {len(все)}: обучение {len(обуч)}, проверка {len(тест)}; режим {'стратег' if СТРАТЕГ else 'полный словарь'}, весов {n_весов()}", flush=True)
     if "--eval" in sys.argv:
         theta = np.load(sys.argv[sys.argv.index("--eval") + 1])
     else:
         theta = обучить(обуч, gens, pop, k, выход)
     print("\nПРОВЕРКА НА ОТЛОЖЕННЫХ ПАРТИЯХ (температура 0,5, по 3 партии на запись):")
-    сводка("дебют + сеть", оценить(theta, тест))
-    сводка("дебют + сеть (argmax)", оценить(theta, тест, температура=0.0, повторов=1))
-    нулевая = np.zeros(P.N_ВЕСОВ, dtype=np.float32)
-    сводка("дебют + случайные ходы", оценить(нулевая, тест, температура=1.0))
-    сводка("только дебют", [(награда(с), с.исход, с.убито_крестьян, с.my_mil_lost, с.убито_бойцов, sum(с.эк.армия.values()))
-                            for с in (_только_дебют(d, i)[0] for i, d in enumerate(тест))])
+    сводка("ярус1/дебют + сеть", оценить(theta, тест))
+    сводка("… (argmax)", оценить(theta, тест, температура=0.0, повторов=1))
+    нулевая = np.zeros(n_весов(), dtype=np.float32)
+    сводка("… + случайные решения", оценить(нулевая, тест, температура=1.0))
+    if СТРАТЕГ:
+        сводка("только ярус 1", [(награда(с), с.исход, с.убито_крестьян, с.my_mil_lost, с.убито_бойцов, sum(с.эк.армия.values()))
+                                 for с in (SIM.партия(d, T1.Ярус1(), seed=i)[0] for i, d in enumerate(тест))])
+    else:
+        сводка("только дебют", [(награда(с), с.исход, с.убито_крестьян, с.my_mil_lost, с.убито_бойцов, sum(с.эк.армия.values()))
+                                for с in (_только_дебют(d, i)[0] for i, d in enumerate(тест))])
     пустая, запись = базы(тест)
     сводка("пустая политика", пустая)
     сводка("команды записи", запись)
     # что делает политика: частоты действий
-    сеть = P.Сеть(theta)
-    SIM.партия(тест[0], сеть, seed=0)
     from collections import Counter
-    c = Counter(сеть.история)
-    print("частые действия политики на первой отложенной партии:",
-          [(P.ДЕЙСТВИЯ[i].get("cmd"), P.ДЕЙСТВИЯ[i].get("role") or P.ДЕЙСТВИЯ[i].get("target"), P.ДЕЙСТВИЯ[i].get("total", P.ДЕЙСТВИЯ[i].get("count")), n) for i, n in c.most_common(8)])
+    if СТРАТЕГ:
+        игрок = PS.Стратег(theta)
+        SIM.партия(тест[0], игрок, seed=0)
+        c = Counter(игрок.история)
+        print("решения стратега на первой отложенной партии:", [(PS.РЕШЕНИЯ[i], n) for i, n in c.most_common(6)])
+    else:
+        сеть = P.Сеть(theta)
+        SIM.партия(тест[0], сеть, seed=0)
+        c = Counter(сеть.история)
+        print("частые действия политики на первой отложенной партии:",
+              [(P.ДЕЙСТВИЯ[i].get("cmd"), P.ДЕЙСТВИЯ[i].get("role") or P.ДЕЙСТВИЯ[i].get("target"), P.ДЕЙСТВИЯ[i].get("total", P.ДЕЙСТВИЯ[i].get("count")), n) for i, n in c.most_common(8)])
 
 
 if __name__ == "__main__":
