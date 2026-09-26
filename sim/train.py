@@ -7,12 +7,13 @@
 его бойца, −0,003 за нашего потерянного. Базы для сравнения: пустая политика и
 команды самой записи (`replay.команды_такта`) в том же симуляторе.
 
-    python3 sim/train.py <корень с прогонами> [ещё...] [--gens 25] [--pop 48] [--k 3] [--seed 1] [--out sim/политика.npy]
+    python3 sim/train.py <корень с прогонами> [ещё...] [--gens 25] [--pop 48] [--k 3] [--seed 1] [--урок имя] [--старт веса.npy] [--out sim/политика.npy]
     python3 sim/train.py <корни> --eval sim/политика.npy
 """
 import glob
 import os
 import random
+import statistics as S
 import sys
 import time
 
@@ -208,14 +209,18 @@ def _только_дебют(d, i):
     return SIM.партия(d, класс, seed=i)
 
 
-def обучить(обуч, gens, pop, k, выход, seed=1):
+def обучить(обуч, gens, pop, k, выход, seed=1, старт=None):
+    """`старт` — веса предыдущего урока: следующий урок продолжает с достигнутого
+    (учебная программа, 27.09). Без него эволюция каждый раз начинает с нуля, и
+    связка из нескольких команд (академия -> офицер -> барабанщик -> строй) за
+    60 поколений не складывается."""
     rng = np.random.default_rng(seed)
     # Масштаб весов важен: при N(0, 0,1) логиты около нуля, выбор почти равномерный,
     # и при общих семенах все 64 кандидата ходили одинаково — лучшая награда равнялась
     # средней до третьего знака 100 поколений подряд. Веса N(0, 0,5) дают логиты
     # порядка единицы, и шум σ 0,3 меняет решения.
-    theta = rng.normal(0, 0.5, n_весов()).astype(np.float32)
-    sigma = 0.3
+    theta = (np.load(старт).astype(np.float32) if старт else rng.normal(0, 0.5, n_весов()).astype(np.float32))
+    sigma = 0.3 if not старт else 0.2
     лучший = (-1e9, theta.copy())
     t0 = time.time()
     for g in range(gens):
@@ -256,7 +261,8 @@ def main():
     if "--eval" in sys.argv:
         theta = np.load(sys.argv[sys.argv.index("--eval") + 1])
     else:
-        theta = обучить(обуч, gens, pop, k, выход, seed=опция("--seed", 1))
+        theta = обучить(обуч, gens, pop, k, выход, seed=опция("--seed", 1),
+                        старт=(sys.argv[sys.argv.index("--старт") + 1] if "--старт" in sys.argv else None))
     if УРОК:
         import уроки as U
         у = U.УРОКИ[УРОК]
