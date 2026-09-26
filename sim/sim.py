@@ -22,6 +22,8 @@ sys.path.insert(0, os.path.expanduser("~/coss3-bridge"))
 import core         # noqa: E402
 import combat       # noqa: E402
 import coss3_map
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import decision_features as DF  # noqa: E402
 import combat_math  # noqa: E402
 from coss3_bridge import ROLE, RESOURCE  # noqa: E402
 
@@ -1007,6 +1009,28 @@ class Симулятор:
             s[f"prow{y}"] = ряд
         s["p1_mil_lost"] = round(self.rec_kills0 + self.убито_бойцов) if self.убито_бойцов > ч(снап.get("p1_mil_lost")) - self.rec_kills0 else снап.get("p1_mil_lost")
         s["en_base"] = [round(self.з.en_base[0]), round(self.з.en_base[1])]
+        # ПРИЗНАКИ РЕШЕНИЯ ОБ АТАКЕ (§13ю, просьба игрока 27.09) — ровно те числа,
+        # которые мост называет модели в блоке «Решение об атаке»: растянутость его
+        # армии, темп его подкрепления, сколько он донаберёт за наш марш и перевес
+        # к приходу. Без них политика решает вслепую по половине признаков.
+        сет_его = сетка(st.get("frow")) if st.get("frow") else None
+        дом = self.группы[0]
+        цx = цy = 0
+        макс = 0.0
+        for y, ряд in enumerate(сет_его or []):
+            for x, k in enumerate(ряд):
+                if k > макс:
+                    макс, цx, цy = k, x, y
+        d = max(abs(цx - дом["x"]), abs(цy - дом["y"])) if макс > 0 else 0.0
+        пр = DF.решение(self.свободные_бойцы(), сет_его, снап.get("p1_ba17") or st.get("p1_ba17"), d,
+                        его_строй=снап.get("p1_squads") or st.get("p1_squads"), наш_строй=s.get("squads"))
+        s["en_cells"] = пр["его_клеток"]
+        s["en_fist"] = round(пр["его_кулаком"], 3)
+        s["en_in_cell"] = round(пр["его_в_клетке"], 1)
+        s["march_s"] = round(пр["марш_сек"], 1)
+        s["en_adds"] = round(пр["он_добавит"], 1)
+        s["edge_now"] = round(min(пр["перевес_сейчас"], 99.0), 3)
+        s["edge_on_arrival"] = round(min(пр["перевес_к_приходу"], 99.0), 3)
         # его армия с поправкой на наши убийства сверх записи (как в бое, §5)
         rec_army = ч(снап.get("p1_inf")) + ч(снап.get("p1_shoot")) + ч(снап.get("p1_cav"))
         s["p1_army_eff"] = round(max(0.0, rec_army - self.лишние))
