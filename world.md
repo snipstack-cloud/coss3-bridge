@@ -1127,3 +1127,13 @@
   трети мушкетёров смысла не имеет. В живых боях то же направление: размен 0,41
   при нуле стрелков у нас и 0,58 при доле до трети (41 бой).
 
+- [код] СТРОЙ СОБИРАЕТСЯ ИЗ ИМЕННОГО СПИСКА ОФИЦЕРА, а не из класса юнита.
+  `country.script:2523`: офицеру `officer` с барабанщиком `drummer` разрешены
+  `pikeman`, `pikemanpol`, `roundshier`, `musketeer`, `musketeeraus`,
+  `musketeerpol`, `musketeerspa`, `grenadierdip`, `roundshierdip`,
+  `musketeernet`, `gauduk`, `pikemanpor`, `pikemanspa`, `pikemanswi`. Нативный
+  ИИ читает ровно этот список (`progresswarai.inc:3637`). Бонус зависит от
+  РАЗМЕРА отряда (`formations.cfg`): LINE15/36/72/120/196 и SQUARE/KARE тех же
+  размеров дают +2/+2 на ходу и +7/+7 стоя, LINE400 и его пара — +3/+3 и +7/+7;
+  формации `none` и семейство NB дают нули. Минимум для бонуса — 15 бойцов.
+

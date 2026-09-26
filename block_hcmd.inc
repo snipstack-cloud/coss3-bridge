@@ -745,6 +745,7 @@
       [*] = ;                  var hfoff : Integer = 0;
       [*] = ;                  var hfdrum : Integer = 0;
       [*] = ;                  gIntegerList.Clear;
+      [*] = ;                  gTmpIntList.Clear;
       [*] = ;                  for hck := 0 to hcobjn-1 do
       [*] = ;                  begin
       [*] = ;                     var hfgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
@@ -760,7 +761,7 @@
       [*] = ;                        if (hfu = gc_obj_usage_lightinfantry) or (hfu = gc_obj_usage_weak) or
       [*] = ;                           (hfu = gc_obj_usage_grenadier) or (hfu = gc_obj_usage_shooter) or
       [*] = ;                           (hfu = gc_obj_usage_archer) then
-      [*] = ;                        gIntegerList.Add(hfgo);
+      [*] = ;                        gTmpIntList.Add(hfgo);
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;                  if (hfoff = 0) or (hfdrum = 0) then
@@ -775,6 +776,37 @@
       [*] = ;                  begin
       [*] = ;                     var hfsid : String = GetGameObjectBaseNameByHandle(hfoff);
       [*] = ;                     var hfoi : Integer = _country_GetOfficersIndexByOfficerSID(hccid, hfsid);
+      [*] = ;                     // WHO may stand in the squad is not a usage class but a
+      [*] = ;                     // NAMED LIST of the officer: country.script:2523 gives
+      [*] = ;                     // 'officer' the set pikeman, musketeer, musketeernet and
+      [*] = ;                     // more, and the native AI reads exactly it
+      [*] = ;                     // (progresswarai.inc:3637). The usage filter above kept
+      [*] = ;                     // shooters and light infantry only, so a pikeman army -
+      [*] = ;                     // ours in every game - built no squad at all. Second pass
+      [*] = ;                     // over objects: cheaper than wrong numbers.
+      [*] = ;                     gIntegerList.Clear;
+      [*] = ;                     if (hfoi >= 0) then
+      [*] = ;                     begin
+      [*] = ;                        for hck := 0 to hcobjn-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hfg2 : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                           var hfp2 : Pointer = _unit_GetTObj(hfg2);
+      [*] = ;                           if (hfp2 <> nil) then
+      [*] = ;                           begin
+      [*] = ;                              var hfs2 : String = gCountry[hccid].members[TObj(hfp2).id];
+      [*] = ;                              for hcj := 0 to gc_country_maxformationunitcount-1 do
+      [*] = ;                              begin
+      [*] = ;                                 if (hfs2 <> '') and (hfs2 = gCountry[hccid].officers[hfoi].units[hcj]) then
+      [*] = ;                                 gIntegerList.Add(hfg2);
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (gIntegerList.GetCount = 0) then
+      [*] = ;                     begin
+      [*] = ;                        for hck := 0 to gTmpIntList.GetCount-1 do
+      [*] = ;                        gIntegerList.Add(gTmpIntList.Get(hck));
+      [*] = ;                     end;
       [*] = ;                     var hfform : Integer = -1;
       [*] = ;                     var hfbest : Integer = -1;
       [*] = ;                     var hfneed : Integer = 1000000;
