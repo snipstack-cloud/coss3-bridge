@@ -749,7 +749,8 @@ class Симулятор:
                 A = [(v, наши[k]) for k, v in состав.items() if v > 0 and k in наши]
                 B = [(его_состав[k] / rec_army * его_в_клетке, его_х[k]) for k in его_состав if его_состав[k] > 0 and k in его_х]
                 if A and B:
-                    п = combat.бой_за_такт(A, B, dt, n_всего, его_в_клетке, frow[cy][cx] >= ПОТОЛОК_ПЛЮС, self.rng)
+                    у_его_базы = math.hypot(cx - self.з.en_base[0], cy - self.з.en_base[1]) <= 3
+                    п = combat.бой_за_такт(A, B, dt, n_всего, его_в_клетке, frow[cy][cx] >= ПОТОЛОК_ПЛЮС, self.rng, у_его_базы=у_его_базы)
                     self.журнал_боя.append((self.t, cx, cy, группы[0]["режим"], n_всего, его_в_клетке, п["наши"], п["его"], n_всего))
                     for г in группы:
                         n = sum(г["состав"].values())
