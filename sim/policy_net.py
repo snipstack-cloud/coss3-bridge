@@ -94,9 +94,10 @@ def макро(роль: str, st: dict) -> list:
 
     if роль in ("конюшня", "казарма") and _ч(st, "mines_gold") == 0:
         return из + стройка("minegold", ЦЕНЫ["minegold"])
-    if роль == "академия" or (роль == "строй" and _ч(st, "academi") == 0):
+    if роль == "академия":
         return из if _ч(st, "academi") > 0 else из + стройка("academi", ЦЕНЫ["academi"])
     if роль == "строй":
+        # академия НЕ нужна (живая игра 27.09): офицер и барабанщик идут из казармы
         if _ч(st, "my_officers") < 1:
             из.append({"cmd": "TRAIN", "role": "officer17", "total": 1})
         if _ч(st, "my_drummers") < 1:
