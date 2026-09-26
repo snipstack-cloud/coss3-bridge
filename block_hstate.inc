@@ -925,6 +925,20 @@
       [*] = ;         // next to frow the model can pick a cell where peasants are and
       [*] = ;         // soldiers are not, and send ATTACK target=cell there.
       [*] = ;         var hmpea : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // SUMS OF COORDINATES per cell, ours and his apart (27.09, request of
+      [*] = ;         // the mac). Why a sixth number in 'cells' is needed at all: by 227 pairs
+      [*] = ;         // of snapshots from strike_base and free_peasants, in 218 ticks out of
+      [*] = ;         // 445 BOTH sides had five or more fighters in one cell and NOBODY died,
+      [*] = ;         // and at equal numbers the losses differ two to three and a half times
+      [*] = ;         // (20 ours against 40 his: median 0.63 ours a second, q1 0.60, q3 1.20).
+      [*] = ;         // The hidden variable is the distance between the two crowds INSIDE the
+      [*] = ;         // cell: the grid quantises to 16 units and the block used to throw the
+      [*] = ;         // remainder away. Coordinates are summed here, the centres and their
+      [*] = ;         // distance are computed where 'cells' is written.
+      [*] = ;         var hmsox : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmsoz : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmsex : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmsez : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
       [*] = ;         // Counters of OUR army, declared at THIS level on purpose - see the
       [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
@@ -945,6 +959,10 @@
       [*] = ;            hmforce[hmi][hmj] := 0;
       [*] = ;            hmdest[hmi][hmj] := 0;
       [*] = ;            hmpea[hmi][hmj] := 0;
+      [*] = ;            hmsox[hmi][hmj] := 0;
+      [*] = ;            hmsoz[hmi][hmj] := 0;
+      [*] = ;            hmsex[hmi][hmj] := 0;
+      [*] = ;            hmsez[hmi][hmj] := 0;
       [*] = ;         end;
       [*] = ;         var hmw : Integer = GetMapWidth;
       [*] = ;         var hmh : Integer = GetMapHeight;
@@ -1019,7 +1037,11 @@
       [*] = ;                     var hmux : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
       [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
       [*] = ;                     if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
-      [*] = ;                     hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
+      [*] = ;                     begin
+      [*] = ;                        hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
+      [*] = ;                        hmsex[hmux][hmuy] := hmsex[hmux][hmuy] + Round(GetGameObjectPositionXByHandle(hseg)+hmhw);
+      [*] = ;                        hmsez[hmux][hmuy] := hmsez[hmux][hmuy] + Round(GetGameObjectPositionZByHandle(hseg)+hmhh);
+      [*] = ;                     end;
       [*] = ;                     var hseot : Integer = TObj(hsep).orders[0].itype;
       [*] = ;                     var hsytx : Float = -1000000;
       [*] = ;                     var hsytz : Float = -1000000;
@@ -1390,6 +1412,8 @@
       [*] = ;                     if (hmoxx>=0) and (hmoxx<cHmGrid) and (hmoyy>=0) and (hmoyy<cHmGrid) then
       [*] = ;                     begin
       [*] = ;                        hmown[hmoxx][hmoyy] := hmown[hmoxx][hmoyy] + 1;
+      [*] = ;                        hmsox[hmoxx][hmoyy] := hmsox[hmoxx][hmoyy] + Round(GetGameObjectPositionXByHandle(hmog)+hmhw);
+      [*] = ;                        hmsoz[hmoxx][hmoyy] := hmsoz[hmoxx][hmoyy] + Round(GetGameObjectPositionZByHandle(hmog)+hmhh);
       [*] = ;                        // The fist at home and the wave in the field are counted APART: only free
       [*] = ;                        // men can be sent, and the model must see where exactly they stand.
       [*] = ;                        if (TObj(hmop).orders[0].itype = gc_obj_order_type_none) then
@@ -1537,9 +1561,22 @@
       [*] = ;                     begin
       [*] = ;                        if (hmcn > 0) then
       [*] = ;                        hmcs := hmcs + ';';
+      [*] = ;                        // DISTANCE BETWEEN THE TWO CROWDS inside this cell, in engine
+      [*] = ;                        // units (a cell is 16 of them, so 0..22 along the diagonal).
+      [*] = ;                        // -1 means one of the sides is not in the cell at all, so there
+      [*] = ;                        // is no distance to speak of: a measured zero and a missing
+      [*] = ;                        // side must not look the same. Sixth field on purpose - the
+      [*] = ;                        // five before it keep their places and old readers survive.
+      [*] = ;                        var hmdd : Integer = -1;
+      [*] = ;                        if (hmown[hmi][hmj] > 0) and (hmforce[hmi][hmj] > 0) then
+      [*] = ;                        begin
+      [*] = ;                           var hmddx : Integer = (hmsox[hmi][hmj] div hmown[hmi][hmj]) - (hmsex[hmi][hmj] div hmforce[hmi][hmj]);
+      [*] = ;                           var hmddz : Integer = (hmsoz[hmi][hmj] div hmown[hmi][hmj]) - (hmsez[hmi][hmj] div hmforce[hmi][hmj]);
+      [*] = ;                           hmdd := Round(Sqrt(hmddx*hmddx + hmddz*hmddz));
+      [*] = ;                        end;
       [*] = ;                        hmcs := hmcs + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
       [*] = ;                             IntToStr(hmown[hmi][hmj]) + ',' + IntToStr(hmforce[hmi][hmj]) + ',' +
-      [*] = ;                             IntToStr(hmpea[hmi][hmj]);
+      [*] = ;                             IntToStr(hmpea[hmi][hmj]) + ',' + IntToStr(hmdd);
       [*] = ;                        hmcn := hmcn + 1;
       [*] = ;                     end;
       [*] = ;                  end;
