@@ -905,6 +905,11 @@ class Симулятор:
         # готовые участки поля: 32 после созревания, 0 до (истощения в горизонте нет, §3.4)
         s["food_ready"] = 32 if (self.мельница_t is not None and self.t - self.мельница_t >= ЗРЕЕТ_ПОЛЕ) else 0
         s["my_officers"], s["my_drummers"] = round(self.офицеры), round(self.барабанщики)
+        # ИМЯ КЛЮЧА — КАК В ИГРЕ (27.09, ошибка стоила Windows прогона): роль в
+        # заказе зовётся `academi`, а СЧЁТЧИК в состоянии моста — `academies`
+        # (`llm_policy.СЧЁТЧИК`). Симулятор отдаёт оба, чтобы политика, написанная
+        # по состоянию игры, читала здесь то же самое.
+        s["academies"] = s.get("academi", 0)
         s["squads"] = 1 if self.строй else 0
         s["my_mil_lost"], s["my_pea_lost"] = round(self.my_mil_lost), round(self.my_pea_lost)
         s["p1_pea_lost"] = round(self.rec_pea0 + self.убито_крестьян)

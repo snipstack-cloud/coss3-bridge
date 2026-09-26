@@ -46,11 +46,26 @@ N_ДЕЙСТВИЙ = len(ДЕЙСТВИЯ)
 ПОРЯДОК_ЗАЩИТЫ = ["bar.pikeman.2.1", "bar.pikeman.2.2", "bar.pikeman.2.3", "bar.pikeman.2.4", "bar.pikeman.2.5", "bar.pikeman.2.6"]
 
 
+# роль в заказе и ключ состояния зовутся по-разному (`academi` против
+# `academies` и т. п.) — читаем оба имени, ошибка 27.09 стоила Windows прогона
+ВТОРОЕ_ИМЯ = {"academi": "academies", "stable": "stables", "market": "markets",
+              "smith": "smiths", "mill": "mills", "center": "centers", "house": "houses"}
+
+
 def _ч(st, k):
-    try:
-        return float(st.get(k) or 0)
-    except (TypeError, ValueError):
-        return 0.0
+    def один(имя):
+        try:
+            return float(st.get(имя) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+    v = один(k)
+    if v == 0 and k in ВТОРОЕ_ИМЯ:
+        v = один(ВТОРОЕ_ИМЯ[k])
+    if v == 0:
+        обратно = {b: a for a, b in ВТОРОЕ_ИМЯ.items()}.get(k)
+        if обратно:
+            v = один(обратно)
+    return v
 
 
 # цены зданий из `параметры.json` ([код] unit.script:503): что надо накопить
