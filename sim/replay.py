@@ -17,7 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sim as SIM   # noqa: E402
 
-СРАВНИВАЕМ = ("food", "wood", "stone", "gold", "iron", "coal", "peasants", "mil_inf", "my_mil_lost", "p1_mil_lost", "p1_pea_lost")
+СРАВНИВАЕМ = ("food", "wood", "stone", "gold", "iron", "coal", "peasants", "mil_inf", "mil_shooters", "my_mil_lost", "p1_mil_lost", "p1_pea_lost")
 
 
 def команды_такта(r: dict) -> list:
