@@ -353,12 +353,15 @@ wineserver --wait
 cd /opt/bridge
 if [ "$COSS3_INSTALL" = "1" ]; then
     log "проверяю блоки перед установкой"
-    python3 verify_blocks.py "$COSS3_GAME" block_human.inc block_hstate.inc block_hcmd.inc \
+    python3 verify_blocks.py "$COSS3_GAME" block_human.inc block_hstate.inc block_hcmd.inc block_kills.inc \
         || die "verify_blocks завернул блок — в игру такое не ставим"
 
     log "ставлю человеческий слот"
     python3 install_bridge.py "$COSS3_GAME" --reinstall \
-            --human-only --human-state --human-cmd --endgame \
+            # --human-kills (27.09): события гибели из ворот смерти движка — кто погиб,
+            # где и от кого, обе стороны. Ставится в lib/miscext2.script; проверено живой
+            # игрой на Windows 27.09: поток событий шёл вровень со счётчиком потерь.
+            --human-only --human-state --human-cmd --endgame --human-kills \
             2>&1 | tee "$COSS3_IO/install.log"
 
     grep -q "проверка после записи: все блоки на месте" "$COSS3_IO/install.log" \

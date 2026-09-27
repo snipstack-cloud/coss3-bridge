@@ -1004,57 +1004,6 @@
       [*] = ;         var hmcs : String;
       [*] = ;         var hmcn : Integer;
       [*] = ;         var hmwx, hmwy, hmwn : Integer;
-      [*] = ;         // LOSSES BY CELL (27.09). The map counter says HOW MANY died - exactly, it is
-      [*] = ;         // gPlayer.stat.killed - and the cells say WHERE. Neither alone is enough, and the
-      [*] = ;         // order of asking is the whole idea.
-      [*] = ;         //
-      [*] = ;         // Why python could not do it: the state is written once a game second and python
-      [*] = ;         // reads every fifth of those, so it differenced cell counts five seconds apart.
-      [*] = ;         // Over five seconds a fighter leaves a cell easily, so a drop told nothing, and
-      [*] = ;         // the python side only ever trusted the case of ONE contact cell - which is a
-      [*] = ;         // lull, 105 'exact' ticks with not one death in them.
-      [*] = ;         //
-      [*] = ;         // Why differencing cells is nevertheless right, once the counter is asked FIRST.
-      [*] = ;         // The old objection was that a marching column of sixty crosses cell borders all
-      [*] = ;         // the time: about ten false deaths a second at 16 units to a cell, thousands over
-      [*] = ;         // a game against two hundred real ones. But in a second when the counter did not
-      [*] = ;         // move, NOBODY died, and no drop is looked at at all. The counter is the budget:
-      [*] = ;         // at most that many deaths are placed, so the sum can never run away from the
-      [*] = ;         // truth. What stays uncertain is WHERE, not how many.
-      [*] = ;         //
-      [*] = ;         // A DEAD END WORTH REMEMBERING, it cost a live match. The first design asked
-      [*] = ;         // whether a remembered HANDLE was still alive and attributed nothing at all - the
-      [*] = ;         // counter went 1-2-6 while the breakdown stayed 'none'. A corpse leaves the
-      [*] = ;         // player's object list before its state machine dies, so the man was no longer
-      [*] = ;         // walked yet still answered 'alive', and a tick later the memory of him was gone.
-      [*] = ;         //
-      [*] = ;         // Everything here is read and written BY KEY, never by enumeration, and that is
-      [*] = ;         // deliberate: enumerating a parser and turning a key name back into a number
-      [*] = ;         // (ParserGetCountByHandle, ParserGetKeyName, StrToInt) is exactly the part that
-      [*] = ;         // was never proven in this bridge. By-key reads and writes are what the bridge
-      [*] = ;         // already lives on, and a missing key reads as zero - the clock of br_hstate is
-      [*] = ;         // read that way on its very first tick.
-      [*] = ;         //
-      [*] = ;         // Two stores, kept across ticks by name the way br_hstate keeps the clock:
-      [*] = ;         // br_lprev holds LAST second (cell code -> our fighters there, plus 'lost' - the
-      [*] = ;         // counter as it stood), br_lost ACCUMULATES over the game (cell code -> deaths,
-      [*] = ;         // plus 'odd' - deaths that could not be placed in any cell). Accumulated here and
-      [*] = ;         // differenced in python on purpose: a field holding only the last second would be
-      [*] = ;         // lost in the four seconds python does not read.
-      [*] = ;         //
-      [*] = ;         // THE MEASURE. The old one - the sum against my_mil_lost within ten per cent - is
-      [*] = ;         // now true BY CONSTRUCTION and therefore proves nothing. What is actually unknown
-      [*] = ;         // is how often the place cannot be named, so the block says it out loud:
-      [*] = ;         // lost_cells_sum + lost_cells_odd must equal the counter exactly (that is a
-      [*] = ;         // consistency check, and it catches a bug in this code), and the quality of the
-      [*] = ;         // field is the SHARE of 'odd'. The residual error left in it is narrower than
-      [*] = ;         // before: a death is placed in the wrong cell only when a cell's loss is masked
-      [*] = ;         // by a reinforcement arriving the same second.
-      [*] = ;         //
-      [*] = ;         // Scalars that accumulate across a loop are declared at THIS level - see the note
-      [*] = ;         // above about a scalar inside a nested begin reading zero at 208 fighters.
-      [*] = ;         var hslcs : String;
-      [*] = ;         var hslcn, hslsum, hslodd, hslmore : Integer;
       [*] = ;         for hmi := 0 to cHmGrid-1 do
       [*] = ;         for hmj := 0 to cHmGrid-1 do
       [*] = ;         begin
@@ -1457,21 +1406,6 @@
       [*] = ;         // means python says nothing about the map at all.
       [*] = ;         if (hscen > 0) then
       [*] = ;         begin
-      [*] = ;            var hslpv : Integer = ParserSelectByKey('br_lprev');
-      [*] = ;            if (hslpv = 0) then
-      [*] = ;            hslpv := ParserCreate('br_lprev');
-      [*] = ;            var hslac : Integer = ParserSelectByKey('br_lost');
-      [*] = ;            if (hslac = 0) then
-      [*] = ;            hslac := ParserCreate('br_lost');
-      [*] = ;            // A second match in the same process: the game clock went backwards. The same
-      [*] = ;            // test br_hstate makes for its own clock, and hslast still holds the previous
-      [*] = ;            // write because it was read before that parser was cleared. Without this the
-      [*] = ;            // losses of the first match would ride into the second and spoil both.
-      [*] = ;            if (hsnow < hslast) then
-      [*] = ;            begin
-      [*] = ;               ParserClearByHandle(hslpv);
-      [*] = ;               ParserClearByHandle(hslac);
-      [*] = ;            end;
       [*] = ;            var hmcx : Integer = floor((hscx+hmhw)*cHmGrid/hmw);
       [*] = ;            var hmcy : Integer = floor((hscz+hmhh)*cHmGrid/hmh);
       [*] = ;            if (hmcx<0) then hmcx := 0;
@@ -1702,127 +1636,6 @@
       [*] = ;            hmcs := 'none';
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
-      [*] = ;            // --- WHO DIED AND WHERE ---------------------------------------------------
-      [*] = ;            // The budget of this second: how much the map counter moved. Negative cannot
-      [*] = ;            // happen, but a new match is a new counter, so it is clamped rather than trusted.
-      [*] = ;            var hsldie : Integer = hslm - ParserGetIntValueByKeyByHandle(hslpv, 'lost');
-      [*] = ;            if (hsldie < 0) then
-      [*] = ;            hsldie := 0;
-      [*] = ;            hslodd := ParserGetIntValueByKeyByHandle(hslac, 'odd');
-      [*] = ;            if (hsldie > 0) then
-      [*] = ;            begin
-      [*] = ;               // THREE PASSES, and the order IS the method. The first live check (27.09) showed
-      [*] = ;               // why a drop in the cell cannot be the primary sign: of ten deaths one was placed,
-      [*] = ;               // and that one landed in OUR REAR - cell 2,2, where men had simply walked away -
-      [*] = ;               // while the cell where the fight actually was showed no drop at all. A wave moves,
-      [*] = ;               // and in the same second somebody steps INTO the cell, so the loss from a death is
-      [*] = ;               // covered by an arrival.
-      [*] = ;               //
-      [*] = ;               // CONTACT is the sign that does not depend on movement. If our men and his fighters
-      [*] = ;               // stand in one cell and the counter moved, they died there - no drop needed.
-      [*] = ;               //   pass 0: contact cell that ALSO lost men - the strongest evidence there is;
-      [*] = ;               //   pass 1: contact cell without a visible drop - the arrival covered the loss;
-      [*] = ;               //   pass 2: no contact anywhere, but some cell lost men - a tower, artillery or
-      [*] = ;               //           hunger killed him away from any enemy unit.
-      [*] = ;               // Whatever is left over is said out loud below.
-      [*] = ;               var hslpass : Integer;
-      [*] = ;               for hslpass := 0 to 2 do
-      [*] = ;               begin
-      [*] = ;                  for hmj := 0 to cHmGrid-1 do
-      [*] = ;                  begin
-      [*] = ;                     for hmi := 0 to cHmGrid-1 do
-      [*] = ;                     begin
-      [*] = ;                        if (hsldie > 0) then
-      [*] = ;                        begin
-      [*] = ;                           var hslkey : String = IntToStr(hmi*cHmGrid + hmj);
-      [*] = ;                           var hsldrop : Integer = ParserGetIntValueByKeyByHandle(hslpv, hslkey)
-      [*] = ;                                - hmown[hmi][hmj];
-      [*] = ;                           var hslcap : Integer = 0;
-      [*] = ;                           if (hslpass = 0) and (hmforce[hmi][hmj] > 0) and (hsldrop > 0) then
-      [*] = ;                           hslcap := hsldrop;
-      [*] = ;                           // A contact cell with no drop can still take deaths, but never more
-      [*] = ;                           // than the men standing in it: the cap keeps one cell from swallowing
-      [*] = ;                           // a whole minute of losses on the strength of a single pikeman.
-      [*] = ;                           if (hslpass = 1) and (hmforce[hmi][hmj] > 0) and (hsldrop <= 0) then
-      [*] = ;                           hslcap := hmown[hmi][hmj];
-      [*] = ;                           if (hslpass = 2) and (hmforce[hmi][hmj] = 0) and (hsldrop > 0) then
-      [*] = ;                           hslcap := hsldrop;
-      [*] = ;                           if (hslcap > 0) then
-      [*] = ;                           begin
-      [*] = ;                              var hsltake : Integer = hslcap;
-      [*] = ;                              if (hsltake > hsldie) then
-      [*] = ;                              hsltake := hsldie;
-      [*] = ;                              ParserSetIntValueByKeyByHandle(hslac, hslkey,
-      [*] = ;                                   ParserGetIntValueByKeyByHandle(hslac, hslkey) + hsltake);
-      [*] = ;                              hsldie := hsldie - hsltake;
-      [*] = ;                           end;
-      [*] = ;                        end;
-      [*] = ;                     end;
-      [*] = ;                  end;
-      [*] = ;               end;
-      [*] = ;               // NOT PLACED: the counter moved and no cell lost anybody - a man died where we
-      [*] = ;               // were not looking, or a newcomer filled his place the same second. This is the
-      [*] = ;               // number that says how good the breakdown is, and a silent drop here would be
-      [*] = ;               // indistinguishable from doing nothing.
-      [*] = ;               if (hsldie > 0) then
-      [*] = ;               begin
-      [*] = ;                  hslodd := hslodd + hsldie;
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hslac, 'odd', hslodd);
-      [*] = ;               end;
-      [*] = ;            end;
-      [*] = ;            // LAST SECOND, rewritten for the next one. Cleared first, so cells we have left
-      [*] = ;            // do not linger as a phantom drop; 'lost' is written back after the clearing, and
-      [*] = ;            // only occupied cells are stored - an empty cell reads as zero anyway.
-      [*] = ;            ParserClearByHandle(hslpv);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hslpv, 'lost', hslm);
-      [*] = ;            for hmj := 0 to cHmGrid-1 do
-      [*] = ;            begin
-      [*] = ;               for hmi := 0 to cHmGrid-1 do
-      [*] = ;               begin
-      [*] = ;                  if (hmown[hmi][hmj] > 0) then
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hslpv, IntToStr(hmi*cHmGrid + hmj),
-      [*] = ;                       hmown[hmi][hmj]);
-      [*] = ;               end;
-      [*] = ;            end;
-      [*] = ;            // --- THE ACCUMULATED BREAKDOWN ON THE WAY OUT -----------------------------
-      [*] = ;            // Shaped like 'cells' so one reader serves both: 'x,y,n' per cell that has
-      [*] = ;            // deaths, ';' between, 'none' when there are none. Read by key over the whole
-      [*] = ;            // grid, not by enumeration. The STRING is capped and the SUM is not: the sum is
-      [*] = ;            // half of the consistency check, and a capped sum would quietly break it. Cells
-      [*] = ;            // dropped from the string are counted in lost_cells_more.
-      [*] = ;            hslcs := '';
-      [*] = ;            hslcn := 0;
-      [*] = ;            hslsum := 0;
-      [*] = ;            hslmore := 0;
-      [*] = ;            for hmj := 0 to cHmGrid-1 do
-      [*] = ;            begin
-      [*] = ;               for hmi := 0 to cHmGrid-1 do
-      [*] = ;               begin
-      [*] = ;                  var hsln : Integer = ParserGetIntValueByKeyByHandle(hslac,
-      [*] = ;                       IntToStr(hmi*cHmGrid + hmj));
-      [*] = ;                  if (hsln > 0) then
-      [*] = ;                  begin
-      [*] = ;                     hslsum := hslsum + hsln;
-      [*] = ;                     if (hslcn < 24) then
-      [*] = ;                     begin
-      [*] = ;                        if (hslcn > 0) then
-      [*] = ;                        hslcs := hslcs + ';';
-      [*] = ;                        hslcs := hslcs + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
-      [*] = ;                             IntToStr(hsln);
-      [*] = ;                        hslcn := hslcn + 1;
-      [*] = ;                     end
-      [*] = ;                     else
-      [*] = ;                     hslmore := hslmore + 1;
-      [*] = ;                  end;
-      [*] = ;               end;
-      [*] = ;            end;
-      [*] = ;            if (hslcs = '') then
-      [*] = ;            hslcs := 'none';
-      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'lost_cells', hslcs);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_n', hslcn);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_sum', hslsum);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_odd', hslodd);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_more', hslmore);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
