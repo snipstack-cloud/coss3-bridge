@@ -27,6 +27,21 @@
       [*] = ;         var hsph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'plind',    plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'gametime', Round(hsnow));
+      [*] = ;         // SIZE OF THE MAP, in engine units. THE FIELD WAS ALREADY HERE, but
+      [*] = ;         // inside the grid section, and that is the whole point of moving it
+      [*] = ;         // (27.09): written next to the clock, NOT next to the grids, because
+      [*] = ;         // the grid section is gated by
+      [*] = ;         // 'if (hscen > 0)', and the first live check found the field missing
+      [*] = ;         // for three minutes simply because the town hall was not up yet. The
+      [*] = ;         // size of the map has nothing to do with having a town hall.
+      [*] = ;         // Why the field at all: a cell of the minimap is width/16, that is 20
+      [*] = ;         // units on a 320 map and 16 on 256, and every threshold measured in
+      [*] = ;         // cells meant a different distance than the one written down. With it
+      [*] = ;         // every record says for itself which map it was played on; records
+      [*] = ;         // WITHOUT it are the old 320 ones, and that is what keeps the archive
+      [*] = ;         // comparable instead of broken.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'map_w', GetMapWidth);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'map_h', GetMapHeight);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cid',      hscid);
       [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'human',   gMap.players[plind].bhuman);
       [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'adviser', gPlayer[plind].playeradviser.adviser.benable);
@@ -1361,8 +1376,6 @@
       [*] = ;            if (hmcy<0) then hmcy := 0;
       [*] = ;            if (hmcy>cHmGrid-1) then hmcy := cHmGrid-1;
       [*] = ;            hmbase[hmcx][hmcy] := 4;
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_w',  hmw);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_h',  hmh);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'grid_n', cHmGrid);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cx',  hmcx);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'my_cy',  hmcy);
@@ -1584,15 +1597,6 @@
       [*] = ;            end;
       [*] = ;            if (hmcs = '') then
       [*] = ;            hmcs := 'none';
-      [*] = ;            // SIZE OF THE MAP, in engine units (27.09). The block computed
-      [*] = ;            // hmw/hmh from the first line and threw them away, so every
-      [*] = ;            // conversion 'cells -> units' in the project rested on a constant
-      [*] = ;            // 16 that only holds for a 256 map. A cell is width/16: 20 units
-      [*] = ;            // on a 320 map, 16 on 256. With this field every record says for
-      [*] = ;            // itself which map it was played on - and records WITHOUT it are
-      [*] = ;            // the old 320 ones, which is what keeps the archive usable.
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_w', hmw);
-      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_h', hmh);
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
       [*] = ;         end;
