@@ -967,6 +967,27 @@
       [*] = ;         var hmcs : String;
       [*] = ;         var hmcn : Integer;
       [*] = ;         var hmwx, hmwy, hmwn : Integer;
+      [*] = ;         // LOSSES BY CELL, remembered BETWEEN TICKS (27.09). Why this cannot live in
+      [*] = ;         // python: the state is written once a game second and python reads every fifth
+      [*] = ;         // of those, so it differences cell counts five seconds apart - and over five
+      [*] = ;         // seconds a fighter leaves a cell easily. A difference cannot tell a death from
+      [*] = ;         // a step aside, and a marching column of sixty crosses cell borders all the
+      [*] = ;         // time: at 16 units to a cell that is about ten false deaths a second,
+      [*] = ;         // thousands over a game against two hundred real ones. That is why the python
+      [*] = ;         // side could only ever trust the case of ONE contact cell, which is a lull.
+      [*] = ;         // So the cell is pinned to the HANDLE instead: whoever was remembered a second
+      [*] = ;         // ago and has no state machine now is dead, and his last cell is known exactly.
+      [*] = ;         // Two parsers carry it across ticks, the same way br_hstate carries the clock:
+      [*] = ;         // br_lseen is rewritten every second (handle -> cell+1), br_lost ACCUMULATES
+      [*] = ;         // over the game (cell code -> deaths). Accumulated HERE and differenced in
+      [*] = ;         // python on purpose: a field holding only the last second would be lost in the
+      [*] = ;         // four seconds python does not read.
+      [*] = ;         // The measure, named BEFORE the edit: the sum of deaths by cell must agree with
+      [*] = ;         // the map counter my_mil_lost within ten per cent over a game. It is a fair
+      [*] = ;         // test because both sides filter by the SAME list of fighter usages - the
+      [*] = ;         // counter sums gPlayer.stat.killed over exactly the roles hmof accepts.
+      [*] = ;         var hslcs : String;
+      [*] = ;         var hslcn, hslsum, hslmore : Integer;
       [*] = ;         for hmi := 0 to cHmGrid-1 do
       [*] = ;         for hmj := 0 to cHmGrid-1 do
       [*] = ;         begin
@@ -1369,6 +1390,53 @@
       [*] = ;         // means python says nothing about the map at all.
       [*] = ;         if (hscen > 0) then
       [*] = ;         begin
+      [*] = ;            // The pass over WHAT WAS REMEMBERED a second ago runs BEFORE the grid below is
+      [*] = ;            // rewritten, and the clearing right after it. That order is the whole trick:
+      [*] = ;            // every entry is read once and written once, no copy and no second walk, and
+      [*] = ;            // nothing has to be deleted - this parser has no delete call at all.
+      [*] = ;            var hslsn : Integer = ParserSelectByKey('br_lseen');
+      [*] = ;            if (hslsn = 0) then
+      [*] = ;            hslsn := ParserCreate('br_lseen');
+      [*] = ;            var hslst : Integer = ParserSelectByKey('br_lost');
+      [*] = ;            if (hslst = 0) then
+      [*] = ;            hslst := ParserCreate('br_lost');
+      [*] = ;            // A second match in the same process: the game clock went backwards. The same
+      [*] = ;            // test br_hstate makes for its own clock, and hslast still holds the previous
+      [*] = ;            // write because it was read before that parser was cleared.
+      [*] = ;            if (hsnow < hslast) then
+      [*] = ;            begin
+      [*] = ;               ParserClearByHandle(hslsn);
+      [*] = ;               ParserClearByHandle(hslst);
+      [*] = ;            end;
+      [*] = ;            var hsli : Integer;
+      [*] = ;            for hsli := 0 to ParserGetCountByHandle(hslsn)-1 do
+      [*] = ;            begin
+      [*] = ;               var hslp : Integer = ParserSelectByHandleByIndex(hslsn, hsli);
+      [*] = ;               if (hslp <> 0) then
+      [*] = ;               begin
+      [*] = ;                  var hslkk : String = ParserGetKeyName(hslp);
+      [*] = ;                  var hslh : Integer = StrToInt(hslkk);
+      [*] = ;                  // The QUIET test for a live handle, and it must stay quiet: this is how
+      [*] = ;                  // the game tests it itself (_misc_GetObjectArgData, misc.script:32).
+      [*] = ;                  // _unit_GetTObj must NOT be used here - on a dead handle it writes to
+      [*] = ;                  // ErrorLog, and that would be two hundred lines a second.
+      [*] = ;                  var hslalive : Boolean = False;
+      [*] = ;                  if (hslh <> 0) then
+      [*] = ;                  if (GetGameObjectStateMachineHandle(hslh) <> 0) then
+      [*] = ;                  hslalive := True;
+      [*] = ;                  if (not hslalive) then
+      [*] = ;                  begin
+      [*] = ;                     var hslv : Integer = ParserGetIntValueByKeyByHandle(hslsn, hslkk);
+      [*] = ;                     if (hslv > 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hslck : String = IntToStr(hslv-1);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hslst, hslck,
+      [*] = ;                             ParserGetIntValueByKeyByHandle(hslst, hslck) + 1);
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            ParserClearByHandle(hslsn);
       [*] = ;            var hmcx : Integer = floor((hscx+hmhw)*cHmGrid/hmw);
       [*] = ;            var hmcy : Integer = floor((hscz+hmhh)*cHmGrid/hmh);
       [*] = ;            if (hmcx<0) then hmcx := 0;
@@ -1425,6 +1493,11 @@
       [*] = ;                     if (hmoxx>=0) and (hmoxx<cHmGrid) and (hmoyy>=0) and (hmoyy<cHmGrid) then
       [*] = ;                     begin
       [*] = ;                        hmown[hmoxx][hmoyy] := hmown[hmoxx][hmoyy] + 1;
+      [*] = ;                        // Remember WHERE this fighter stands, keyed by his handle: a second from now
+      [*] = ;                        // whoever is gone died in the cell written here. Stored as cell+1 so that a
+      [*] = ;                        // value of zero cannot be read as 'no value' - the habit of the -1 in 'cells'.
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hslsn, IntToStr(hmog),
+      [*] = ;                             hmoxx*cHmGrid + hmoyy + 1);
       [*] = ;                        hmsox[hmoxx][hmoyy] := hmsox[hmoxx][hmoyy] + Round(GetGameObjectPositionXByHandle(hmog)+hmhw);
       [*] = ;                        hmsoz[hmoxx][hmoyy] := hmsoz[hmoxx][hmoyy] + Round(GetGameObjectPositionZByHandle(hmog)+hmhh);
       [*] = ;                        // The fist at home and the wave in the field are counted APART: only free
@@ -1599,6 +1672,44 @@
       [*] = ;            hmcs := 'none';
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
+      [*] = ;            // The accumulated losses on the way out, shaped like 'cells' so one reader
+      [*] = ;            // serves both: 'x,y,n' per cell that has deaths, ';' between, 'none' when there
+      [*] = ;            // are none. The STRING is capped and the SUM is not: the measure is the sum
+      [*] = ;            // against my_mil_lost, and a capped sum would quietly make that measure
+      [*] = ;            // meaningless. Cells dropped from the string are counted out loud in
+      [*] = ;            // lost_cells_more - a silent drop is indistinguishable from doing nothing.
+      [*] = ;            hslcs := '';
+      [*] = ;            hslcn := 0;
+      [*] = ;            hslsum := 0;
+      [*] = ;            hslmore := 0;
+      [*] = ;            var hslj : Integer;
+      [*] = ;            for hslj := 0 to ParserGetCountByHandle(hslst)-1 do
+      [*] = ;            begin
+      [*] = ;               var hslq : Integer = ParserSelectByHandleByIndex(hslst, hslj);
+      [*] = ;               if (hslq <> 0) then
+      [*] = ;               begin
+      [*] = ;                  var hslek : String = ParserGetKeyName(hslq);
+      [*] = ;                  var hslec : Integer = StrToInt(hslek);
+      [*] = ;                  var hslen : Integer = ParserGetIntValueByKeyByHandle(hslst, hslek);
+      [*] = ;                  hslsum := hslsum + hslen;
+      [*] = ;                  if (hslcn < 24) then
+      [*] = ;                  begin
+      [*] = ;                     if (hslcn > 0) then
+      [*] = ;                     hslcs := hslcs + ';';
+      [*] = ;                     hslcs := hslcs + IntToStr(hslec div cHmGrid) + ',' +
+      [*] = ;                          IntToStr(hslec mod cHmGrid) + ',' + IntToStr(hslen);
+      [*] = ;                     hslcn := hslcn + 1;
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  hslmore := hslmore + 1;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hslcs = '') then
+      [*] = ;            hslcs := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'lost_cells', hslcs);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_n', hslcn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_sum', hslsum);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'lost_cells_more', hslmore);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
