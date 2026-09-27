@@ -11,6 +11,7 @@
     python3 sim/train.py <корни> --eval sim/политика.npy
 """
 import glob
+import io
 import os
 import random
 import statistics as S
@@ -109,6 +110,22 @@ def награда(сим) -> float:
 
 
 def партии(корни):
+    """Список партий корпуса. Файл в `--корпус` ФИКСИРУЕТ его.
+
+    Зачем фиксировать, куплено ошибкой 27.09: отложенные партии получаются
+    разбиением корпуса (`разбить`, seed 7), корпус за день вырос с 91 до 103
+    записей, и два замера одних и тех же весов (5,87 и 4,97) считались на РАЗНЫХ
+    наборах партий. Сравнение недействительно, а выглядело как деградация
+    обучения. Список пишется рядом с весами и передаётся следующему замеру.
+    """
+    файл = (sys.argv[sys.argv.index("--корпус") + 1]
+            if "--корпус" in sys.argv else None)
+    if файл and os.path.exists(файл):
+        из = [x.strip() for x in io.open(файл, encoding="utf-8") if x.strip()]
+        годные = [d for d in из if os.path.exists(os.path.join(d, "coss3_snap.jsonl"))]
+        print(f"корпус ЗАФИКСИРОВАН файлом {файл}: {len(годные)} партий "
+              f"из {len(из)} в списке", flush=True)
+        return годные
     из = []
     for корень in корни:
         из += sorted(os.path.dirname(x) for x in glob.glob(os.path.join(корень, "**", "coss3_snap.jsonl"), recursive=True))
