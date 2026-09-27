@@ -35,6 +35,10 @@ REL_ECO = os.path.join("data", "scripts", "units", "global.inc", "progresseconom
 REL_WAR = os.path.join("data", "scripts", "units", "global.inc", "progresswarai.inc")
 REL_GUI = os.path.join("data", "gui", "menu.inc", "doprogress.inc")   # бисекция и конец партии
 REL_PRG = os.path.join("data", "scripts", "units", "global.inc", "progress.inc")
+# Библиотечный скрипт урона. Единственное место движка, где в миг смерти в области
+# видимости и жертва, и убийца (_misc_DoDamage, ветка hp<=0). Строки там БЕЗ
+# префикса `[*] = ;` — это обычный код, не секция состояния.
+REL_DMG = os.path.join("data", "scripts", "lib", "miscext2.script")
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 # (целевой файл, файл блока, якорь, вставлять ПОСЛЕ якоря?, маркер начала, маркер конца)
@@ -84,6 +88,16 @@ HCMD_BLOCK = (REL_PRG, "block_hcmd.inc",
               "gPlayer[plind].progresstick := gPlayer[plind].progresstick+1;", False,
               "// === BRIDGE HUMAN COMMANDS", "// === END BRIDGE HUMAN COMMANDS ===")
 
+# События гибели, флаг --human-kills: кто погиб, в какой клетке и кто убил, для
+# обеих сторон. Ставится в lib/miscext2.script после того, как ворота смерти
+# `if (TObj(pobj2).hp<=0)` вызвали OnDeath жертве. Здесь единственный миг, когда
+# движок знает и жертву, и убийцу: он сам тут же пишет убийце TObj.kill+1.
+# Радиус поражения при ошибке — ВСЯ игра, а не один тик: lib компилируется при
+# старте. Поэтому ставится отдельным флагом и проверяется отдельной установкой.
+KILLS_BLOCK = (REL_DMG, "block_kills.inc",
+               "_unit_SetTagStates(trgHnd, gc_statetag_essential_death);", True,
+               "// === BRIDGE KILLS", "// === END BRIDGE KILLS ===")
+
 # Блоки бисекции для интерфейсного актора: ставятся только флагами --min-loop / --loop N
 GUI_BLOCK = (REL_GUI, "block_loop.inc",
              "ExecuteStateByFlag(gbool_gui_debug, 'ShowEditorInfo', False);", True,
@@ -103,7 +117,7 @@ ENDGAME_BLOCK = (REL_GUI, "block_endgame.inc",
 # про человеческие блоки и молча оставлял их в игре. Снятие обязано видеть ВСЁ,
 # что этот установщик умеет ставить.
 ALL_BLOCKS = tuple(BLOCKS) + (HUMAN_BLOCK, HSTATE_BLOCK, HCMD_BLOCK, GUI_BLOCK,
-               ENDGAME_BLOCK)
+               ENDGAME_BLOCK, KILLS_BLOCK)
 # Уровни бисекции блока команд носят те же маркеры, что и полный блок, поэтому
 # снятие и обнаружение работают для них без отдельных записей.
 
@@ -204,7 +218,7 @@ def main() -> int:
     КЛЮЧИ = КЛЮЧИ_СО_ЗНАЧЕНИЕМ | {
         "--reinstall", "--uninstall", "--queue-builds", "--min-loop",
         "--only-heartbeat", "--only-state", "--human-probe", "--human-state",
-        "--human-cmd", "--human-only", "--endgame"}
+        "--human-cmd", "--human-only", "--endgame", "--human-kills"}
     чужие, пропустить = [], False
     for арг in argv[1:]:
         if пропустить:
@@ -275,6 +289,10 @@ def main() -> int:
     if "--human-state" in argv:
         BLOCKS.append(HSTATE_BLOCK)
         print("состояние человеческого слота: coss3_eco_P<n>.dat раз в игровую секунду")
+    if "--human-kills" in argv:
+        BLOCKS.append(KILLS_BLOCK)
+        print("события гибели: кто погиб, где и от кого — из ворот смерти "
+              "_misc_DoDamage в парсер br_kills, наружу через состояние")
     if "--human-cmd" in argv:
         # Бисекция блока команд. Он единственный, что разделяет работающую
         # ступень 2 и мёртвую ступень 3, а статические проверки в нём чисты —
