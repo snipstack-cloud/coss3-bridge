@@ -9,9 +9,16 @@ import llm_policy as L
 ошибок = []
 ЦЕНЫ = ("bar.pikeman.1.1=f100g150i0,bar.pikeman.2.1=f200g300i50,"
         "aca.1=f0g500i0,mil.1=f0g80i0")
+# Числа бойцов НАСТОЯЩИЕ, из записей 27.09: пикинёр atk8 против его dpike3 —
+# урон 5, то есть ступень атаки не упирается в его защиту и должна давать выигрыш.
+НАШИ = ("infantry17=pikeman,hp90,atk8,wkind1,pause0,rmax188,dpike3,dsword2,dbullet4"
+        " musk17=musketeernet,hp65,atk10,wkind3,pause375,rmax1500,dpike0,dsword0,dbullet0")
+ЕГО = ("infantry17=hp90,atk8,wkind1,pause0,rmax188,dpike3,dsword2,dbullet4"
+       " musk17=hp65,atk10,wkind3,pause375,rmax1500,dpike0,dsword0,dbullet0")
 такт = lambda **кв: dict({"upg_avail": ЦЕНЫ, "gold": 1000, "food": 900, "iron": 300,
                           "ba17": 1, "smiths": 1, "mills": 1, "centers": 1,
-                          "fighters": "infantry17=pikeman,hp90,atk13 musk17=musketeer,hp65,atk10",
+                          "fighters": НАШИ, "p1_fighters": ЕГО, "p1_enemy": 1,
+                          "mil_inf": 40, "mil_shooters": 5,
                           "can_inf": "infantry17", "upg_done": "", "upg_doing": ""}, **кв)
 
 # 1. ключ выключен — мост молчит
@@ -33,9 +40,11 @@ else:
     # 3. текст называет числа и ключ
     if "--auto-upgrade" not in текст:
         ошибок.append("текст не называет ключ")
-    for ч in ("150", "500", "79"):
+    for ч in ("500", "40"):        # резерв и число бойцов, кого касается прибавка
         if ч not in текст:
             ошибок.append(f"в тексте нет числа {ч}")
+    if "окупаемост" not in текст:
+        ошибок.append("текст не говорит, что выбор сделан по окупаемости")
 
 # 4. резерв соблюдается: золота ровно на цену, но резерв не остаётся
 if L.апгрейд_ключом(такт(gold=200)) is not None:
@@ -63,11 +72,17 @@ if реш and реш[0] == "bar.pikeman.1.1":
 if реш and реш[0].startswith("bar."):
     ошибок.append("апгрейд казармы взят без казармы")
 
-# 10. цены нет в строке — наугад не покупаем
+# 10. БЕЗ ПРИЗНАКА p1_enemy числа врага невидимы — ключ обязан молчать, а не
+# покупать вслепую: поле_врага читает p<n>_fighters только при p<n>_enemy.
+_без = такт(); _без.pop("p1_enemy")
+if L.апгрейд_ключом(_без) is not None:
+    ошибок.append("без p1_enemy числа врага не видны — покупать нельзя")
+
+# 11. цены нет в строке — наугад не покупаем
 if L.апгрейд_ключом(такт(upg_avail="bar.pikeman.1.1")) is not None:
     ошибок.append("апгрейд без цены куплен наугад")
 
 L.АПГРЕЙД_РЕЗЕРВ = 0
-print("selftest_auto_upgrade: " + ("ОК, 10 проверок" if not ошибок
+print("selftest_auto_upgrade: " + ("ОК, 11 проверок" if not ошибок
                                    else "ОШИБКИ\n  " + "\n  ".join(ошибок)))
 raise SystemExit(1 if ошибок else 0)
