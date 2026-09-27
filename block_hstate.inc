@@ -1584,6 +1584,15 @@
       [*] = ;            end;
       [*] = ;            if (hmcs = '') then
       [*] = ;            hmcs := 'none';
+      [*] = ;            // SIZE OF THE MAP, in engine units (27.09). The block computed
+      [*] = ;            // hmw/hmh from the first line and threw them away, so every
+      [*] = ;            // conversion 'cells -> units' in the project rested on a constant
+      [*] = ;            // 16 that only holds for a 256 map. A cell is width/16: 20 units
+      [*] = ;            // on a 320 map, 16 on 256. With this field every record says for
+      [*] = ;            // itself which map it was played on - and records WITHOUT it are
+      [*] = ;            // the old 320 ones, which is what keeps the archive usable.
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_w', hmw);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'map_h', hmh);
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
       [*] = ;         end;

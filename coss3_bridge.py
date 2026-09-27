@@ -453,7 +453,8 @@ class Bridge:
                 res: int = -1, peace: int = -1, ai: int = -1,
                 nation: str = "", balloon: int = -1,
                 cannons: int = -1, capture: int = -1,
-                market: int = -1, century18: int = -1) -> bool:
+                market: int = -1, century18: int = -1,
+                mapsize: int = -1) -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
@@ -516,10 +517,21 @@ class Bridge:
             # ЗАХВАТИТЬ вместо убийства, и из вражеского счёта он уходит так же,
             # то есть «цель взята» могло означать захват.
             поля["capture"] = int(capture)
-            if int(market) >= 0:
-                поля["market"] = int(market)
-            if int(century18) >= 0:
-                поля["century18"] = int(century18)
+        # РЫНОК И ВЕК БЫЛИ ВЛОЖЕНЫ В `capture` (найдено 27.09): без захвата они
+        # молча не уезжали. У нас capture=3 стоит всегда, поэтому беда не
+        # выстрелила, но это ровно тот молчаливый отброс, который правило №1
+        # запрещает. Вынесены на свой уровень.
+        if int(market) >= 0:
+            поля["market"] = int(market)
+        if int(century18) >= 0:
+            поля["century18"] = int(century18)
+        # РАЗМЕР КАРТЫ (27.09): правила хакатона требуют маленькую, то есть
+        # mapsize 3 (256 единиц); до сих пор его не задавал никто, и контейнеры
+        # играли на профильном 0, то есть на 320. Клетка сетки — width/16, так
+        # что на 320 она 20 единиц, а не 16, и все пороги в клетках означали не
+        # то, что записано.
+        if int(mapsize) >= 0:
+            поля["mapsize"] = int(mapsize)
         text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

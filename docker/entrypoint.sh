@@ -485,10 +485,21 @@ else
     # Настройка карты действует на обе стороны, и это делает сравнение честным.
     : "${COSS3_MATCH_MARKET:=2}"
     : "${COSS3_MATCH_CENTURY18:=1}"
+    # РАЗМЕР КАРТЫ (27.09). Правила хакатона требуют МАЛЕНЬКУЮ карту, это
+    # mapsize 3 (256 единиц; 0 -> 320, 1 -> 480, 2 -> 640, donewgame.inc). До
+    # сих пор его не задавал никто, и копии играли на том, что осталось в
+    # profile.dat — mapsize 0, то есть 320. Клетка сетки это width/16, значит на
+    # 320 она 20 единиц, а не 16: каждый порог «в клетках» означал не ту
+    # дистанцию, что записана в подсказках и в world.md.
+    # АРХИВ ОТ ЭТОГО НЕ ЛОМАЕТСЯ: прогоны до 27.09 играны на 320 и сравнимы
+    # между собой, новые несут в состоянии map_w/map_h и сравниваются со своей
+    # базой. Чтобы сыграть по-старому, достаточно COSS3_MATCH_MAPSIZE=0.
+    : "${COSS3_MATCH_MAPSIZE:=3}"
     [ -n "${COSS3_MATCH_CANNONS:-}" ] && NEWARGS="$NEWARGS --cannons ${COSS3_MATCH_CANNONS}"
     [ -n "${COSS3_MATCH_CAPTURE:-}" ] && NEWARGS="$NEWARGS --capture ${COSS3_MATCH_CAPTURE}"
     [ -n "${COSS3_MATCH_MARKET:-}" ] && NEWARGS="$NEWARGS --market ${COSS3_MATCH_MARKET}"
     [ -n "${COSS3_MATCH_CENTURY18:-}" ] && NEWARGS="$NEWARGS --century18 ${COSS3_MATCH_CENTURY18}"
+    [ -n "${COSS3_MATCH_MAPSIZE:-}" ] && NEWARGS="$NEWARGS --mapsize ${COSS3_MATCH_MAPSIZE}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
     else

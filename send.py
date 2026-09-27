@@ -269,6 +269,12 @@ def main() -> int:
                          "(gc_mapsettings_century18_*). Академия — дверь в этот "
                          "век, и враг открывал её на 11:24-16:17 в каждой партии, "
                          "тогда как нам академия запрещена ключом --ban")
+    ap.add_argument("--mapsize", type=int, default=-1,
+                    help="размер карты: 0 -> 320, 1 -> 480, 2 -> 640, 3 -> 256 "
+                         "(donewgame.inc). ПРАВИЛА ХАКАТОНА ТРЕБУЮТ МАЛЕНЬКУЮ, то "
+                         "есть 3. До 27.09 его не задавал никто, и контейнеры играли "
+                         "на профильном 0 — карте 320, где клетка сетки 20 единиц, а "
+                         "не 16, и пороги в клетках означали не то, что записано")
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
@@ -306,7 +312,8 @@ def main() -> int:
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
                           balloon=a.balloon, cannons=a.cannons,
                           capture=a.capture, market=a.market,
-                          century18=a.century18, speed=a.speed):
+                          century18=a.century18, mapsize=a.mapsize,
+                          speed=a.speed):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)

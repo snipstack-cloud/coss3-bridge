@@ -67,6 +67,13 @@
       [*] = ;         // it at 11:24-16:17 in every match. Forbidding the century closes
       [*] = ;         // that door on BOTH sides, which is what makes it fair.
       [*] = ;         var brctlcent  : Integer = -1;
+      [*] = ;         // gen.mapsize: 0 -> 320, 1 -> 480, 2 -> 640, 3 -> 256 (donewgame.inc,
+      [*] = ;         // 'case gMap.settings.gen.mapsize of'). RULES OF THE HACKATHON ASK FOR
+      [*] = ;         // THE SMALL MAP, that is 3. Nobody set it until 27.09, so containers
+      [*] = ;         // played whatever the profile kept - mapsize 0, a 320 map - and every
+      [*] = ;         // threshold measured in CELLS meant a different distance than written:
+      [*] = ;         // a cell is width/16, so 20 units on 320 and 16 on 256.
+      [*] = ;         var brctlmapsz : Integer = -1;
       [*] = ;         // GAME SPEED (25.09). The engine has three modes and the factors
       [*] = ;         // live in dmscript.global:1027 - slow 7, normal 10, fast 14 (the
       [*] = ;         // fourth, 20, is commented out there). -1 means DO NOT TOUCH: the
@@ -94,6 +101,8 @@
       [*] = ;            brctlmark := ParserGetIntValueByKeyByHandle(hctl, 'market');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'century18') <> '') then
       [*] = ;            brctlcent := ParserGetIntValueByKeyByHandle(hctl, 'century18');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'mapsize') <> '') then
+      [*] = ;            brctlmapsz := ParserGetIntValueByKeyByHandle(hctl, 'mapsize');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'speed') <> '') then
       [*] = ;            brctlspd := ParserGetIntValueByKeyByHandle(hctl, 'speed');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
@@ -137,6 +146,8 @@
       [*] = ;            gMap.settings.additional.capture := brctlcapt;
       [*] = ;            if (brctlmark >= 0) then
       [*] = ;            gMap.settings.additional.marketdip := brctlmark;
+      [*] = ;            if (brctlmapsz >= 0) then
+      [*] = ;            gMap.settings.gen.mapsize := brctlmapsz;
       [*] = ;            if (brctlcent >= 0) then
       [*] = ;            gMap.settings.additional.century18 := brctlcent;
       [*] = ;            // Flat ifs on purpose: a case with one-line branches once killed
@@ -210,6 +221,7 @@
       [*] = ;            // market. On 20.09 that meant waiting until 4:20 game time.
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'market', gMap.settings.additional.marketdip);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'century18', gMap.settings.additional.century18);
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'mapsize', gMap.settings.gen.mapsize);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'speed', floor(GetTimeSpeedFactor));
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
       [*] = ;            GUIExecuteState('DoNewGame');
