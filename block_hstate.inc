@@ -653,6 +653,23 @@
       [*] = ;                  // Without it the bridge scored musketeer against pikeman
       [*] = ;                  // as 562 and flagged its own number as unusable.
       [*] = ;                  hsftxt := hsftxt + ',rmax' + IntToStr(Round(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].radiusmax*100));
+      [*] = ;                  // WHERE THE ATTACK NUMBER COMES FROM, decomposed (28.09, request of the mac).
+      [*] = ;                  // The engine keeps FOUR numbers per weapon (classes.script:3549): damageinit from
+      [*] = ;                  // the data, damagestatic - the flat bonus of blacksmith upgrades, damagepercent -
+      [*] = ;                  // the PERCENT bonus of academy upgrades, and damage, which it recomputes on every
+      [*] = ;                  // upgrade of either kind as
+      [*] = ;                  //     damage := floor((damageinit + damagestatic) * (1 + damagepercent / 100))
+      [*] = ;                  // (player.script:1765 for the flat kind, :1784 for the percent kind).
+      [*] = ;                  // 'atk' above is that damage, so academy percent is ALREADY in it - counting
+      [*] = ;                  // upgrades by the taken-list to add it on top would count it twice. The two terms
+      [*] = ;                  // go out anyway, and not for beauty: with them the claim above is CHECKABLE
+      [*] = ;                  // (atk must equal the formula), and the simulator can tell a flat bonus from a
+      [*] = ;                  // percent one when it decides which upgrade is worth buying. From the SAME weapon
+      [*] = ;                  // slot as atk - a number from another slot describes another weapon.
+      [*] = ;
+      [*] = ;                  hsftxt := hsftxt + ',dmgs' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].damagestatic);
+      [*] = ;                  hsftxt := hsftxt + ',dmgp' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].damagepercent);
+      [*] = ;                  hsftxt := hsftxt + ',dinit' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].weapon[hsfwb].damageinit);
       [*] = ;               end;
       [*] = ;               hsftxt := hsftxt + ',dpike' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;               hsftxt := hsftxt + ',dsword' + IntToStr(gPlayer[plind].objbase[hscid][hsfid].protection[gc_obj_weapon_kind_sword]);
@@ -1301,6 +1318,11 @@
       [*] = ;                     hsyftxt := hsyftxt + ',wkind' + IntToStr(gObjProp[hsycid][hsyfid].weapon[hsyfwb].kind);
       [*] = ;                     hsyftxt := hsyftxt + ',pause' + IntToStr(Round(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].pause*100));
       [*] = ;                     hsyftxt := hsyftxt + ',rmax' + IntToStr(Round(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].radiusmax*100));
+      [*] = ;                     // The same two terms for HIS fighters, same slot, same reason.
+      [*] = ;
+      [*] = ;                     hsyftxt := hsyftxt + ',dmgs' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].damagestatic);
+      [*] = ;                     hsyftxt := hsyftxt + ',dmgp' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].damagepercent);
+      [*] = ;                     hsyftxt := hsyftxt + ',dinit' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].weapon[hsyfwb].damageinit);
       [*] = ;                  end;
       [*] = ;                  hsyftxt := hsyftxt + ',dpike' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_pike]);
       [*] = ;                  hsyftxt := hsyftxt + ',dsword' + IntToStr(gPlayer[hspl].objbase[hsycid][hsyfid].protection[gc_obj_weapon_kind_sword]);

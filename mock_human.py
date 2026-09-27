@@ -592,12 +592,19 @@ class Мир:
              # atk/dpike/dsword/dbullet растут от взятых апгрейдов — по 2 за
              # каждый, как это делает игра прибавкой в objbase. Числа условные,
              # важно, что они МЕНЯЮТСЯ: иначе ветка «что дал апгрейд» слепая.
+             # РАЗЛОЖЕНИЕ АТАКИ (28.09): dmg0 из данных, dmgs — плоская прибавка,
+             # dmgp — процентная. У мока апгрейд даёт +2 плоских, поэтому dmgs=2N и
+             # dmgp=0, а тождество floor((dmg0+dmgs)*(1+dmgp/100))=atk выполняется
+             # по построению — на этом его и проверяет selftest_damage_parts.
              "fighters": (f"infantry17=pikeman,hp120,food30,gold5,iron10,coal5,"
                           f"atk{12 + 2 * len(self.апгрейды)},dpike{5 + 2 * len(self.апгрейды)},"
-                          f"dsword{5 + 2 * len(self.апгрейды)},dbullet0 "
+                          f"dsword{5 + 2 * len(self.апгрейды)},dbullet0,"
+                          f"dmgs{2 * len(self.апгрейды)},dmgp0,dinit12 "
                           f"musk17=musketeernet,hp95,food40,gold15,iron20,coal10,"
-                          f"atk{18 + 2 * len(self.апгрейды)},dpike3,dsword3,dbullet2 "
-                          f"officer17=officer,hp110,food50,gold40,iron0,coal0,atk10,dpike4,dsword4,dbullet1"),
+                          f"atk{18 + 2 * len(self.апгрейды)},dpike3,dsword3,dbullet2,"
+                          f"dmgs{2 * len(self.апгрейды)},dmgp0,dinit18 "
+                          f"officer17=officer,hp110,food50,gold40,iron0,coal0,atk10,"
+                          f"dpike4,dsword4,dbullet1,dmgs0,dmgp0,dinit10"),
              # Цена построек, как её отдаёт block_hstate. ВТОРАЯ казарма стоит
              # впятеро дороже первой (costpercent=500, unit.script:2472) - мок
              # обязан это повторять, иначе правка 17.09 проверяется вслепую.

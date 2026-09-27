@@ -34,7 +34,7 @@ import os
 import re
 import time
 
-from coss3_bridge import (Bridge, ROLE, BUILDABLE, UPGRADES, RESOURCE,
+from coss3_bridge import (Bridge, ROLE, BUILDABLE, RESOURCE,
                            build, train, upgrade, mode, balance, seed,
                            builders)
 
@@ -146,8 +146,16 @@ def parse_targets(tokens: list[str]):
     for tok in tokens:
         if tok.startswith("upg:"):
             name = tok[4:]
-            if name not in UPGRADES:
-                raise SystemExit(f"нет такого апгрейда: {name}\nдоступны: {sorted(UPGRADES)}")
+            # ПО СПИСКУ UPGRADES НЕ ПРОВЕРЯЕМ (28.09). Список достался от
+            # компьютерного слота, где апгрейды заказывались движковыми константами
+            # ('food140', 'reaper'); на человеческом слоте блок команд ищет по
+            # gCountry[cid].upgrade[].id, а те устроены иначе — место, юнит, номер
+            # ('bar.pikeman.1.1', 'aca.13'). Ни одно имя из старого списка с ними
+            # совпасть не может, и coss3_bridge.upgrade снял проверку по нему ещё
+            # 13.09 — а здесь она осталась и отвергала ВЕРНЫЕ имена: 28.09 на этом
+            # не ушёл заказ bar.pikeman.2.1, который игра тут же взяла, когда его
+            # отдали мостом напрямую. Что доступно этой нации, знает только
+            # состояние (upg_avail), и врать про это инструменту нечем.
             cmds.append(upgrade(name))
             upgs.append(name)
             continue
