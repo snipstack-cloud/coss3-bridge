@@ -1102,6 +1102,12 @@ class Симулятор:
         s["academies"] = s.get("academi", 0)
         s["squads"] = 1 if self.строй else 0
         s["my_mil_lost"], s["my_pea_lost"] = round(self.my_mil_lost), round(self.my_pea_lost)
+        # НАШИ УБИЙСТВА ОТДЕЛЬНО ОТ ЕГО СЧЁТЧИКА (27.09). `p1_mil_lost` в записи
+        # растёт САМ: ярус 1, не убивающий ни одного бойца, «набирает» по нему 48
+        # его потерь после 7:00 — это его потери в ЗАПИСИ, не наши. Лестница по
+        # такому счётчику награждает за подарок, и ступени 4 и 5 на этом стояли.
+        s["мы_убили_бойцов"] = round(self.убито_бойцов)
+        s["мы_убили_крестьян"] = round(self.убито_крестьян)
         s["p1_pea_lost"] = round(self.rec_pea0 + self.убито_крестьян)
         s["upg_done"] = ",".join(sorted(self.апгрейды))
         s["my_cx"], s["my_cy"], s["grid_n"] = int(self.з.my_cx), int(self.з.my_cy), СЕТКА
