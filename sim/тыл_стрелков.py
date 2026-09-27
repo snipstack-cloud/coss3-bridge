@@ -30,7 +30,19 @@ import train as TR       # noqa: E402
 from tier1 import в_словарь  # noqa: E402
 
 ЗАЩИТА = [f"bar.pikeman.2.{i}" for i in range(1, 7)]
-СТРОЙКИ = (("smith", "smiths", 1, {"wood": 100, "stone": 30}),
+def стройки(угля=0):
+    из = [("smith", "smiths", 1, {"wood": 100, "stone": 30}),
+          ("minegold", "mines_gold", 1, {"wood": 100, "stone": 100}),
+          ("ba17", "ba17", 1, {"wood": 100, "stone": 100, "gold": 500}),
+          ("mineiron", "mines_iron", 1, {"wood": 100, "stone": 100})]
+    из += [("minecoal", "mines_coal", i + 1, {"wood": 100, "stone": 100}) for i in range(угля)]
+    из += [("mineiron", "mines_iron", i + 2, {"wood": 100, "stone": 100}) for i in range(max(угля - 1, 0))]
+    из += [("ba17", "ba17", 2, {"wood": 100, "stone": 100, "gold": 2500}),
+           ("store", "my_stores", 1, {"wood": 50, "stone": 20})]
+    return из
+
+
+_СТАРОЕ = (("smith", "smiths", 1, {"wood": 100, "stone": 30}),
            ("minegold", "mines_gold", 1, {"wood": 100, "stone": 100}),
            ("ba17", "ba17", 1, {"wood": 100, "stone": 100, "gold": 500}),
            ("mineiron", "mines_iron", 1, {"wood": 100, "stone": 100}),
@@ -39,7 +51,7 @@ from tier1 import в_словарь  # noqa: E402
 ТЫЛ_КЛЕТОК = 6      # столько ставит ключ: `--rear-shooters 6`
 
 
-def сыграть(каталог, seed, раздельно, доля_стрелков=0.3, доля_еды=0.5, до=1200.0):
+def сыграть(каталог, seed, раздельно, доля_стрелков=0.3, доля_еды=0.5, до=1200.0, угля=0):
     з = SIM.Запись(каталог)
     сим = SIM.Симулятор(з, seed)
     деб = D.Дебют(20)
@@ -52,7 +64,7 @@ def сыграть(каталог, seed, раздельно, доля_стрел
         else:
             if float(s.get("centers") or 0) > 0:
                 из.append({"cmd": "TRAIN", "role": "peasant", "total": -1})
-            for роль, поле, скл, цена in СТРОЙКИ:
+            for роль, поле, скл, цена in стройки(угля):
                 if float(s.get(поле) or 0) >= скл:
                     continue
                 нет = [р for р, надо in цена.items() if float(s.get(р) or 0) < надо]
@@ -121,14 +133,15 @@ def main():
     _, тест = TR.разбить(все)
     партии = тест[:n]
     print(f"партий {len(партии)}; доля стрелков 0,30, еда 50 %, две казармы, тыл {ТЫЛ_КЛЕТОК} клеток")
-    print("%-26s %7s %7s %7s %7s %8s" % ("режим", "убито", "потери", "его", "размен", "поддержек"))
-    for имя, раздельно, закон in (("куча (как сейчас)", False, False),
-                                  ("раздельно, закон выкл", True, False),
-                                  ("раздельно, закон ВКЛ", True, True)):
+    print("%-34s %7s %7s %7s %7s %8s" % ("режим", "убито", "потери", "его", "размен", "поддержек"))
+    режимы = [("куча (как сейчас)", False, False, 0),
+              ("раздельно, закон выкл", True, False, 0)]
+    режимы += [(f"раздельно+закон, угольных шахт {у}", True, True, у) for у in (0, 1, 2, 3, 5)]
+    for имя, раздельно, закон, угля in режимы:
         combat.ПОДДЕРЖКА_ИЗ_ТЫЛА = закон
-        из = [сыграть(d, i, раздельно) for i, d in enumerate(партии)]
+        из = [сыграть(d, i, раздельно, угля=угля) for i, d in enumerate(партии)]
         р = sum(x["его"] for x in из) / max(sum(x["потери"] for x in из), 1)
-        print("%-26s %7.1f %7.0f %7.0f %7.2f %8.0f" % (
+        print("%-34s %7.1f %7.0f %7.0f %7.2f %8.0f" % (
             имя, S.median(x["убито"] for x in из), S.median(x["потери"] for x in из),
             S.median(x["его"] for x in из), р, S.median(x["поддержек"] for x in из)), flush=True)
     combat.ПОДДЕРЖКА_ИЗ_ТЫЛА = False
