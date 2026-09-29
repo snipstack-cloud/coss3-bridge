@@ -137,11 +137,17 @@ description: Работа над мостом Cossacks 3, где модель и
 ```bash
 python3 verify_blocks.py "<игра>" block_hstate.inc          # семь классов ошибок
 python3 install_bridge.py /tmp/песочница --reinstall --human-only \
-        --human-state --human-cmd --endgame --outdir /tmp/io
+        --human-state --human-cmd --endgame --human-kills --outdir /tmp/io
 ```
 
 Песочница — копия `data/scripts` и `data/gui` из настоящей игры. Установка даёт
 контрольные числа: длину блока и `progress.inc`.
+
+**`--human-kills` забывать нельзя.** Установка без него не просто «не ставит» блок
+событий гибели — она СНИМАЕТ уже стоящий (29.09: поставил по команде из `RESUME`,
+которая была старше 27.09, и остался без событий; заметил только потому, что смотрел
+установленный файл, а не репозиторий). Полный набор флагов — как в
+`docker/entrypoint.sh:368`.
 
 Верификатор ловит восемь классов, и каждый однажды промолчал: форма строки;
 потерянный блок; арность; неизвестные имена; функция из чужого состояния;
@@ -167,7 +173,7 @@ python3 install_bridge.py /tmp/песочница --reinstall --human-only \
 
 ```powershell
 git pull
-python install_bridge.py "<игра>" --reinstall --human-only --human-state --human-cmd --endgame
+python install_bridge.py "<игра>" --reinstall --human-only --human-state --human-cmd --endgame --human-kills
 (Select-String -Path "<игра>\data\scripts\units\global.inc\progress.inc" -Pattern '<новое_имя>').Count
 Remove-Item "<игра>\coss3_hb.dat"
 # игру запустить, довести до ГЛАВНОГО МЕНЮ, подождать 15 секунд
