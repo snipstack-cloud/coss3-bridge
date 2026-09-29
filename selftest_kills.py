@@ -6,7 +6,7 @@
 `TObj.kill+1`. `OnDeath` и `DeathStage1` срабатывают позже, когда нападавшие уже
 сменили цель, а жертва не хранит, кто её бил. Блок `block_kills.inc` ставится
 туда флагом `--human-kills`, пишет событие в именованный парсер `br_kills`
-(кольцо на 48, сквозной номер), а блок состояния отдаёт кольцо наружу полем
+(кольцо на 128, сквозной номер; было 48 до 29.09), а блок состояния отдаёт кольцо наружу полем
 `kills` рядом со счётчиком `my_mil_lost`, ВНЕ гейта ратуши.
 
 Почему это заменяет раскладку по клеткам разностями и бюджетом: там клетка
@@ -59,8 +59,8 @@ def проверка(имя, условие, пояснение=""):
 проверка("маркеры на месте",
          БЛОК.startswith("// === BRIDGE KILLS") and "// === END BRIDGE KILLS ===" in БЛОК)
 проверка("файл блока в CRLF, как lib-скрипт игры", b"\r\n" in БЛОК_БАЙТЫ)
-проверка("кольцо на 48 с сквозным номером",
-         "'e' + IntToStr(brkn mod 48)" in БЛОК
+проверка("кольцо на 128 с сквозным номером",
+         "'e' + IntToStr(brkn mod 128)" in БЛОК
          and "ParserGetIntValueByKeyByHandle(brkp, 'n') + 1" in БЛОК)
 проверка("жертва и убийца — из pobj2/trgHnd и pobj/goHnd, как у движка",
          "gObjProp[TObj(pobj2).cid][TObj(pobj2).id].usage" in БЛОК
@@ -102,7 +102,7 @@ _ГЕЙТ = СОСТ.rindex("      [*] = ;         if (hscen > 0) then")
 проверка("кольцо отдаётся ДО гейта ратуши: люди гибнут и без ратуши",
          СОСТ.index("'kills'") < _ГЕЙТ)
 проверка("кольцо читается по ключу, не перебором",
-         "ParserGetValueByKeyByHandle(hskp, 'e' + IntToStr(hski mod 48))" in СОСТ
+         "ParserGetValueByKeyByHandle(hskp, 'e' + IntToStr(hski mod 128))" in СОСТ
          and "ParserGetCountByHandle(hskp" not in СОСТ)
 проверка("новая партия чистит кольцо",
          "ParserClearByHandle(hskp);" in СОСТ)

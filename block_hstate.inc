@@ -531,7 +531,9 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_mil_lost', hslm);
       [*] = ;         // KILL EVENTS (27.09). Written by block_kills.inc from the death gate of
       [*] = ;         // _misc_DoDamage into the named parser br_kills: 'seq,gt,vpl,vcls,vx,vy,
-      [*] = ;         // kpl,kcls,kx,ky,w' per death, a ring of 48. Handed out here BY KEY over the
+      [*] = ;         // kpl,kcls,kx,ky,w' per death, a ring of 128 (48 until 29.09: a live player
+      [*] = ;         // gathers a bigger army and fights in one heap, and an incomplete window is
+      [*] = ;         // thrown out of every count of 18-22). Handed out here BY KEY over the
       [*] = ;         // whole ring - never by enumeration, that part of the parser is unproven in this
       [*] = ;         // bridge. Cumulative and numbered on purpose: python reads every fifth write,
       [*] = ;         // keeps the last sequence number it saw and takes only what is new; kills_n
@@ -549,12 +551,12 @@
       [*] = ;         var hskn : Integer = ParserGetIntValueByKeyByHandle(hskp, 'n');
       [*] = ;         var hsks : String = '';
       [*] = ;         var hski : Integer;
-      [*] = ;         var hsk0 : Integer = hskn - 47;
+      [*] = ;         var hsk0 : Integer = hskn - 127;
       [*] = ;         if (hsk0 < 1) then
       [*] = ;         hsk0 := 1;
       [*] = ;         for hski := hsk0 to hskn do
       [*] = ;         begin
-      [*] = ;            var hske : String = ParserGetValueByKeyByHandle(hskp, 'e' + IntToStr(hski mod 48));
+      [*] = ;            var hske : String = ParserGetValueByKeyByHandle(hskp, 'e' + IntToStr(hski mod 128));
       [*] = ;            if (hske <> '') then
       [*] = ;            begin
       [*] = ;               if (hsks <> '') then
@@ -1008,6 +1010,30 @@
       [*] = ;         var hmsoz : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmsex : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmsez : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // HIS ARMY PER CELL, WITH MAKE-UP AND ORDERS (29.09, request of the mac
+      [*] = ;         // for the match against a live player). frow gives one mark per cell -
+      [*] = ;         // how many, and nothing else - and p<n>_mv_cx/cy give ONE average target
+      [*] = ;         // for his whole army. By those two a detachment that charged our
+      [*] = ;         // shooters cannot be told from an army standing still: both show a
+      [*] = ;         // number in a cell and an average point somewhere between. Counted by
+      [*] = ;         // the SAME usage marks as p<n>_inf/_shoot/_cav, so the three sum to
+      [*] = ;         // hmforce of that cell and the reader can check it.
+      [*] = ;         var hmepk : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmesh : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmecv : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // How many of THAT cell are under a move or attack order, and the sum
+      [*] = ;         // of their destination cells - the average is taken where ecells is
+      [*] = ;         // written. Per cell of the MOVER, not of the target: that is what makes
+      [*] = ;         // 'this detachment went for our shooters' sayable.
+      [*] = ;         var hmemn : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmetx : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmetz : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // OUR army per cell with make-up (29.09, P2). mil_inf/_shooters/_cav are
+      [*] = ;         // global and 'cells' holds contact cells only and without make-up, so
+      [*] = ;         // a bait - shooters in front of pikemen - is invisible on both sides.
+      [*] = ;         var hmopk : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmosh : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmocv : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmi, hmj, hmk, hmpl : Integer;
       [*] = ;         // Counters of OUR army, declared at THIS level on purpose - see the
       [*] = ;         // note where they are zeroed. hmown lives lower and gets away with it
@@ -1020,6 +1046,14 @@
       [*] = ;         // scalar that must ACCUMULATE across a loop belongs at this level.
       [*] = ;         var hmcs : String;
       [*] = ;         var hmcn : Integer;
+      [*] = ;         // ecells / ocells and their counters - at THIS level for the same reason
+      [*] = ;         // as hmcs/hmcn above: a scalar that accumulates across a loop does not
+      [*] = ;         // survive a nested begin in this language (17.09, six counters read zero
+      [*] = ;         // at 208 fighters). hmeall/hmoall count ALL cells with fighters, written
+      [*] = ;         // out even when the line was cut at 24 - a silent cut would read as
+      [*] = ;         // 'his army is nowhere else'.
+      [*] = ;         var hmes, hmos : String;
+      [*] = ;         var hmen, hmon, hmeall, hmoall, hmband : Integer;
       [*] = ;         var hmwx, hmwy, hmwn : Integer;
       [*] = ;         for hmi := 0 to cHmGrid-1 do
       [*] = ;         for hmj := 0 to cHmGrid-1 do
@@ -1032,6 +1066,15 @@
       [*] = ;            hmsoz[hmi][hmj] := 0;
       [*] = ;            hmsex[hmi][hmj] := 0;
       [*] = ;            hmsez[hmi][hmj] := 0;
+      [*] = ;            hmepk[hmi][hmj] := 0;
+      [*] = ;            hmesh[hmi][hmj] := 0;
+      [*] = ;            hmecv[hmi][hmj] := 0;
+      [*] = ;            hmemn[hmi][hmj] := 0;
+      [*] = ;            hmetx[hmi][hmj] := 0;
+      [*] = ;            hmetz[hmi][hmj] := 0;
+      [*] = ;            hmopk[hmi][hmj] := 0;
+      [*] = ;            hmosh[hmi][hmj] := 0;
+      [*] = ;            hmocv[hmi][hmj] := 0;
       [*] = ;         end;
       [*] = ;         var hmw : Integer = GetMapWidth;
       [*] = ;         var hmh : Integer = GetMapHeight;
@@ -1045,6 +1088,17 @@
       [*] = ;         begin
       [*] = ;            var hsenemy : Boolean = ((gPlayer[plind].enemyPlMask and gPlayer[hspl].myPlMask) <> 0);
       [*] = ;            ParserSetBoolValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_enemy', hsenemy);
+      [*] = ;            // WHO IS ON THAT SLOT (29.09, P3). Our own bot sits on a HUMAN slot with
+      [*] = ;            // the native ai off, so bhuman alone does not separate a live player from
+      [*] = ;            // us - but it does separate both from the native ai, which is what every
+      [*] = ;            // container series so far played against. Both flags are written because
+      [*] = ;            // together they are unambiguous: player = human and not ai, native ai =
+      [*] = ;            // ai and not human. Without this, records of a match against a live
+      [*] = ;            // player would be averaged together with 213 runs against the engine.
+      [*] = ;            // Same 'p' + index form as every field below, so nothing is pinned to
+      [*] = ;            // slot 1: whichever index the player takes, his own key appears.
+      [*] = ;            ParserSetBoolValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_human', gMap.players[hspl].bhuman);
+      [*] = ;            ParserSetBoolValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_ai', gMap.players[hspl].bai);
       [*] = ;            var hseph : Integer = GetPlayerHandleByIndex(hspl);
       [*] = ;            var hsec : Integer = GetPlayerGameObjectsCountByHandle(hseph);
       [*] = ;            var hsepea, hsebld, hsemil, hsemin, hsj : Integer;
@@ -1110,6 +1164,20 @@
       [*] = ;                        hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
       [*] = ;                        hmsex[hmux][hmuy] := hmsex[hmux][hmuy] + Round(GetGameObjectPositionXByHandle(hseg)+hmhw);
       [*] = ;                        hmsez[hmux][hmuy] := hmsez[hmux][hmuy] + Round(GetGameObjectPositionZByHandle(hseg)+hmhh);
+      [*] = ;                        // MAKE-UP OF THIS CELL (29.09, P1). The three marks split
+      [*] = ;                        // hsefight exactly, so hmepk+hmesh+hmecv = hmforce of the
+      [*] = ;                        // cell - the reader can check the block by arithmetic, the
+      [*] = ;                        // way the live game caught the force grid counting peasants
+      [*] = ;                        // on 16.09. A flag is NOT needed here: each if is its own
+      [*] = ;                        // one-line statement and nothing is appended after it.
+      [*] = ;                        if (hseu = gc_obj_usage_lightinfantry) or (hseu = gc_obj_usage_weak) or
+      [*] = ;                           (hseu = gc_obj_usage_grenadier) then
+      [*] = ;                        hmepk[hmux][hmuy] := hmepk[hmux][hmuy] + 1;
+      [*] = ;                        if (hseu = gc_obj_usage_shooter) or (hseu = gc_obj_usage_archer) then
+      [*] = ;                        hmesh[hmux][hmuy] := hmesh[hmux][hmuy] + 1;
+      [*] = ;                        if (hseu = gc_obj_usage_fasthorse) or (hseu = gc_obj_usage_hardhorse) or
+      [*] = ;                           (hseu = gc_obj_usage_horseshooter) then
+      [*] = ;                        hmecv[hmux][hmuy] := hmecv[hmux][hmuy] + 1;
       [*] = ;                     end;
       [*] = ;                     var hseot : Integer = TObj(hsep).orders[0].itype;
       [*] = ;                     var hsytx : Float = -1000000;
@@ -1135,6 +1203,21 @@
       [*] = ;                        var hmdy : Integer = floor((hsytz+hmhh)*cHmGrid/hmh);
       [*] = ;                        if (hmdx>=0) and (hmdx<cHmGrid) and (hmdy>=0) and (hmdy<cHmGrid) then
       [*] = ;                        hmdest[hmdx][hmdy] := hmdest[hmdx][hmdy] + 1;
+      [*] = ;                        // THE SAME DESTINATION, KEPT BY THE CELL HE STANDS IN (29.09,
+      [*] = ;                        // P1). hmdest above is indexed by the TARGET cell and loses
+      [*] = ;                        // who is walking there from where; that is the very thing
+      [*] = ;                        // needed to tell a charge from a retreat. Both cells are
+      [*] = ;                        // range-checked, so the sum of hmemn over the grid equals
+      [*] = ;                        // the sum of hmdest - two readings of one fact that must
+      [*] = ;                        // agree. Nested one-line ifs before a begin: the same form
+      [*] = ;                        // the attackobj gate above uses and the live game proved.
+      [*] = ;                        if (hmdx>=0) and (hmdx<cHmGrid) and (hmdy>=0) and (hmdy<cHmGrid) then
+      [*] = ;                        if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
+      [*] = ;                        begin
+      [*] = ;                           hmemn[hmux][hmuy] := hmemn[hmux][hmuy] + 1;
+      [*] = ;                           hmetx[hmux][hmuy] := hmetx[hmux][hmuy] + hmdx;
+      [*] = ;                           hmetz[hmux][hmuy] := hmetz[hmux][hmuy] + hmdy;
+      [*] = ;                        end;
       [*] = ;                        if (hscen > 0) then
       [*] = ;                        if (VectorDistance(hsytx, 0, hsytz, hscx, 0, hscz) < 60) then
       [*] = ;                        hsymvb := hsymvb + 1;
@@ -1486,6 +1569,17 @@
       [*] = ;                        hmown[hmoxx][hmoyy] := hmown[hmoxx][hmoyy] + 1;
       [*] = ;                        hmsox[hmoxx][hmoyy] := hmsox[hmoxx][hmoyy] + Round(GetGameObjectPositionXByHandle(hmog)+hmhw);
       [*] = ;                        hmsoz[hmoxx][hmoyy] := hmsoz[hmoxx][hmoyy] + Round(GetGameObjectPositionZByHandle(hmog)+hmhh);
+      [*] = ;                        // OUR make-up in this cell (29.09, P2), by the same marks as
+      [*] = ;                        // mil_inf/mil_shooters/mil_cav, so the three sum to hmown of
+      [*] = ;                        // the cell.
+      [*] = ;                        if (hmou = gc_obj_usage_lightinfantry) or (hmou = gc_obj_usage_weak) or
+      [*] = ;                           (hmou = gc_obj_usage_grenadier) then
+      [*] = ;                        hmopk[hmoxx][hmoyy] := hmopk[hmoxx][hmoyy] + 1;
+      [*] = ;                        if (hmou = gc_obj_usage_shooter) or (hmou = gc_obj_usage_archer) then
+      [*] = ;                        hmosh[hmoxx][hmoyy] := hmosh[hmoxx][hmoyy] + 1;
+      [*] = ;                        if (hmou = gc_obj_usage_fasthorse) or (hmou = gc_obj_usage_hardhorse) or
+      [*] = ;                           (hmou = gc_obj_usage_horseshooter) then
+      [*] = ;                        hmocv[hmoxx][hmoyy] := hmocv[hmoxx][hmoyy] + 1;
       [*] = ;                        // The fist at home and the wave in the field are counted APART: only free
       [*] = ;                        // men can be sent, and the model must see where exactly they stand.
       [*] = ;                        if (TObj(hmop).orders[0].itype = gc_obj_order_type_none) then
@@ -1658,6 +1752,100 @@
       [*] = ;            hmcs := 'none';
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'cells', hmcs);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'cells_n', hmcn);
+      [*] = ;            // HIS ARMY BY CELLS, WITH MAKE-UP AND ORDERS (29.09, P1). Written as
+      [*] = ;            // x,y,n,pike,shoot,cav,nmove,tx,ty through ';', at most 24 cells,
+      [*] = ;            // 'none' when his army is nowhere - a missing key and a measured zero
+      [*] = ;            // must not look the same (14.09). tx,ty is the AVERAGE destination cell
+      [*] = ;            // of the nmove men of that cell, -1,-1 when nmove is zero: there is no
+      [*] = ;            // destination to average, and 0,0 is a real corner of the map.
+      [*] = ;            // WHY THREE BANDS instead of sorting. The mac asked for the cells by
+      [*] = ;            // descending n, and a sort of 256 cells every game second is not worth
+      [*] = ;            // its cost; a plain scan order would cut the biggest cell if it came
+      [*] = ;            // late in the scan. Three passes - ten and above, five to nine, the
+      [*] = ;            // rest - cost 768 comparisons, cannot drop a crowd in favour of a
+      [*] = ;            // picket, and are not a sort inside a band. ecells_all counts EVERY
+      [*] = ;            // cell with his fighters, so a cut at 24 is said out loud.
+      [*] = ;            hmes := '';
+      [*] = ;            hmen := 0;
+      [*] = ;            hmeall := 0;
+      [*] = ;            for hmband := 0 to 2 do
+      [*] = ;            begin
+      [*] = ;               for hmj := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  for hmi := 0 to cHmGrid-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hmev : Integer = hmforce[hmi][hmj];
+      [*] = ;                     var hmeb : Integer = 2;
+      [*] = ;                     if (hmev > 9) then hmeb := 0;
+      [*] = ;                     if (hmev > 4) and (hmev < 10) then hmeb := 1;
+      [*] = ;                     if (hmev > 0) and (hmeb = hmband) then
+      [*] = ;                     begin
+      [*] = ;                        hmeall := hmeall + 1;
+      [*] = ;                        if (hmen < 24) then
+      [*] = ;                        begin
+      [*] = ;                           if (hmen > 0) then
+      [*] = ;                           hmes := hmes + ';';
+      [*] = ;                           var hmetc : Integer = -1;
+      [*] = ;                           var hmetd : Integer = -1;
+      [*] = ;                           if (hmemn[hmi][hmj] > 0) then
+      [*] = ;                           begin
+      [*] = ;                              hmetc := hmetx[hmi][hmj] div hmemn[hmi][hmj];
+      [*] = ;                              hmetd := hmetz[hmi][hmj] div hmemn[hmi][hmj];
+      [*] = ;                           end;
+      [*] = ;                           hmes := hmes + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
+      [*] = ;                                IntToStr(hmev) + ',' + IntToStr(hmepk[hmi][hmj]) + ',' +
+      [*] = ;                                IntToStr(hmesh[hmi][hmj]) + ',' + IntToStr(hmecv[hmi][hmj]) + ',' +
+      [*] = ;                                IntToStr(hmemn[hmi][hmj]) + ',' +
+      [*] = ;                                IntToStr(hmetc) + ',' + IntToStr(hmetd);
+      [*] = ;                           hmen := hmen + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmes = '') then
+      [*] = ;            hmes := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ecells', hmes);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ecells_n', hmen);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ecells_all', hmeall);
+      [*] = ;            // OUR ARMY BY CELLS WITH MAKE-UP (29.09, P2): x,y,n,pike,shoot,cav.
+      [*] = ;            // No orders here - my_army_n and wave_n already split ours into the
+      [*] = ;            // fist at home and the wave in the field, and an unproven second way
+      [*] = ;            // of saying the same thing would only let the two disagree.
+      [*] = ;            hmos := '';
+      [*] = ;            hmon := 0;
+      [*] = ;            hmoall := 0;
+      [*] = ;            for hmband := 0 to 2 do
+      [*] = ;            begin
+      [*] = ;               for hmj := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  for hmi := 0 to cHmGrid-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hmov : Integer = hmown[hmi][hmj];
+      [*] = ;                     var hmob : Integer = 2;
+      [*] = ;                     if (hmov > 9) then hmob := 0;
+      [*] = ;                     if (hmov > 4) and (hmov < 10) then hmob := 1;
+      [*] = ;                     if (hmov > 0) and (hmob = hmband) then
+      [*] = ;                     begin
+      [*] = ;                        hmoall := hmoall + 1;
+      [*] = ;                        if (hmon < 24) then
+      [*] = ;                        begin
+      [*] = ;                           if (hmon > 0) then
+      [*] = ;                           hmos := hmos + ';';
+      [*] = ;                           hmos := hmos + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
+      [*] = ;                                IntToStr(hmov) + ',' + IntToStr(hmopk[hmi][hmj]) + ',' +
+      [*] = ;                                IntToStr(hmosh[hmi][hmj]) + ',' + IntToStr(hmocv[hmi][hmj]);
+      [*] = ;                           hmon := hmon + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmos = '') then
+      [*] = ;            hmos := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ocells', hmos);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_n', hmon);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_all', hmoall);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,

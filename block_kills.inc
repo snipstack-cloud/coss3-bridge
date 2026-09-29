@@ -8,7 +8,9 @@
 // and the victim never stores who hit it - the engine only credits the killer
 // (TObj(pobj).kill above).
 //
-// Written into the named parser br_kills as a ring of 48 events, plain text
+// Written into the named parser br_kills as a ring of 128 events, plain text
+// (48 until 29.09; a live player gathers a bigger army and fights in one heap,
+// and a window that does not fit the ring is dropped from every count of 18-22).
 // 'seq,gt,vpl,vcls,vx,vy,kpl,kcls,kx,ky,w'. Classes are LETTERS decided here
 // with the engine constants, because gc_obj_usage_* live in the engine and
 // their numbers are not knowable from python: P peasant, I infantry, S shooter,
@@ -94,7 +96,7 @@ if (weapkind = gc_obj_weapon_kind_arrow) then
 brkwc := 'A';
 if (weapkind = gc_obj_weapon_kind_firearrow) then
 brkwc := 'F';
-ParserSetValueByKeyByHandle(brkp, 'e' + IntToStr(brkn mod 48),
+ParserSetValueByKeyByHandle(brkp, 'e' + IntToStr(brkn mod 128),
      IntToStr(brkn) + ',' + IntToStr(Round(GetGameTime)) + ',' +
      IntToStr(TObj(pobj2).pl) + ',' + brkvc + ',' +
      IntToStr(brkvx) + ',' + IntToStr(brkvz) + ',' +
