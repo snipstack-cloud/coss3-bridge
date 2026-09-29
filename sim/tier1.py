@@ -51,7 +51,21 @@ def в_словарь(c) -> dict:
 
 
 class Ярус1:
-    def __init__(self, n=20):
+    """Хозяйство скриптом. Параметры 29.09 (§26), по умолчанию — прежнее поведение:
+
+    * `дерево` — держать на дереве не меньше стольких крестьян. Зачем: `снять_с_земли`
+      берёт людей для стройки и еды СНАЧАЛА с дерева, и в симуляторе на дереве стоял
+      ноль всю партию (к 10:00 дерева 37 против 1322 в живых 27-28.09), поэтому вторая
+      казарма (500 дерева) не вставала никогда;
+    * `камень` — то же для камня: он голодает тем же путём (к 10:00 196 против 1060);
+    * `шахт_золота` — предел золотых шахт (прежде 4; в живых к 10:00 медианно одна, у
+      симулятора три и 15 человек на золоте);
+    * `казарм` — ставить казармы до стольких; пока копим на следующую, дом ставим только
+      при полном жилье (он съедает каждые 100 дерева и камня). Золотую шахту — ставим:
+      без неё 2500 золота на казарму не набирается вовсе (первая редакция её запрещала).
+    """
+    def __init__(self, n=20, дерево=0, шахт_золота=4, казарм=1, камень=0):
+        self.дерево, self.шахт_золота, self.казарм, self.камень = дерево, шахт_золота, казарм, камень
         self.дебют = D.Дебют(n)
         self.решений_дебюта = 0
         self.решений_всего = 0
@@ -82,14 +96,23 @@ class Ярус1:
         # (модель делала это в каждой партии, 382 BUILD minegold на 52 партии), дом при
         # полном жилье — иначе найм крестьян встаёт
         шахт = float(st.get("mines_gold") or 0)
-        if (шахт < 4 and float(st.get("on_gold") or 0) >= 5 * шахт and float(st.get("building_now") or 0) == 0
+        казарм_есть = float(st.get("ba17") or 0)
+        копим = self.казарм > 1 and 1 <= казарм_есть < self.казарм
+        if копим and float(st.get("building_now") or 0) == 0:
+            из.append({"cmd": "BUILDERS", "total": 5})
+            из.append({"cmd": "BUILD", "role": "ba17", "total": int(казарм_есть) + 1})
+        if (шахт < self.шахт_золота and float(st.get("on_gold") or 0) >= 5 * шахт and float(st.get("building_now") or 0) == 0
                 and float(st.get("wood") or 0) >= 100 and float(st.get("stone") or 0) >= 100):
             из.append({"cmd": "BUILDERS", "total": 5})
             из.append({"cmd": "BUILD", "role": "minegold", "total": int(шахт) + 1})
-        if (float(st.get("my_farm") or 0) - float(st.get("my_farmused") or 0) <= 5 and float(st.get("building_now") or 0) == 0
+        if (float(st.get("my_farm") or 0) - float(st.get("my_farmused") or 0) <= (0 if копим else 5) and float(st.get("building_now") or 0) == 0
                 and float(st.get("wood") or 0) >= 100 and float(st.get("stone") or 0) >= 100):
             из.append({"cmd": "BUILDERS", "total": 5})
             из.append({"cmd": "BUILD", "role": "house", "total": int(float(st.get("houses") or 0)) + 1})
+        if self.дерево and float(st.get("on_wood") or 0) < self.дерево:
+            из.append({"cmd": "BALANCE", "role": "wood", "total": int(self.дерево)})
+        if self.камень and float(st.get("on_stone") or 0) < self.камень:
+            из.append({"cmd": "BALANCE", "role": "stone", "total": int(self.камень)})
         простой = float(st.get("idle_pea") or 0)
         if простой >= 4:
             # свободных — на еду, пока на еде меньше трети деревни, иначе на дерево и камень
