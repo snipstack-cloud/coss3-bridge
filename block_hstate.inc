@@ -590,16 +590,26 @@
       [*] = ;         // available something that can never be had. They were shown here
       [*] = ;         // for two days and the model never ordered them once in 1339
       [*] = ;         // ticks - no harm done, but no reason to keep it either.
-      [*] = ;         var hsfr : array [0..3] of Integer;
-      [*] = ;         var hsfn : array [0..3] of String;
+      [*] = ;         // OUR types of the 18th century too (29.09, P8). The same five roles as in
+      [*] = ;         // the enemy list below, for the same reason: after cen.1 our own numbers
+      [*] = ;         // change, and the law must not keep counting a musketeer17. Whether the
+      [*] = ;         // MODEL is told about them is decided in python by --c18-numbers: the field
+      [*] = ;         // is the block's business, the request is a lever (28.09).
+      [*] = ;         var hsfr : array [0..8] of Integer;
+      [*] = ;         var hsfn : array [0..8] of String;
       [*] = ;         hsfr[0] := gc_ai_unit_infantry17;  hsfn[0] := 'infantry17';
       [*] = ;         hsfr[1] := gc_ai_unit_musk17;      hsfn[1] := 'musk17';
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
       [*] = ;         hsfr[3] := gc_ai_unit_dragoon17;   hsfn[3] := 'dragoon17';
+      [*] = ;         hsfr[4] := gc_ai_unit_pikeman18;   hsfn[4] := 'pikeman18';
+      [*] = ;         hsfr[5] := gc_ai_unit_musk18;      hsfn[5] := 'musk18';
+      [*] = ;         hsfr[6] := gc_ai_unit_dragun18;    hsfn[6] := 'dragun18';
+      [*] = ;         hsfr[7] := gc_ai_unit_uniq_inf18;  hsfn[7] := 'uniq_inf18';
+      [*] = ;         hsfr[8] := gc_ai_unit_uniq_cav18;  hsfn[8] := 'uniq_cav18';
       [*] = ;         var hsftxt : String = '';
       [*] = ;         var hsinfid : Integer = -1;   // id of the line infantry, for can_inf
       [*] = ;         var hsfi : Integer;
-      [*] = ;         for hsfi := 0 to 3 do
+      [*] = ;         for hsfi := 0 to 8 do
       [*] = ;         begin
       [*] = ;            var hsfid : Integer = -1;
       [*] = ;            var hsfj : Integer;
@@ -1028,6 +1038,65 @@
       [*] = ;         var hmemn : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmetx : array [0..15] of array [0..15] of Integer;
       [*] = ;         var hmetz : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // TROOPS OF THE 18th CENTURY IN THE CELL (29.09, P8). The usage marks do NOT
+      [*] = ;         // separate the centuries - a musketeer17 and a musketeer18 are both 'shooter'
+      [*] = ;         // - so the century is read off airole, where the engine keeps its own *18
+      [*] = ;         // roles. Written as the LAST column of ecells so every reader of the nine
+      [*] = ;         // before it keeps working.
+      [*] = ;         var hme18 : array [0..15] of array [0..15] of Integer;
+      [*] = ;         // ROLE -> SHORT NAME, one table for BOTH sides (29.09, P6). A chain of ifs
+      [*] = ;         // twice over would be thirty lines of the same thing; the pair of arrays is
+      [*] = ;         // the form the fighters lists already use in this block and it works.
+      [*] = ;         // Declared HERE because both scans below need it, and the enemy scan comes
+      [*] = ;         // first: a name used before its declaration kills the tick (15.09).
+      [*] = ;         var hbr : array [0..17] of Integer;
+      [*] = ;         var hbn : array [0..17] of String;
+      [*] = ;         hbr[0]  := gc_ai_unit_center;    hbn[0]  := 'center';
+      [*] = ;         hbr[1]  := gc_ai_unit_ba17;      hbn[1]  := 'ba17';
+      [*] = ;         hbr[2]  := gc_ai_unit_ba18;      hbn[2]  := 'ba18';
+      [*] = ;         hbr[3]  := gc_ai_unit_house;     hbn[3]  := 'house';
+      [*] = ;         hbr[4]  := gc_ai_unit_mill;      hbn[4]  := 'mill';
+      [*] = ;         hbr[5]  := gc_ai_unit_smith;     hbn[5]  := 'smith';
+      [*] = ;         hbr[6]  := gc_ai_unit_store;     hbn[6]  := 'store';
+      [*] = ;         hbr[7]  := gc_ai_unit_academi;   hbn[7]  := 'academy';
+      [*] = ;         hbr[8]  := gc_ai_unit_minegold;  hbn[8]  := 'minegold';
+      [*] = ;         hbr[9]  := gc_ai_unit_mineiron;  hbn[9]  := 'mineiron';
+      [*] = ;         hbr[10] := gc_ai_unit_minecoal;  hbn[10] := 'minecoal';
+      [*] = ;         hbr[11] := gc_ai_unit_stable;    hbn[11] := 'stable';
+      [*] = ;         hbr[12] := gc_ai_unit_tower;     hbn[12] := 'tower';
+      [*] = ;         hbr[13] := gc_ai_unit_market;    hbn[13] := 'market';
+      [*] = ;         // Four more added after the first live game: TWO of the twenty buildings
+      [*] = ;         // the enemy had came out as 'other', and a tenth of his base with no name
+      [*] = ;         // is a tenth the enemy model cannot use. These are the rest of what the
+      [*] = ;         // engine can place on land.
+      [*] = ;         hbr[14] := gc_ai_unit_artdepo;   hbn[14] := 'artdepo';
+      [*] = ;         hbr[15] := gc_ai_unit_dipcenter; hbn[15] := 'dipcenter';
+      [*] = ;         hbr[16] := gc_ai_unit_temple;    hbn[16] := 'temple';
+      [*] = ;         hbr[17] := gc_ai_unit_port;      hbn[17] := 'port';
+      [*] = ;         // BUILDINGS OF BOTH SIDES AS A LIST, type and place (29.09, P6). The grid
+      [*] = ;         // brow gives one letter per cell and the counters give totals; neither says
+      [*] = ;         // WHERE a particular barracks stands, and a cell of 16 units is too coarse
+      [*] = ;         // to tell a tight base from a sprawling one. Strings and counters at BLOCK
+      [*] = ;         // level: they accumulate across loops, and a scalar declared in a nested
+      [*] = ;         // begin does not accumulate in this language (17.09).
+      [*] = ;         var hmeb, hmob : String;
+      [*] = ;         var hmebn, hmobn, hmeball, hmoball : Integer;
+      [*] = ;         // WALLS AND PALISADE BY CELLS (29.09, P7). Checked in the engine, not guessed:
+      [*] = ;         // gc_obj_usage_weakwall = 13 is the WOODEN wall - sid ukrwwa/ukrwga, material
+      [*] = ;         // woodwall, 10 wood apiece (unit.script:2285-2301) - that is the palisade;
+      [*] = ;         // gc_obj_usage_hardwall = 12 is the stone one - sid <nation>swa/sga, 50 stone,
+      [*] = ;         // 50000 hp (unit.script:2258-2265). Gates are the same objects with bgate.
+      [*] = ;         var hmews : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmewh : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmewg : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmewb : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmewm : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmows : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmowh : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmowg : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmowb : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmowm : array [0..15] of array [0..15] of Integer;
+      [*] = ;         var hmewseg, hmowseg : Integer;
       [*] = ;         // OUR army per cell with make-up (29.09, P2). mil_inf/_shooters/_cav are
       [*] = ;         // global and 'cells' holds contact cells only and without make-up, so
       [*] = ;         // a bait - shooters in front of pikemen - is invisible on both sides.
@@ -1075,7 +1144,33 @@
       [*] = ;            hmopk[hmi][hmj] := 0;
       [*] = ;            hmosh[hmi][hmj] := 0;
       [*] = ;            hmocv[hmi][hmj] := 0;
+      [*] = ;            hme18[hmi][hmj] := 0;
+      [*] = ;            hmews[hmi][hmj] := 0;
+      [*] = ;            hmewh[hmi][hmj] := 0;
+      [*] = ;            hmewg[hmi][hmj] := 0;
+      [*] = ;            hmewb[hmi][hmj] := 0;
+      [*] = ;            hmows[hmi][hmj] := 0;
+      [*] = ;            hmowh[hmi][hmj] := 0;
+      [*] = ;            hmowg[hmi][hmj] := 0;
+      [*] = ;            hmowb[hmi][hmj] := 0;
+      [*] = ;            // The WEAKEST segment of the cell, in percent. 101 means 'no wall here':
+      [*] = ;            // a measured 100 and an empty cell must not look the same, and the cell
+      [*] = ;            // is only ever written when a wall is in it anyway.
+      [*] = ;            hmewm[hmi][hmj] := 101;
+      [*] = ;            hmowm[hmi][hmj] := 101;
       [*] = ;         end;
+      [*] = ;         // Explicitly, and not by trusting a fresh declaration: hmcs/hmcn next door
+      [*] = ;         // are zeroed by hand for the same reason, and a counter that starts from
+      [*] = ;         // whatever was there would put a building list of the previous tick into
+      [*] = ;         // this one - the quietest kind of wrong.
+      [*] = ;         hmeb := '';
+      [*] = ;         hmob := '';
+      [*] = ;         hmebn := 0;
+      [*] = ;         hmobn := 0;
+      [*] = ;         hmeball := 0;
+      [*] = ;         hmoball := 0;
+      [*] = ;         hmewseg := 0;
+      [*] = ;         hmowseg := 0;
       [*] = ;         var hmw : Integer = GetMapWidth;
       [*] = ;         var hmh : Integer = GetMapHeight;
       [*] = ;         var hmhw : Integer = hmw div 2;
@@ -1178,6 +1273,16 @@
       [*] = ;                        if (hseu = gc_obj_usage_fasthorse) or (hseu = gc_obj_usage_hardhorse) or
       [*] = ;                           (hseu = gc_obj_usage_horseshooter) then
       [*] = ;                        hmecv[hmux][hmuy] := hmecv[hmux][hmuy] + 1;
+      [*] = ;                        // Century by ROLE, not by usage - usage knows nothing about it.
+      [*] = ;                        // Officer18 and drummer18 are counted here too: unlike the
+      [*] = ;                        // figures line, this column answers 'where are his new troops',
+      [*] = ;                        // and a drummer marching with them is one of them.
+      [*] = ;                        var hse18 : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].airole;
+      [*] = ;                        if (hse18 = gc_ai_unit_pikeman18) or (hse18 = gc_ai_unit_musk18) or
+      [*] = ;                           (hse18 = gc_ai_unit_dragun18) or (hse18 = gc_ai_unit_uniq_inf18) or
+      [*] = ;                           (hse18 = gc_ai_unit_uniq_cav18) or (hse18 = gc_ai_unit_officer18) or
+      [*] = ;                           (hse18 = gc_ai_unit_drummer18) then
+      [*] = ;                        hme18[hmux][hmuy] := hme18[hmux][hmuy] + 1;
       [*] = ;                     end;
       [*] = ;                     var hseot : Integer = TObj(hsep).orders[0].itype;
       [*] = ;                     var hsytx : Float = -1000000;
@@ -1241,6 +1346,62 @@
       [*] = ;                  if (gObjProp[TObj(hsep).cid][TObj(hsep).id].bbuilding) then
       [*] = ;                  begin
       [*] = ;                     hsebld := hsebld + 1;
+      [*] = ;                     // HIS BUILDINGS AS A LIST and HIS WALLS BY CELLS (29.09, P6/P7).
+      [*] = ;                     // Only for a player we are at war with: a neutral's yard is not
+      [*] = ;                     // what the enemy model is being fitted to, and the grids above
+      [*] = ;                     // are gated the same way.
+      [*] = ;                     if (hsenemy) then
+      [*] = ;                     begin
+      [*] = ;                        var hbu : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].usage;
+      [*] = ;                        var hbx : Integer = Round(GetGameObjectPositionXByHandle(hseg)) + hmhw;
+      [*] = ;                        var hbz : Integer = Round(GetGameObjectPositionZByHandle(hseg)) + hmhh;
+      [*] = ;                        var hbmax : Integer = gPlayer[hspl].objbase[TObj(hsep).cid][TObj(hsep).id].maxhp;
+      [*] = ;                        var hbpct : Integer = 100;
+      [*] = ;                        if (hbmax > 0) then
+      [*] = ;                        hbpct := Round((TObj(hsep).hp * 100) / hbmax);
+      [*] = ;                        var hbdone : Integer = 0;
+      [*] = ;                        if (TObj(hsep).bbuilt) then
+      [*] = ;                        hbdone := 1;
+      [*] = ;                        if (hbu = gc_obj_usage_hardwall) or (hbu = gc_obj_usage_weakwall) then
+      [*] = ;                        begin
+      [*] = ;                           // A wall is a building too, and it must NOT land in ebuild:
+      [*] = ;                           // a palisade of eighty segments would crowd out the barracks
+      [*] = ;                           // the list is for. It goes on its own grid instead.
+      [*] = ;                           hmewseg := hmewseg + 1;
+      [*] = ;                           var hbcx : Integer = floor(hbx*cHmGrid/hmw);
+      [*] = ;                           var hbcy : Integer = floor(hbz*cHmGrid/hmh);
+      [*] = ;                           if (hbcx>=0) and (hbcx<cHmGrid) and (hbcy>=0) and (hbcy<cHmGrid) then
+      [*] = ;                           begin
+      [*] = ;                              if (hbu = gc_obj_usage_weakwall) then
+      [*] = ;                              hmews[hbcx][hbcy] := hmews[hbcx][hbcy] + 1;
+      [*] = ;                              if (hbu = gc_obj_usage_hardwall) then
+      [*] = ;                              hmewh[hbcx][hbcy] := hmewh[hbcx][hbcy] + 1;
+      [*] = ;                              if (gObjProp[TObj(hsep).cid][TObj(hsep).id].bgate) then
+      [*] = ;                              hmewg[hbcx][hbcy] := hmewg[hbcx][hbcy] + 1;
+      [*] = ;                              if (hbdone = 0) then
+      [*] = ;                              hmewb[hbcx][hbcy] := hmewb[hbcx][hbcy] + 1;
+      [*] = ;                              if (hbpct < hmewm[hbcx][hbcy]) then
+      [*] = ;                              hmewm[hbcx][hbcy] := hbpct;
+      [*] = ;                           end;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           hmeball := hmeball + 1;
+      [*] = ;                           if (hmebn < 60) then
+      [*] = ;                           begin
+      [*] = ;                              var hbname : String = 'other';
+      [*] = ;                              var hbk : Integer;
+      [*] = ;                              for hbk := 0 to 17 do
+      [*] = ;                              if (hbr[hbk] = gObjProp[TObj(hsep).cid][TObj(hsep).id].airole) then
+      [*] = ;                              hbname := hbn[hbk];
+      [*] = ;                              if (hmebn > 0) then
+      [*] = ;                              hmeb := hmeb + ';';
+      [*] = ;                              hmeb := hmeb + hbname + ',' + IntToStr(hbx) + ',' + IntToStr(hbz) +
+      [*] = ;                                   ',' + IntToStr(hbdone) + ',' + IntToStr(hbpct);
+      [*] = ;                              hmebn := hmebn + 1;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                     // What this building of theirs is making: same reading as
       [*] = ;                     // our train_now (produce orders, info.produceid, info.amount).
       [*] = ;                     var hsyk : Integer;
@@ -1366,15 +1527,27 @@
       [*] = ;            // so this is not a head start.
       [*] = ;            // Own role lists, NOT the ones used for our own fighters far above: reusing
       [*] = ;            // a name across a closed block is how the tick died on 15.09.
-      [*] = ;            var hsyfr : array [0..3] of Integer;
-      [*] = ;            var hsyfn : array [0..3] of String;
+      [*] = ;            // TYPES OF THE 18th CENTURY ADDED 29.09 (P8 of the mac). Without their
+      [*] = ;            // figures the combat law counts a musketeer18 by the numbers of a
+      [*] = ;            // musketeer17 and is simply wrong about him. Roles are the engine's own
+      [*] = ;            // (dmscript.global): musk18 29, dragun18 38, uniq_inf18 45, uniq_cav18 47,
+      [*] = ;            // pikeman18 54. Officer18 and drummer18 are NOT here on purpose: they are
+      [*] = ;            // support, they stand outside p<n>_inf/_shoot/_cav, and the law needs
+      [*] = ;            // attack and protection, which a drummer does not carry.
+      [*] = ;            var hsyfr : array [0..8] of Integer;
+      [*] = ;            var hsyfn : array [0..8] of String;
       [*] = ;            hsyfr[0] := gc_ai_unit_infantry17;  hsyfn[0] := 'infantry17';
       [*] = ;            hsyfr[1] := gc_ai_unit_musk17;      hsyfn[1] := 'musk17';
       [*] = ;            hsyfr[2] := gc_ai_unit_uniq_inf17;  hsyfn[2] := 'uniq_inf17';
       [*] = ;            hsyfr[3] := gc_ai_unit_dragoon17;   hsyfn[3] := 'dragoon17';
+      [*] = ;            hsyfr[4] := gc_ai_unit_pikeman18;   hsyfn[4] := 'pikeman18';
+      [*] = ;            hsyfr[5] := gc_ai_unit_musk18;      hsyfn[5] := 'musk18';
+      [*] = ;            hsyfr[6] := gc_ai_unit_dragun18;    hsyfn[6] := 'dragun18';
+      [*] = ;            hsyfr[7] := gc_ai_unit_uniq_inf18;  hsyfn[7] := 'uniq_inf18';
+      [*] = ;            hsyfr[8] := gc_ai_unit_uniq_cav18;  hsyfn[8] := 'uniq_cav18';
       [*] = ;            var hsyftxt : String = '';
       [*] = ;            var hsyfi : Integer;
-      [*] = ;            for hsyfi := 0 to 3 do
+      [*] = ;            for hsyfi := 0 to 8 do
       [*] = ;            begin
       [*] = ;               var hsyfid : Integer = -1;
       [*] = ;               var hsyfj : Integer;
@@ -1597,6 +1770,61 @@
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
+      [*] = ;               // OUR BUILDINGS AS A LIST and OUR WALLS BY CELLS (29.09, P6/P7). The
+      [*] = ;               // branch above took only NON-buildings; this one takes the rest, in the
+      [*] = ;               // same pass over the same objects. A SECOND `if (hmop<>nil)` on purpose:
+      [*] = ;               // nothing may be appended after the closed begin of a one-line if, and
+      [*] = ;               // an else here would have to hang off the nil test, not the building one.
+      [*] = ;               if (hmop<>nil) then
+      [*] = ;               if (gObjProp[TObj(hmop).cid][TObj(hmop).id].bbuilding) then
+      [*] = ;               begin
+      [*] = ;                  var hou : Integer = gObjProp[TObj(hmop).cid][TObj(hmop).id].usage;
+      [*] = ;                  var hox : Integer = Round(GetGameObjectPositionXByHandle(hmog)) + hmhw;
+      [*] = ;                  var hoz : Integer = Round(GetGameObjectPositionZByHandle(hmog)) + hmhh;
+      [*] = ;                  var homax : Integer = gPlayer[plind].objbase[TObj(hmop).cid][TObj(hmop).id].maxhp;
+      [*] = ;                  var hopct : Integer = 100;
+      [*] = ;                  if (homax > 0) then
+      [*] = ;                  hopct := Round((TObj(hmop).hp * 100) / homax);
+      [*] = ;                  var hodone : Integer = 0;
+      [*] = ;                  if (TObj(hmop).bbuilt) then
+      [*] = ;                  hodone := 1;
+      [*] = ;                  if (hou = gc_obj_usage_hardwall) or (hou = gc_obj_usage_weakwall) then
+      [*] = ;                  begin
+      [*] = ;                     hmowseg := hmowseg + 1;
+      [*] = ;                     var hocx : Integer = floor(hox*cHmGrid/hmw);
+      [*] = ;                     var hocy : Integer = floor(hoz*cHmGrid/hmh);
+      [*] = ;                     if (hocx>=0) and (hocx<cHmGrid) and (hocy>=0) and (hocy<cHmGrid) then
+      [*] = ;                     begin
+      [*] = ;                        if (hou = gc_obj_usage_weakwall) then
+      [*] = ;                        hmows[hocx][hocy] := hmows[hocx][hocy] + 1;
+      [*] = ;                        if (hou = gc_obj_usage_hardwall) then
+      [*] = ;                        hmowh[hocx][hocy] := hmowh[hocx][hocy] + 1;
+      [*] = ;                        if (gObjProp[TObj(hmop).cid][TObj(hmop).id].bgate) then
+      [*] = ;                        hmowg[hocx][hocy] := hmowg[hocx][hocy] + 1;
+      [*] = ;                        if (hodone = 0) then
+      [*] = ;                        hmowb[hocx][hocy] := hmowb[hocx][hocy] + 1;
+      [*] = ;                        if (hopct < hmowm[hocx][hocy]) then
+      [*] = ;                        hmowm[hocx][hocy] := hopct;
+      [*] = ;                     end;
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     hmoball := hmoball + 1;
+      [*] = ;                     if (hmobn < 60) then
+      [*] = ;                     begin
+      [*] = ;                        var honame : String = 'other';
+      [*] = ;                        var hok2 : Integer;
+      [*] = ;                        for hok2 := 0 to 17 do
+      [*] = ;                        if (hbr[hok2] = gObjProp[TObj(hmop).cid][TObj(hmop).id].airole) then
+      [*] = ;                        honame := hbn[hok2];
+      [*] = ;                        if (hmobn > 0) then
+      [*] = ;                        hmob := hmob + ';';
+      [*] = ;                        hmob := hmob + honame + ',' + IntToStr(hox) + ',' + IntToStr(hoz) +
+      [*] = ;                             ',' + IntToStr(hodone) + ',' + IntToStr(hopct);
+      [*] = ;                        hmobn := hmobn + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
       [*] = ;            end;
       [*] = ;            if (hmfn > 0) then
       [*] = ;            begin
@@ -1796,7 +2024,8 @@
       [*] = ;                                IntToStr(hmev) + ',' + IntToStr(hmepk[hmi][hmj]) + ',' +
       [*] = ;                                IntToStr(hmesh[hmi][hmj]) + ',' + IntToStr(hmecv[hmi][hmj]) + ',' +
       [*] = ;                                IntToStr(hmemn[hmi][hmj]) + ',' +
-      [*] = ;                                IntToStr(hmetc) + ',' + IntToStr(hmetd);
+      [*] = ;                                IntToStr(hmetc) + ',' + IntToStr(hmetd) + ',' +
+      [*] = ;                                IntToStr(hme18[hmi][hmj]);
       [*] = ;                           hmen := hmen + 1;
       [*] = ;                        end;
       [*] = ;                     end;
@@ -1846,6 +2075,72 @@
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ocells', hmos);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_n', hmon);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_all', hmoall);
+      [*] = ;            // BUILDINGS OF BOTH SIDES (29.09, P6): 'type,x,z,done,hp%' through ';',
+      [*] = ;            // at most 60, with *_all saying how many there were in all. Coordinates
+      [*] = ;            // are ENGINE UNITS SHIFTED to the grid frame (0..map_w), the same frame
+      [*] = ;            // the cells use: cell = floor(x*16/map_w). Raw engine coordinates are
+      [*] = ;            // centred on zero and would need the map size to be read twice.
+      [*] = ;            if (hmeb = '') then
+      [*] = ;            hmeb := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ebuild', hmeb);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ebuild_n', hmebn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ebuild_all', hmeball);
+      [*] = ;            if (hmob = '') then
+      [*] = ;            hmob := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'obuild', hmob);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'obuild_n', hmobn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'obuild_all', hmoball);
+      [*] = ;            // WALLS BY CELLS (29.09, P7): 'x,y,weak,hard,gates,building,hp%min'.
+      [*] = ;            // Walls are kept APART from the building list on purpose: a palisade of
+      [*] = ;            // eighty segments would fill the list of sixty and push out the barracks
+      [*] = ;            // it exists for. hp%min is the WEAKEST segment of the cell - that is where
+      [*] = ;            // a wall gets broken, and an average would hide it.
+      [*] = ;            var hmwst : String = '';
+      [*] = ;            var hmwsn : Integer = 0;
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  if (hmews[hmi][hmj] + hmewh[hmi][hmj] > 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmwsn > 0) then
+      [*] = ;                     hmwst := hmwst + ';';
+      [*] = ;                     hmwst := hmwst + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
+      [*] = ;                          IntToStr(hmews[hmi][hmj]) + ',' + IntToStr(hmewh[hmi][hmj]) + ',' +
+      [*] = ;                          IntToStr(hmewg[hmi][hmj]) + ',' + IntToStr(hmewb[hmi][hmj]) + ',' +
+      [*] = ;                          IntToStr(hmewm[hmi][hmj]);
+      [*] = ;                     hmwsn := hmwsn + 1;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmwst = '') then
+      [*] = ;            hmwst := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ewalls', hmwst);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ewalls_n', hmwsn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ewalls_seg', hmewseg);
+      [*] = ;            hmwst := '';
+      [*] = ;            hmwsn := 0;
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            begin
+      [*] = ;               for hmi := 0 to cHmGrid-1 do
+      [*] = ;               begin
+      [*] = ;                  if (hmows[hmi][hmj] + hmowh[hmi][hmj] > 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmwsn > 0) then
+      [*] = ;                     hmwst := hmwst + ';';
+      [*] = ;                     hmwst := hmwst + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' +
+      [*] = ;                          IntToStr(hmows[hmi][hmj]) + ',' + IntToStr(hmowh[hmi][hmj]) + ',' +
+      [*] = ;                          IntToStr(hmowg[hmi][hmj]) + ',' + IntToStr(hmowb[hmi][hmj]) + ',' +
+      [*] = ;                          IntToStr(hmowm[hmi][hmj]);
+      [*] = ;                     hmwsn := hmwsn + 1;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hmwst = '') then
+      [*] = ;            hmwst := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'owalls', hmwst);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'owalls_n', hmwsn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'owalls_seg', hmowseg);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
