@@ -47,17 +47,26 @@ def _клетки(поле, имена):
             if isinstance(c, dict):
                 из.append(c)
             elif isinstance(c, (list, tuple)) and len(c) >= 2 + len(имена):
-                из.append(dict(x=c[0], y=c[1], **{k: v for k, v in zip(имена, c[2:])}))
+                имена_здесь = имена + (("n18",) if имена == ЕГО and len(c) == 3 + len(имена) else ())
+                из.append(dict(x=c[0], y=c[1], **{k: v for k, v in zip(имена_здесь, c[2:])}))
         return из
     из = []
     for кусок in str(поле).split(";"):
         ч = кусок.split(",")
-        if len(ч) == 2 + len(имена):
+        # у `ecells` с 29.09 десятый столбец `n18` (войска 18 века) — в конце строки;
+        # у старых записей его нет, и ключа `n18` тогда нет вовсе («нет числа» ≠ ноль)
+        if len(ч) == 3 + len(имена) and имена == ЕГО:
+            имена_здесь = имена + ("n18",)
+        elif len(ч) == 2 + len(имена):
+            имена_здесь = имена
+        else:
+            continue
+        if True:
             try:
                 ч = [int(v) for v in ч]
             except ValueError:
                 continue
-            из.append(dict(x=ч[0], y=ч[1], **{k: v for k, v in zip(имена, ч[2:])}))
+            из.append(dict(x=ч[0], y=ч[1], **{k: v for k, v in zip(имена_здесь, ч[2:])}))
     return из
 
 
