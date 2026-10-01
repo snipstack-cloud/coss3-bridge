@@ -66,9 +66,13 @@ class Ярус1:
       при полном жилье (он съедает каждые 100 дерева и камня). Золотую шахту — ставим:
       без неё 2500 золота на казарму не набирается вовсе (первая редакция её запрещала).
     """
-    def __init__(self, n=20, дерево=0, шахт_золота=4, казарм=1, камень=0, еда_после=1 / 3):
+    def __init__(self, n=20, дерево=0, шахт_золота=4, казарм=1, камень=0, еда_после=1 / 3,
+                 крестьяне_сразу=False, еда_до=2 / 3):
         self.дерево, self.шахт_золота, self.казарм, self.камень = дерево, шахт_золота, казарм, камень
-        self.еда_после = еда_после
+        self.еда_после, self.еда_до = еда_после, еда_до
+        # КРЕСТЬЯНЕ С ПЕРВОЙ СЕКУНДЫ (1.10, §33): дебют их не нанимал, и 18 стартовых
+        # стояли до 4-5-й минуты; живой игрок к 5:00 держал 30 крестьян и 35 бойцов
+        self.крестьяне_сразу = крестьяне_сразу
         self.дебют = D.Дебют(n)
         self.решений_дебюта = 0
         self.решений_всего = 0
@@ -81,7 +85,11 @@ class Ярус1:
         if not self.дебют.готов(st):
             self.решений_дебюта += 1
             cmds, _ = self.дебют.такт(st, gt)
-            return [в_словарь(c) for c in cmds]
+            из = [в_словарь(c) for c in cmds]
+            if (self.крестьяне_сразу and float(st.get("centers") or 0) > 0 and float(st.get("food") or 0) >= 500
+                    and "pea" not in str(st.get("train_now") or "")):
+                из.append({"cmd": "TRAIN", "role": "peasant", "total": -1})
+            return из
         if self.готов_gt is None:
             self.готов_gt = gt
         # --- поддержание (то же, что --auto-* в мосте) ---
@@ -108,6 +116,16 @@ class Ярус1:
                 and float(st.get("wood") or 0) >= 100 and float(st.get("stone") or 0) >= 100):
             из.append({"cmd": "BUILDERS", "total": 5})
             из.append({"cmd": "BUILD", "role": "minegold", "total": int(шахт) + 1})
+        # ЖЕЛЕЗО (1.10, §33): пикинёр стоит 20 железа. Шахту ставил только дебют, и короткий
+        # дебют кончался раньше неё — найм вставал на 18 бойцах при 35 000 еды. Держать одну
+        # шахту железа после казармы и пятерых в ней.
+        if (float(st.get("ba17") or 0) >= 1 and float(st.get("mines_iron") or 0) < 1
+                and float(st.get("building_now") or 0) == 0
+                and float(st.get("wood") or 0) >= 100 and float(st.get("stone") or 0) >= 100):
+            из.append({"cmd": "BUILDERS", "total": 5})
+            из.append({"cmd": "BUILD", "role": "mineiron", "total": 1})
+        if float(st.get("mines_iron") or 0) >= 1 and float(st.get("on_iron") or 0) < 5:
+            из.append({"cmd": "BALANCE", "role": "iron", "total": 5})
         if (float(st.get("my_farm") or 0) - float(st.get("my_farmused") or 0) <= (0 if копим else 5) and float(st.get("building_now") or 0) == 0
                 and float(st.get("wood") or 0) >= 100 and float(st.get("stone") or 0) >= 100):
             из.append({"cmd": "BUILDERS", "total": 5})
@@ -127,7 +145,7 @@ class Ярус1:
             # 74 % тактов под порогом. Порог глушит найм целиком, поэтому казарма стояла
             # готовой и не производила. После 7:00 треть, как было: армия уже собрана, а
             # еда нужна на апгрейды.
-            цель_еды = (2 * крест / 3) if gt < 420 else (крест * self.еда_после)
+            цель_еды = (крест * self.еда_до) if gt < 420 else (крест * self.еда_после)
             if float(st.get("on_food") or 0) < цель_еды:
                 # еде — не всех свободных, а до трети деревни; остальным дерево и камень
                 до_трети = max(0.0, цель_еды - float(st.get("on_food") or 0))

@@ -22,7 +22,7 @@
   размен (его убитые бойцы / наши)                              +1 · min(размен / 1,5, 1)
   наша армия к 15:00                                            +0,5 · min(армия / 100, 1)
 
-    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--out файл.json]
+    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--против-игрока] [--out файл.json]
 """
 import json
 import os
@@ -44,11 +44,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     ("T1", 300, 840, False), ("P1", 0.0, 1.0, False), ("Ц1", 0, 2, True),
     ("T2", 420, 900, False), ("шаг", 30, 240, False), ("порог", 5, 80, False), ("Ц2", 0, 2, True),
 )
+# ХОЗЯЙСТВО §33 — ключом `--хозяйство`: длина дебюта и еда до 7:00 (поиск хозяйства догнал
+# игрока по армии и прокачке при дебюте 9 и 77 % на еде после 7:00)
+РЫЧАГИ_ХОЗ = (("n", 0, 20, True), ("еда_до", 0.4, 0.85, False))
 
 
 def из_вектора(x):
     п = {}
-    for v, (имя, lo, hi, цел) in zip(np.clip(x, 0, 1), РЫЧАГИ):
+    for v, (имя, lo, hi, цел) in zip(np.clip(x, 0, 1), РЫЧАГИ + (РЫЧАГИ_ХОЗ if len(x) > len(РЫЧАГИ) else ())):
         z = lo + v * (hi - lo)
         п[имя] = int(round(z)) if цел else float(z)
     return п
@@ -58,7 +61,8 @@ class Стратегия:
     def __init__(self, п):
         import tier1 as T1
         self.п = п
-        self.я = T1.Ярус1(дерево=п["дерево"], камень=п["камень"], шахт_золота=п["шахт_золота"],
+        self.я = T1.Ярус1(n=п.get("n", 20), еда_до=п.get("еда_до", 2 / 3),
+                          дерево=п["дерево"], камень=п["камень"], шахт_золота=п["шахт_золота"],
                           казарм=п["казарм"], еда_после=п["еда_после"])
         ат = [f"bar.pikeman.1.{i}" for i in range(1, п["атака"] + 1)]
         за = [f"bar.pikeman.2.{i}" for i in range(1, п["защита"] + 1)]
@@ -121,10 +125,21 @@ def мера(сим, и):
 ВРАГ = None     # None — прежний симулятор; иначе стиль агентного врага (§29): родной / горячий / осторожный
 
 
+ИГРОК = False   # §32: противник — запись живого игрока; профиль боя под него
+
+
 def _партия(з):
     п, d, seed = з[:3]
     враг = з[3] if len(з) > 3 else None
+    игрок = з[4] if len(з) > 4 else False
     import sim as SIM
+    import combat
+    if игрок:
+        # ПРОФИЛЬ «ЖИВОЙ ИГРОК» (§32): на его двух партиях закон переплачивал бота — наше
+        # меньшинство бьёт слабее везде (партия 1: его потери 6 при 6 в жизни вместо 17),
+        # залпы до контакта сняты (партия 2: 23 → 11 при 4 в жизни)
+        combat.МЕНЬШИНСТВО_СТЕПЕНЬ, combat.МЕНЬШИНСТВО_ВЕЗДЕ, combat.МЕНЬШИНСТВО_СТОРОНЫ = 1.0, True, "наши"
+        combat.залпы = lambda *a, **k: 0.0
     # пул на macOS поднимает процессы заново — настройку врага везём с заданием
     SIM.АГЕНТНЫЙ_ВРАГ = враг is not None
     if враг is not None:
@@ -146,6 +161,7 @@ def свод(р):
 
 
 def main():
+    sys.argv_исх = list(sys.argv)
     def опц(имя, умолч, тип=int):
         return тип(sys.argv[sys.argv.index(имя) + 1]) if имя in sys.argv else умолч
     gens, pop, k, seed = опц("--gens", 40), опц("--pop", 48), опц("--k", 8), опц("--seed", 1)
@@ -155,21 +171,30 @@ def main():
         print(f"ПРОТИВНИК: агентный враг, стиль «{ВРАГ}» (§29)", flush=True)
     выход = опц("--out", os.path.join(os.path.dirname(os.path.abspath(__file__)), "поиск", f"s{seed}.json"), str)
     os.makedirs(os.path.dirname(выход), exist_ok=True)
-    sys.argv = [sys.argv[0], "--корпус", КОРПУС]
-    import train as TR
-    обуч, тест = TR.разбить(TR.партии([]))
+    global ИГРОК
+    ИГРОК = "--против-игрока" in sys.argv
+    if ИГРОК:
+        import glob as _g
+        обуч = тест = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок/*/*/coss3_snap.jsonl")))
+        print(f"ПРОТИВНИК: записи живого игрока, {len(обуч)} партии; проверка на ТЕХ ЖЕ партиях с другими зёрнами", flush=True)
+        k = min(k, len(обуч))
+    else:
+        sys.argv = [sys.argv[0], "--корпус", КОРПУС]
+        import train as TR
+        обуч, тест = TR.разбить(TR.партии([]))
     rng = np.random.default_rng(seed)
-    n = len(РЫЧАГИ)
+    n = len(РЫЧАГИ) + (len(РЫЧАГИ_ХОЗ) if "--хозяйство" in sys.argv_исх else 0)
     mu, sigma = np.full(n, 0.5), np.full(n, 0.3)
     элита = max(4, pop // 6)
     лучший, лучшая_r = None, -1e9
     with Pool(12) as пул:
         for g in range(gens):
             X = np.clip(rng.normal(mu, sigma, size=(pop, n)), 0, 1)
-            партии = [обуч[i] for i in rng.choice(len(обуч), size=k, replace=False)]
-            задания = [(из_вектора(x), d, 1000 * g + j, ВРАГ) for x in X for j, d in enumerate(партии)]
+            партии = [обуч[i] for i in rng.choice(len(обуч), size=k, replace=False)] * (4 if ИГРОК else 1)
+            задания = [(из_вектора(x), d, 1000 * g + j, ВРАГ, ИГРОК) for x in X for j, d in enumerate(партии)]
             р = пул.map(_партия, задания)
-            R = np.array([St.mean(x["награда"] for x in р[i * k:(i + 1) * k]) for i in range(pop)])
+            kk = len(партии)
+            R = np.array([St.mean(x["награда"] for x in р[i * kk:(i + 1) * kk]) for i in range(pop)])
             идx = np.argsort(-R)[:элита]
             mu = X[идx].mean(axis=0)
             sigma = np.maximum(X[идx].std(axis=0), 0.03)
@@ -181,10 +206,10 @@ def main():
         print("ЛУЧШИЙ КАНДИДАТ:", json.dumps(из_вектора(лучший), ensure_ascii=False))
         print("\nОТЛОЖЕННЫЕ, 25 партий × 3 зерна:")
         for имя, п in (("ярус 1 без войны", None), ("итог поиска", итог), ("лучший кандидат", из_вектора(лучший)),
-                       ("кулак 35 в 6:00 (ручной)", dict(из_вектора(np.full(n, 0.5)), дерево=5, камень=3, шахт_золота=2, казарм=1,
+                       ("кулак 35 в 6:00 (ручной)", dict(из_вектора(np.full(len(РЫЧАГИ), 0.5)), дерево=5, камень=3, шахт_золота=2, казарм=1,
                                                           еда_после=1 / 3, атака=0, защита=0, запас=0.0, мушкетёры=0,
                                                           T1=360.0, P1=0.5, Ц1=0, T2=2000.0, шаг=60.0, порог=5.0, Ц2=1))):
-            р = пул.map(_партия, [(п, d, 100000 + 100 * j + i, ВРАГ) for j in range(3) for i, d in enumerate(тест)])
+            р = пул.map(_партия, [(п, d, 100000 + 100 * j + i, ВРАГ, ИГРОК) for j in range(3 if not ИГРОК else 15) for i, d in enumerate(тест)])
             print(f"  {имя:26} {свод(р)}", flush=True)
     json.dump({"итог": итог, "лучший": из_вектора(лучший), "лучшая_r": лучшая_r}, open(выход, "w"), ensure_ascii=False, indent=1)
     print("сохранено", выход)
