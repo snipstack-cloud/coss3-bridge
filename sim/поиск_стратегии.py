@@ -108,6 +108,13 @@ class Стратегия:
             from sim import сетка
             его = сетка([st.get(f"frow{y}") or "" for y in range(16)]) if st.get("frow0") is not None else сетка(st.get("frow"))
             wx, wy = int(round(float(st.get("wave_cx") or 0))), int(round(float(st.get("wave_cy") or 0)))
+            # НАШИ РЯДОМ С ВОЛНОЙ (2.10, §40, игрок по карте 13:35): отход судил по одной
+            # головной группе (29 против его ~50) и развернул домой и подмогу 23 в трёх клетках
+            # позади — вместе 52. Теперь сила — вся наша армия в 5 клетках от волны.
+            нашa = сетка([st.get(f"arow{y}") or "" for y in range(16)]) if st.get("arow0") is not None else None
+            наши_рядом = (sum(нашa[yy][xx] for yy in range(max(0, wy - 5), min(len(нашa), wy + 6))
+                              for xx in range(max(0, wx - 5), min(len(нашa[yy]), wx + 6))) if нашa else волна)
+            наши_рядом = max(наши_рядом, волна)
             if волна <= 0.5:
                 self.отходит = False
             elif его and getattr(self, "отходит", False):
@@ -116,14 +123,14 @@ class Стратегия:
                 # `возврат` над его бойцами в 4 клетках — обратно на его армию
                 рядом4 = sum(его[yy][xx] for yy in range(max(0, wy - 4), min(len(его), wy + 5))
                              for xx in range(max(0, wx - 4), min(len(его[yy]), wx + 5)))
-                if волна >= п.get("возврат", 1.5) * max(рядом4, 1.0):
+                if наши_рядом >= п.get("возврат", 1.5) * max(рядом4, 1.0):
                     из.append({"cmd": "_ВПЕРЁД", "target": "army"})
                     self.отходит = False
             elif его:
                 рядом = sum(его[yy][xx] for yy in range(max(0, wy - 1), min(len(его), wy + 2))
                             for xx in range(max(0, wx - 1), min(len(его[yy]), wx + 2)))
                 # ОТХОД: волна проигрывает в своём окне — домой, и 20 с новых волн не выпускать
-                if п["отход"] > 0.05 and рядом >= 3 and волна < п["отход"] * рядом and not getattr(self, "отходит", False):
+                if п["отход"] > 0.05 and рядом >= 3 and наши_рядом < п["отход"] * рядом and not getattr(self, "отходит", False):
                     из.append({"cmd": "RETREAT"})
                     self.отходит = True
                     self.след = max(self.след, t + 20.0)
