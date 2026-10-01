@@ -11809,7 +11809,12 @@ def поднять_окно(log: str) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=os.path.expandvars(os.path.expanduser("~/coss3-io")))
-    ap.add_argument("--plind", type=int, default=None)
+    ap.add_argument("--plind", type=int, default=None,
+                    help="слот, за который играть. Без него мост ищет его сам по "
+                         "свежести состояния, и это годится, пока человеческий слот "
+                         "ОДИН. В партии человек против бота их два — назовите слот "
+                         "явно, иначе между партиями модель может пересесть на слот "
+                         "игрока. С этим ключом слот ЗАКРЕПЛЁН и не переискивается")
     ap.add_argument("--model", default=(os.environ.get("COSS3_MODEL")
                                     or os.environ.get("NIM_MODEL")
                                     or DEFAULT_MODEL))
@@ -12719,15 +12724,31 @@ def main() -> int:
             # контейнере это делает программный растеризатор. Ждём столько,
             # сколько нужно, и говорим, чего ждём, — молчащее ожидание
             # неотличимо от зависания.
+            # СЛОТ, НАЗВАННЫЙ КЛЮЧОМ, НЕ ПЕРЕИСКИВАЕТСЯ (1.10). Поиск по
+            # свежести файла годился, пока человеческий слот был ОДИН: на
+            # компьютерном искали bai, на человеческом — единственный human.
+            # В партии ЧЕЛОВЕК ПРОТИВ БОТА их два, и оба пишут состояние каждую
+            # игровую секунду — поиск мог молча пересадить модель на слот
+            # ИГРОКА, то есть ровно в то, от чего игрок и просил уйти. С явным
+            # --plind ждём свежести ИМЕННО этого слота.
             n, ждём_до = None, time.time() + a.new_timeout
             while time.time() < ждём_до:
-                n = find_ai_plind(d, fresh=30, human=a.human)
+                if a.plind is not None:
+                    _п = os.path.join(d, f"coss3_eco_P{a.plind}.dat")
+                    try:
+                        if time.time() - os.path.getmtime(_п) <= 30:
+                            n = a.plind
+                    except OSError:
+                        n = None
+                else:
+                    n = find_ai_plind(d, fresh=30, human=a.human)
                 if n is not None:
                     break
                 time.sleep(2.0)
                 if int(ждём_до - time.time()) % 30 < 2:
-                    print(f"     жду новую партию, осталось "
-                          f"{int(ждём_до - time.time())} с", flush=True)
+                    print(f"     жду новую партию"
+                          + (f" на слоте P{a.plind}" if a.plind is not None else "")
+                          + f", осталось {int(ждём_до - time.time())} с", flush=True)
             if n is None:
                 print(f"новая партия не поднялась за {a.new_timeout} с")
                 diagnose(d, human=a.human)

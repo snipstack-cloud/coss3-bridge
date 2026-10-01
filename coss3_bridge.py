@@ -454,7 +454,7 @@ class Bridge:
                 nation: str = "", balloon: int = -1,
                 cannons: int = -1, capture: int = -1,
                 market: int = -1, century18: int = -1,
-                mapsize: int = -1) -> bool:
+                mapsize: int = -1, botslot: int = -1) -> bool:
         """Управление эпизодом. Читает блок в DoProgress интерфейса, он же обслуживает
         и бой, и меню.
 
@@ -464,6 +464,7 @@ class Bridge:
 
         Настройки партии для NEW (все по умолчанию -1 = «не трогать»):
             res    0 -> 1000 ресурсов, 1 -> 4000, 2 -> 5000 (initmapgen.inc:167)
+            botslot слот БОТА для партии человек-против-бота; -1 = как было
             peace  индекс времени мира; 0 (default) означает 0 минут
                    (_misc_GetPeaceTime, misc.script:4264)
             ai     сложность противника, gc_player_difficulty_* по номеру
@@ -532,6 +533,15 @@ class Bridge:
         # то, что записано.
         if int(mapsize) >= 0:
             поля["mapsize"] = int(mapsize)
+        # СЛОТ БОТА (1.10, просьба игрока): партия ЧЕЛОВЕК ПРОТИВ БОТА. -1 —
+        # как было: слот 0 человек, слот 1 нативный ИИ, то есть ровно то, что
+        # сыграли все записанные прогоны. При botslot >= 1 блок делает названный
+        # слот ЧЕЛОВЕЧЕСКИМ и гасит на нём нативный ИИ, а игрок остаётся на
+        # слоте 0 — офлайн движок локального игрока иначе не сажает
+        # (showcustomgame.inc:556). Из меню так не настроить: человеческим слот
+        # становится только по сетевому lanid (:530-537).
+        if int(botslot) >= 1:
+            поля["botslot"] = int(botslot)
         text = dump_parser_file("br_ctl", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

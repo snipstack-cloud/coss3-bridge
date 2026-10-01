@@ -33,6 +33,18 @@
       [*] = ;         var brctlres   : Integer = -1;   // gen.resourcestart: 0=1000 1=4000 2=5000
       [*] = ;         var brctlpeace : Integer = -1;   // additional.peacetime, default=0 minutes
       [*] = ;         var brctlai    : Integer = -1;   // aidifficulty: 3 = Impossible
+      [*] = ;         // WHICH SLOT THE BOT TAKES (1.10, request of the player). -1 means 'as
+      [*] = ;         // before': slot 0 human, slot 1 native ai - that is what all 213 recorded
+      [*] = ;         // runs played, and the series must not change under them.
+      [*] = ;         // With botslot >= 1 the match becomes HUMAN AGAINST BOT: the player keeps
+      [*] = ;         // slot 0 (offline the engine gives the local player slot 0 and nothing else
+      [*] = ;         // - showcustomgame.inc:556 writes the profile name there), and the bot gets
+      [*] = ;         // its own slot with NO native ai at all. Why it cannot be done from the menu:
+      [*] = ;         // offline a slot becomes human only through a network lanid
+      [*] = ;         // (showcustomgame.inc:530-537), so the menu offers ai or closed and nothing
+      [*] = ;         // else. These fields are written before DoNewGame, which is the one place
+      [*] = ;         // where the menu's choice can still be overridden.
+      [*] = ;         var brctlbot   : Integer = -1;
       [*] = ;         // The UI list numbers levels from 1 (0 means 'slot open'),
       [*] = ;         // while aidifficulty holds one less: showcustomgame.inc:647
       [*] = ;         // sets the list index to aidifficulty+1. So Impossible is 3.
@@ -105,6 +117,8 @@
       [*] = ;            brctlmapsz := ParserGetIntValueByKeyByHandle(hctl, 'mapsize');
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'speed') <> '') then
       [*] = ;            brctlspd := ParserGetIntValueByKeyByHandle(hctl, 'speed');
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'botslot') <> '') then
+      [*] = ;            brctlbot := ParserGetIntValueByKeyByHandle(hctl, 'botslot');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
@@ -177,6 +191,50 @@
       [*] = ;               SetTimeSpeedFactor(gc_settings_gamespeed_2);
       [*] = ;               gProfile.igamespeed := 2;
       [*] = ;            end;
+      [*] = ;            // HUMAN AGAINST BOT. Checked FIRST and with an else below, so the path
+      [*] = ;            // the 213 recorded runs played is not touched when botslot is absent.
+      [*] = ;            if (brctlbot >= 1) then
+      [*] = ;            begin
+      [*] = ;               // Slot 0 the same careful way as below: only nation and team. The
+      [*] = ;               // first version of that code rewrote the slot whole and wiped the
+      [*] = ;               // profile name, leaving a nameless player of an 'unknown' nation.
+      [*] = ;               if (brctlnat <> '') then
+      [*] = ;               gMap.players[0].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               gMap.players[0].team := 1;
+      [*] = ;               // The bot's slot: human, and the native ai explicitly OFF. Both
+      [*] = ;               // matter. bhuman is what the state and command blocks gate on
+      [*] = ;               // (block_hstate.inc:7 takes any player with `not bai`), and bai
+      [*] = ;               // False is what keeps the engine's own ai from giving this slot
+      [*] = ;               // orders at the same time as we do - two hands on one army.
+      [*] = ;               gMap.players[brctlbot].bexists := True;
+      [*] = ;               gMap.players[brctlbot].bhuman := True;
+      [*] = ;               gMap.players[brctlbot].bai := False;
+      [*] = ;               gMap.players[brctlbot].bclosed := False;
+      [*] = ;               gMap.players[brctlbot].bready := True;
+      [*] = ;               gMap.players[brctlbot].team := 2;
+      [*] = ;               // -1 is gc_player_difficulty_none (dmscript.global:781). Written as a
+      [*] = ;               // number, not by name: the verifier does not find that constant in the
+      [*] = ;               // data it scans, and an unknown name is exactly what it is there to
+      [*] = ;               // catch. Difficulty is meaningless on this slot anyway - it belongs to
+      [*] = ;               // the native ai, which is off here.
+      [*] = ;               gMap.players[brctlbot].aidifficulty := -1;
+      [*] = ;               // A name, so the scoreboard says who this is. Safe here, unlike on
+      [*] = ;               // slot 0: this slot has no profile to lose.
+      [*] = ;               gMap.players[brctlbot].name := 'BRIDGE';
+      [*] = ;               if (brctlnat <> '') then
+      [*] = ;               gMap.players[brctlbot].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               // Everyone else closed, slot 0 and the bot's aside: a third player
+      [*] = ;               // changes the conditions, and a stray native ai would make the
+      [*] = ;               // match unlike the one that was asked for.
+      [*] = ;               var brpl2 : Integer;
+      [*] = ;               for brpl2 := 1 to gc_MaxPlayerCount-1 do
+      [*] = ;               if (brpl2 <> brctlbot) then
+      [*] = ;               begin
+      [*] = ;                  gMap.players[brpl2].bexists := False;
+      [*] = ;                  gMap.players[brpl2].bclosed := True;
+      [*] = ;               end;
+      [*] = ;            end
+      [*] = ;            else
       [*] = ;            if (brctlai >= 0) then
       [*] = ;            begin
       [*] = ;               // Do NOT rewrite the human slot as a whole. The first version
@@ -210,6 +268,21 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'nat0', gMap.players[0].cid);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'nat1', gMap.players[1].cid);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'ai1', gMap.players[1].aidifficulty);
+      [*] = ;            // WHAT BECAME OF THE BOT SLOT, read back from the engine and not from
+      [*] = ;            // our own wish. The setup happens before DoNewGame, and the load right
+      [*] = ;            // after it has overridden our fields before - that is how the game
+      [*] = ;            // speed turned out to be restored from the profile on 25.09. Reporting
+      [*] = ;            // the WISH would have hidden it; reporting the fields tells the truth.
+      [*] = ;            ParserSetIntValueByKeyByHandle(back, 'botslot', brctlbot);
+      [*] = ;            if (brctlbot >= 1) then
+      [*] = ;            begin
+      [*] = ;               ParserSetBoolValueByKeyByHandle(back, 'bot_human', gMap.players[brctlbot].bhuman);
+      [*] = ;               ParserSetBoolValueByKeyByHandle(back, 'bot_ai', gMap.players[brctlbot].bai);
+      [*] = ;               ParserSetBoolValueByKeyByHandle(back, 'bot_exists', gMap.players[brctlbot].bexists);
+      [*] = ;               ParserSetIntValueByKeyByHandle(back, 'bot_team', gMap.players[brctlbot].team);
+      [*] = ;               ParserSetIntValueByKeyByHandle(back, 'bot_nat', gMap.players[brctlbot].cid);
+      [*] = ;               ParserSetIntValueByKeyByHandle(back, 'my_team', gMap.players[0].team);
+      [*] = ;            end;
       [*] = ;            ParserSetValueByKeyByHandle(back, 'done', 'newgame_called');
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'res', gMap.settings.gen.resourcestart);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'peace', gMap.settings.additional.peacetime);

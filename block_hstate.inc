@@ -12,13 +12,21 @@
       [*] = ;      var hshb : Integer = ParserSelectByKey('br_hstate');
       [*] = ;      if (hshb = 0) then
       [*] = ;      hshb := ParserCreate('br_hstate');
-      [*] = ;      var hslast : Float = ParserGetFloatValueByKeyByHandle(hshb, 'wrote');
+      [*] = ;      // ONE STAMP PER SLOT, and this was a defect until 1.10. The key used to be
+      [*] = ;      // plain 'wrote', one for everybody, and the whole parser was cleared on each
+      [*] = ;      // write. With a SINGLE human slot that worked. In a match of HUMAN AGAINST
+      [*] = ;      // BOT there are two, and whichever ticked first in a game second stamped the
+      [*] = ;      // key - the other then failed `hsnow - hslast >= 1.0` and wrote NOTHING.
+      [*] = ;      // Live game 1.10: coss3_eco_P1.dat was fresh while P0 stayed at the previous
+      [*] = ;      // day's match, and nothing said so out loud. Keyed by plind both slots write
+      [*] = ;      // every game second; ParserClear is GONE, because clearing the parser is what
+      [*] = ;      // would wipe the other slot's stamp.
+      [*] = ;      var hslast : Float = ParserGetFloatValueByKeyByHandle(hshb, 'wrote' + IntToStr(plind));
       [*] = ;      // Once per game second is enough: the model thinks every 15-20 seconds, and
       [*] = ;      // a full object scan every frame would be paid for by the simulation.
       [*] = ;      if (hsnow - hslast >= 1.0) or (hsnow < hslast) then
       [*] = ;      begin
-      [*] = ;         ParserClearByHandle(hshb);
-      [*] = ;         ParserSetFloatValueByKeyByHandle(hshb, 'wrote', hsnow);
+      [*] = ;         ParserSetFloatValueByKeyByHandle(hshb, 'wrote' + IntToStr(plind), hsnow);
       [*] = ;         var hsp : Integer = ParserSelectByKey('br_hp');
       [*] = ;         if (hsp = 0) then
       [*] = ;         hsp := ParserCreate('br_hp');
