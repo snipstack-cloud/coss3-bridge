@@ -22,7 +22,7 @@
   размен (его убитые бойцы / наши)                              +1 · min(размен / 1,5, 1)
   наша армия к 15:00                                            +0,5 · min(армия / 100, 1)
 
-    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--out файл.json]
+    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--out файл.json]
 """
 import json
 import os
@@ -118,9 +118,17 @@ def мера(сим, и):
                 размен=размен, наша15=наша15, потери=сим.my_mil_lost, убито=сим.убито_бойцов)
 
 
+ВРАГ = None     # None — прежний симулятор; иначе стиль агентного врага (§29): родной / горячий / осторожный
+
+
 def _партия(з):
-    п, d, seed = з
+    п, d, seed = з[:3]
+    враг = з[3] if len(з) > 3 else None
     import sim as SIM
+    # пул на macOS поднимает процессы заново — настройку врага везём с заданием
+    SIM.АГЕНТНЫЙ_ВРАГ = враг is not None
+    if враг is not None:
+        SIM.СТИЛЬ_ВРАГА, SIM.ВРАГ_СЛЕДУЕТ, SIM.ОБОРОНА_ДОМА = враг, 6.0, 3
     сим, и = SIM.партия(d, Стратегия(п) if п else _Ярус1(), seed=seed)
     return мера(сим, и)
 
@@ -141,6 +149,10 @@ def main():
     def опц(имя, умолч, тип=int):
         return тип(sys.argv[sys.argv.index(имя) + 1]) if имя in sys.argv else умолч
     gens, pop, k, seed = опц("--gens", 40), опц("--pop", 48), опц("--k", 8), опц("--seed", 1)
+    global ВРАГ
+    ВРАГ = опц("--враг", None, str)
+    if ВРАГ:
+        print(f"ПРОТИВНИК: агентный враг, стиль «{ВРАГ}» (§29)", flush=True)
     выход = опц("--out", os.path.join(os.path.dirname(os.path.abspath(__file__)), "поиск", f"s{seed}.json"), str)
     os.makedirs(os.path.dirname(выход), exist_ok=True)
     sys.argv = [sys.argv[0], "--корпус", КОРПУС]
@@ -155,7 +167,7 @@ def main():
         for g in range(gens):
             X = np.clip(rng.normal(mu, sigma, size=(pop, n)), 0, 1)
             партии = [обуч[i] for i in rng.choice(len(обуч), size=k, replace=False)]
-            задания = [(из_вектора(x), d, 1000 * g + j) for x in X for j, d in enumerate(партии)]
+            задания = [(из_вектора(x), d, 1000 * g + j, ВРАГ) for x in X for j, d in enumerate(партии)]
             р = пул.map(_партия, задания)
             R = np.array([St.mean(x["награда"] for x in р[i * k:(i + 1) * k]) for i in range(pop)])
             идx = np.argsort(-R)[:элита]
@@ -172,7 +184,7 @@ def main():
                        ("кулак 35 в 6:00 (ручной)", dict(из_вектора(np.full(n, 0.5)), дерево=5, камень=3, шахт_золота=2, казарм=1,
                                                           еда_после=1 / 3, атака=0, защита=0, запас=0.0, мушкетёры=0,
                                                           T1=360.0, P1=0.5, Ц1=0, T2=2000.0, шаг=60.0, порог=5.0, Ц2=1))):
-            р = пул.map(_партия, [(п, d, 100000 + 100 * j + i) for j in range(3) for i, d in enumerate(тест)])
+            р = пул.map(_партия, [(п, d, 100000 + 100 * j + i, ВРАГ) for j in range(3) for i, d in enumerate(тест)])
             print(f"  {имя:26} {свод(р)}", flush=True)
     json.dump({"итог": итог, "лучший": из_вектора(лучший), "лучшая_r": лучшая_r}, open(выход, "w"), ensure_ascii=False, indent=1)
     print("сохранено", выход)
