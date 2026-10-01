@@ -36,6 +36,7 @@ for _s in (_sys.stdout, _sys.stderr):
 
 import argparse
 import configparser
+import json
 import os
 import subprocess
 import sys
@@ -351,6 +352,43 @@ def main() -> int:
         команда += бот["ключи"].split()
     # БЕЗ --new: партию мы уже начали сами, выше. С ключом политика начала бы
     # ЕЩЁ одну и смела бы ту, в которой игрок уже стоит.
+    # ДОКАЗАТЕЛЬСТВА ПРОГОНА, рядом с трассой. Отчёт по партии 1.10 сам сказал,
+    # чего ему не хватило: «версия моста НЕ ЗАПИСАНА — прогон не воспроизвести» и
+    # «условия партии НЕ ЗАПИСАНЫ — сравнивать с другими копиями нельзя». В
+    # контейнере это кладёт entrypoint, а живая партия оставалась без них.
+    # Пишется ЗДЕСЬ, а не выше: нужны и квитанция, и готовая команда.
+    if бот["каталог"]:
+        try:
+            _sha = subprocess.check_output(["git", "rev-parse", "HEAD"],
+                                           cwd=ЗДЕСЬ, text=True).strip()
+        except Exception:
+            _sha = "неизвестен"
+        with open(os.path.join(бот["каталог"], "bridge.sha"), "w",
+                  encoding="utf-8") as f:
+            f.write(_sha + "\n")
+        # Условия — КАК ИХ ОТДАЛ ДВИЖОК (квитанция), а не как мы просили: разницу
+        # между желанием и сделанным и ловит этот файл.
+        with open(os.path.join(бот["каталог"], "match.dat"), "w",
+                  encoding="latin-1", errors="replace") as f:
+            f.write("section.begin\n")
+            for _к in sorted(ack):
+                f.write(f"   {_к} = {ack[_к]}\n")
+            f.write("section.end\n")
+        with open(os.path.join(бот["каталог"], "опыт.json"), "w",
+                  encoding="utf-8") as f:
+            json.dump({"опыт": "партия против игрока",
+                       "что": "живая партия ЧЕЛОВЕК ПРОТИВ БОТА: игрок слотом 0, бот "
+                              f"слотом {партия['слот']} — человеческим слотом без "
+                              "нативного ИИ. Условия партии взяты из архива "
+                              "(match.dat прогонов 28.09).",
+                       "ref": _sha,
+                       "флаги": " ".join(команда[3:]),
+                       "слот_бота": партия["слот"],
+                       "модель": бот["модель"],
+                       "настройка": партия,
+                       "начало": time.strftime("%Y-%m-%d %H:%M:%S")},
+                      f, ensure_ascii=False, indent=1)
+        print(f"доказательства прогона: bridge.sha {_sha[:12]}, match.dat, опыт.json")
     среда = dict(os.environ)
     if бот["адрес"]:
         # Имя переменной то же, которое читает llm_policy (BASE_URL, строка 74).
