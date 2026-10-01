@@ -639,13 +639,22 @@ def list_models(client, needle: str) -> int:
 def check(client, model: str, think: bool = False,
           probes: int = 3, every: int = 30) -> int:
     """Жив ли ключ и жива ли модель. Заодно меряем задержку одного вызова."""
-    try:
-        ids = [m.id for m in client.models.list().data]
-    except Exception as e:
-        print(f"каталог недоступен — сеть? {e}")
-        return 1
+    # РОДНОЙ ПУТЬ ollama каталога в понятиях OpenAI не отдаёт: у него свой
+    # /api/tags, а `client.models` нет вовсе. Сверку по каталогу пропускаем и
+    # говорим об этом вслух — проверка задержки ниже и есть то, за чем сюда шли.
+    if isinstance(client, Родной):
+        print(f"родной путь ollama ({client}): каталог не сверяю, "
+              "мерю вызовы")
+        ids = [model]
+    else:
+        try:
+            ids = [m.id for m in client.models.list().data]
+        except Exception as e:
+            print(f"каталог недоступен — сеть? {e}")
+            return 1
     # Внимание: листинг отдают и без ключа. Ключ проверяет только вызов ниже.
-    print(f"каталог доступен, в нём {len(ids)} моделей")
+    if not isinstance(client, Родной):
+        print(f"каталог доступен, в нём {len(ids)} моделей")
     # Пресет OpenRouter (@preset/<slug>) в каталог не попадает — это НЕ модель,
     # а сохранённый набор настроек. Сверять его со списком бессмысленно, а
     # прежняя проверка отказывалась звонить и уходила с ошибкой.
@@ -681,7 +690,8 @@ def check(client, model: str, think: bool = False,
         t = time.time()
         try:
             data = ask(client, model, "Время 0:30. Ресурсов нет, крестьян 20. "
-                                      "Что строить первым? Ответь JSON.", think)
+                                      "Что строить первым? Ответь JSON.", think,
+                       усилие=УСИЛИЕ)
         except Exception as e:
             bad += 1                        # не выходим: доля сбоев — тоже замер
             alls.append(time.time() - t)    # сбой тоже жжёт такт, он в задержке
@@ -765,7 +775,8 @@ def compare(client, models: list[str], think: bool, probes: int, every: int) -> 
             t = time.time()
             try:
                 ask(client, model, "Время 0:30. Ресурсов нет, крестьян 20. "
-                                   "Что строить первым? Ответь JSON.", think, retry=0)
+                                   "Что строить первым? Ответь JSON.", think, retry=0,
+                    усилие=УСИЛИЕ)
                 waits.append(time.time() - t)
                 toks.append(LAST_TOKENS)
             except Exception as e:
@@ -8970,6 +8981,16 @@ _КОМАНДА_СХЕМА = {
 }
 
 СХЕМОЙ = False         # --schema включает; отказ провайдера снимает обратно
+УСИЛИЕ = ""            # --reasoning none: reasoning_effort ОСНОВНОГО такта. До 1.10 этот
+                       # выключатель был только у канала событий (--event-reasoning), и
+                       # думающая модель в такте была непригодна вовсе. Замер проекта
+                       # 22.09 на qwen3:30b-a3b, один и тот же вопрос: со схемой 48 с и
+                       # ПУСТОЙ content (обрыв по max_tokens на рассуждении); со схемой и
+                       # reasoning_effort="none" — 1,1 с и 19 токенов, тот же ответ.
+                       # Живая проверка 1.10 повторила отказ: 2 вызова из 2 обрезаны на
+                       # 1200 токенах, 47 и 65 с. `think=false` и enable_thinking через
+                       # /v1 не делают НИЧЕГО — выключатель один, и он здесь.
+                       # Пусто — ключ не посылается вовсе: облачным он чужой.
 
 
 class Родной:
@@ -9076,8 +9097,16 @@ def ask(client, model: str, prompt: str, think: bool = False,
     if isinstance(client, Родной):
         # Родной путь ollama: схема грамматикой. `усилие` здесь не нужно —
         # выключать нечего, рассуждению негде начаться.
-        return _спросить_ollama(client, model, prompt, system or SYSTEM,
-                                схема, max_tokens or 200)
+        # ОСНОВНОЙ ТАКТ (1.10): схему он задаёт глобалью СХЕМОЙ, а не параметром,
+        # — и без этой подстановки родной путь уходил бы БЕЗ грамматики, то есть
+        # ровно туда, откуда мы бежим. Потолок тоже свой: событийный ответ лежит
+        # в 27 токенах, а ход такта несёт восемь полей и список команд.
+        _сх = схема
+        _пот = max_tokens or 200
+        if _сх is None and СХЕМОЙ:
+            _сх = СХЕМА_ОТВЕТА
+            _пот = max_tokens or MAX_TOKENS
+        return _спросить_ollama(client, model, prompt, system or SYSTEM, _сх, _пот)
     kw = dict(
         model=model,
         messages=[{"role": "system", "content": system or SYSTEM},
@@ -9528,7 +9557,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
             args=(коробка, client, a.model,
                   situation(st, br.read_map() or {}, [], прошлые_подсказки,
                             None, [], a.allow_restart, мир=load_world(a.world)),
-                  a.think, a.tries, a.spare),
+                  a.think, a.tries, a.spare, "", None, УСИЛИЕ),
             daemon=True)
         поток.start()
         pending = (поток, коробка)
@@ -12276,6 +12305,22 @@ def main() -> int:
                          "основной модели: например http://localhost:11434/v1 "
                          "для ollama. Ключ там обычно не нужен, посылаем "
                          "заглушку. Пусто — тот же адрес, что у основной")
+    ap.add_argument("--native", action="store_true",
+                    help="звать ЛОКАЛЬНУЮ ollama её РОДНЫМ путём (/api/generate), а не "
+                         "через /v1. Там схема задаётся ГРАММАТИКОЙ: модель физически не "
+                         "может выдать токен вне JSON, и рассуждению негде начаться. "
+                         "Замер 23.09: те же запросы через /v1 — 48-344 с с рассуждением "
+                         "и ни один из ШЕСТИ выключателей думания не работает; родным "
+                         "путём 2,2-2,5 с и 27 токенов. Живая проверка 1.10 добавила: "
+                         "через /v1 ollama игнорирует и response_format, то есть --schema "
+                         "там не действует вовсе, и модель отвечает ```json. Ключа и "
+                         "облака этот путь не требует")
+    ap.add_argument("--reasoning", default="", metavar="none",
+                    help="reasoning_effort ОСНОВНОГО такта. none гасит рассуждение "
+                         "думающей модели: без него qwen3 тратит весь лимит на "
+                         "рассуждение и до JSON не доходит (замер 22.09 и живая "
+                         "проверка 1.10 — 2 вызова из 2 обрезаны на 1200 токенах). "
+                         "Пусто — ключ не посылается: облачным провайдерам он чужой")
     ap.add_argument("--event-reasoning", default="", metavar="none",
                     dest="event_reasoning",
                     help="reasoning_effort для СОБЫТИЙНОЙ модели, если она "
@@ -12518,6 +12563,13 @@ def main() -> int:
             return 1
         client = OpenAI(base_url=BASE_URL, api_key=key,
                         timeout=a.timeout, max_retries=0)
+        # РОДНОЙ ПУТЬ вместо /v1, если попросили. Создаём ПОСЛЕ OpenAI нарочно:
+        # остальной код (запасная модель, канал событий) продолжает получать
+        # обычного клиента, и меняется только тот, кем играет такт.
+        if getattr(a, "native", False):
+            client = Родной(BASE_URL)
+            print(f"основной такт идёт РОДНЫМ путём ollama: {client}; "
+                  "схема грамматикой, рассуждению негде начаться")
         # ОТДЕЛЬНАЯ МОДЕЛЬ ДЛЯ НАЙМА. Узкий вопрос «кого нанимать» не требует
         # ни описания мира, ни истории: замер 21.09 по серии hire_channel —
         # 128 вызовов за 4 партии, 33 токена ответа против 233 у такта, и по
@@ -12651,6 +12703,9 @@ def main() -> int:
     if getattr(a, "enemy_march", 0):
         globals()["ПОХОДЫ_ВРАГА"] = True
         print("походы врага по отрядам: сетка drow -> куда, откуда, когда дойдут")
+    if getattr(a, "reasoning", ""):
+        globals()["УСИЛИЕ"] = a.reasoning
+        print(f"рассуждение основного такта: reasoning_effort={a.reasoning}")
     if getattr(a, "c18_numbers", 0):
         globals()["ВЕК18_В_ЗАПРОСЕ"] = True
         print("числа 18 века в запросе: pikeman18/musk18/dragun18/uniq_* — свои и его; "
@@ -12702,6 +12757,15 @@ def main() -> int:
         return list_models(client, a.models)
     if a.check:
         print(f"адрес {BASE_URL}")
+        # СХЕМУ ВКЛЮЧАЕМ И ДЛЯ ПРОВЕРКИ (1.10). Глобаль ставится в `одна_партия`,
+        # то есть только когда партия УЖЕ началась, — и `--check --schema` все
+        # прежние разы мерил путь БЕЗ схемы, молча. Живая проверка на qwen3 это и
+        # показала: родным путём вызов ускорился с 47 с до 4-5 с, но ответ шёл
+        # свободным текстом и обрывался по num_predict, потому что грамматики не
+        # было. Проверка обязана мерить то, чем играем.
+        globals()["СХЕМОЙ"] = bool(a.schema)
+        if a.schema:
+            print("проверка идёт СО СХЕМОЙ, как и партия")
         return check(client, a.model, a.think, a.probes, a.every)
 
     d = os.path.expandvars(a.dir)
