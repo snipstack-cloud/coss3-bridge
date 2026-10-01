@@ -74,14 +74,34 @@ def _клетки(поле, имена):
 НАШ = ("n", "пик", "стрелков", "конных")
 
 
+def _человек_в_трассе(путь_снимка):
+    """Признак «противник — человек» живёт в ТРАССЕ такта (`coss3_bot.jsonl`, поле `state`),
+    в снимок он не попадает (1.10): берём слот, который боту враг, живой и не ИИ."""
+    путь = os.path.join(os.path.dirname(путь_снимка), "coss3_bot.jsonl")
+    if not os.path.exists(путь):
+        return False
+    for s in open(путь, encoding="utf-8"):
+        try:
+            st = json.loads(s).get("state")
+        except ValueError:
+            continue
+        if isinstance(st, dict) and any(st.get(f"p{i}_human") and st.get(f"p{i}_enemy") and not st.get(f"p{i}_ai")
+                                        for i in range(8)):
+            return True
+    return False
+
+
 def разобрать(путь, итог):
+    человек = _человек_в_трассе(путь)
     for s in _снимки(путь):
         его = _клетки(s.get("ecells"), ЕГО)
         наши = [c for c in _клетки(s.get("ocells"), НАШ) if c.get("n", 0) > 0]
         if not его or not наши:
             continue
         итог["снимков"] += 1
-        итог["человек"] += bool(s.get("p1_human"))
+        # ПРОТИВНИК-ЧЕЛОВЕК — по слоту ВРАГА, а не по единице: 1.10 игрок сидел слотом 0,
+        # бот слотом 1, и признак лежал в `p0_human` трассы (Windows, `coss3_map.слот_врага`)
+        итог["человек"] += человек
         for e in его:
             n, идут = e.get("n", 0), e.get("идут", 0)
             if n <= 0:
