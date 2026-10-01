@@ -22,7 +22,7 @@
   размен (его убитые бойцы / наши)                              +1 · min(размен / 1,5, 1)
   наша армия к 15:00                                            +0,5 · min(армия / 100, 1)
 
-    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--против-игрока] [--out файл.json]
+    python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--против-игрока] [--хозяйство] [--тактика] [--out файл.json]
 """
 import json
 import os
@@ -47,11 +47,20 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # ХОЗЯЙСТВО §33 — ключом `--хозяйство`: длина дебюта и еда до 7:00 (поиск хозяйства догнал
 # игрока по армии и прокачке при дебюте 9 и 77 % на еде после 7:00)
 РЫЧАГИ_ХОЗ = (("n", 0, 20, True), ("еда_до", 0.4, 0.85, False))
+# ТАКТИКА §35 — ключом `--тактика` (замечание игрока 1.10 по карте: волна 27 билась одна у его
+# базы, вторая 52 вышла через минуту и пришла, когда первой уже не было). Значения «выкл»:
+# отход 0, подмога 0, слабая 0.
+РЫЧАГИ_ТАКТ = (("отход", 0.0, 1.5, False), ("подмога", 0, 80, False), ("слабая", 0, 1, True))
 
 
 def из_вектора(x):
     п = {}
-    for v, (имя, lo, hi, цел) in zip(np.clip(x, 0, 1), РЫЧАГИ + (РЫЧАГИ_ХОЗ if len(x) > len(РЫЧАГИ) else ())):
+    # состав вектора — по ТОЧНОЙ длине (1.10: «не меньше» путал 19 = война+тактика с
+    # война+хозяйство, и тактика теряла «подмогу»)
+    доп = {len(РЫЧАГИ): (), len(РЫЧАГИ) + len(РЫЧАГИ_ХОЗ): РЫЧАГИ_ХОЗ,
+           len(РЫЧАГИ) + len(РЫЧАГИ_ТАКТ): РЫЧАГИ_ТАКТ,
+           len(РЫЧАГИ) + len(РЫЧАГИ_ХОЗ) + len(РЫЧАГИ_ТАКТ): РЫЧАГИ_ХОЗ + РЫЧАГИ_ТАКТ}[len(x)]
+    for v, (имя, lo, hi, цел) in zip(np.clip(x, 0, 1), РЫЧАГИ + доп):
         z = lo + v * (hi - lo)
         п[имя] = int(round(z)) if цел else float(z)
     return п
@@ -94,8 +103,41 @@ class Стратегия:
         if not self.первый and t >= п["T1"] and свободных >= 5:
             из.append({"cmd": "ATTACK", "count": max(5, int(свободных * п["P1"])), "target": ЦЕЛИ[п["Ц1"]]})
             self.первый = True
+        волна = float(st.get("wave_n") or 0)
+        if "отход" in п:
+            from sim import сетка
+            его = сетка([st.get(f"frow{y}") or "" for y in range(16)]) if st.get("frow0") is not None else сетка(st.get("frow"))
+            wx, wy = int(round(float(st.get("wave_cx") or 0))), int(round(float(st.get("wave_cy") or 0)))
+            if волна <= 0.5:
+                self.отходит = False
+            elif его:
+                рядом = sum(его[yy][xx] for yy in range(max(0, wy - 1), min(len(его), wy + 2))
+                            for xx in range(max(0, wx - 1), min(len(его[yy]), wx + 2)))
+                # ОТХОД: волна проигрывает в своём окне — домой, и 20 с новых волн не выпускать
+                if п["отход"] > 0.05 and рядом >= 3 and волна < п["отход"] * рядом and not getattr(self, "отходит", False):
+                    из.append({"cmd": "RETREAT"})
+                    self.отходит = True
+                    self.след = max(self.след, t + 20.0)
+                # ПОДМОГА: волна в поле и держится, а дома набралось — к ней, не отдельным ударом
+                elif п["подмога"] >= 1 and not getattr(self, "отходит", False) and свободных >= п["подмога"]:
+                    из.append({"cmd": "ATTACK", "count": "all", "target": "wave"})
+                    return из
+            if getattr(self, "отходит", False):
+                return из
         if t >= self.след and свободных >= п["порог"]:
-            из.append({"cmd": "ATTACK", "count": "all", "target": ЦЕЛИ[п["Ц2"]]})
+            приказ = {"cmd": "ATTACK", "count": "all", "target": ЦЕЛИ[п["Ц2"]]}
+            if п.get("слабая") and "отход" in п:
+                # СЛАБАЯ КЛЕТКА: из его клеток с 2+ бойцами не дальше 4 от цели — где его меньше
+                from sim import сетка
+                его = сетка([st.get(f"frow{y}") or "" for y in range(16)]) if st.get("frow0") is not None else сетка(st.get("frow"))
+                if его:
+                    центр = max(((x, y) for y in range(len(его)) for x in range(len(его[y]))), key=lambda p: его[p[1]][p[0]])
+                    кандидаты = [(его[y][x], x, y) for y in range(len(его)) for x in range(len(его[y]))
+                                 if его[y][x] >= 2 and max(abs(x - центр[0]), abs(y - центр[1])) <= 4]
+                    if кандидаты:
+                        _, x, y = min(кандидаты)
+                        приказ = {"cmd": "ATTACK", "count": "all", "target": "cell", "aim": [x, y]}
+            из.append(приказ)
             self.след = t + п["шаг"]
         return из
 
@@ -183,7 +225,7 @@ def main():
         import train as TR
         обуч, тест = TR.разбить(TR.партии([]))
     rng = np.random.default_rng(seed)
-    n = len(РЫЧАГИ) + (len(РЫЧАГИ_ХОЗ) if "--хозяйство" in sys.argv_исх else 0)
+    n = len(РЫЧАГИ) + (len(РЫЧАГИ_ХОЗ) if "--хозяйство" in sys.argv_исх else 0) + (len(РЫЧАГИ_ТАКТ) if "--тактика" in sys.argv_исх else 0)
     mu, sigma = np.full(n, 0.5), np.full(n, 0.3)
     элита = max(4, pop // 6)
     лучший, лучшая_r = None, -1e9
