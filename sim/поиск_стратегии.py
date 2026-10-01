@@ -110,6 +110,15 @@ class Стратегия:
             wx, wy = int(round(float(st.get("wave_cx") or 0))), int(round(float(st.get("wave_cy") or 0)))
             if волна <= 0.5:
                 self.отходит = False
+            elif его and getattr(self, "отходит", False):
+                # ОТМЕНА ОТХОДА (2.10, §37): отход шёл домой до конца, даже когда отошедшая
+                # волна соединилась с подмогой и стала сильнее его рядом; теперь при перевесе
+                # `возврат` над его бойцами в 4 клетках — обратно на его армию
+                рядом4 = sum(его[yy][xx] for yy in range(max(0, wy - 4), min(len(его), wy + 5))
+                             for xx in range(max(0, wx - 4), min(len(его[yy]), wx + 5)))
+                if волна >= п.get("возврат", 1.5) * max(рядом4, 1.0):
+                    из.append({"cmd": "_ВПЕРЁД", "target": "army"})
+                    self.отходит = False
             elif его:
                 рядом = sum(его[yy][xx] for yy in range(max(0, wy - 1), min(len(его), wy + 2))
                             for xx in range(max(0, wx - 1), min(len(его[yy]), wx + 2)))
