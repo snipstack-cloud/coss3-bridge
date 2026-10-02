@@ -1,0 +1,183 @@
+# -*- coding: utf-8 -*-
+"""ЯДРО ТАКТИКА — признаки, сеть и приказы, общие для симулятора и живого моста (2.10, §41-44).
+
+Один код на обе стороны нарочно: тень в живой игре (`shadow_tactic.py`) должна считать
+ровно те признаки, на которых сеть училась в `sim/тактик.py`. Только стандартная
+библиотека — мост на Windows живёт без numpy.
+
+Вход — словарь в форме симулятора: `ocells`/`ecells` списком {"x","y","n"} в клетках
+сетки 16×16, `my_cx/my_cy`, `en_base` [x, y], `my_freewar`, `upg_done`, `gametime`.
+Живой снимок приводится к ней в `shadow_tactic.из_моста`.
+"""
+import math
+
+ШАГ = 15.0
+СКРЫТЫЙ = 32
+РЕШЕНИЯ = ("ничего", "держать", "подмога", "к_своим", "вперёд", "удар_армия", "удар_крестьяне",
+           "удар_база", "собраться", "на_меньшую", "отряд_на_меньшую")
+N_ПРИЗНАКОВ = 37
+N_ВЕСОВ = N_ПРИЗНАКОВ * СКРЫТЫЙ + СКРЫТЫЙ + СКРЫТЫЙ * len(РЕШЕНИЯ) + len(РЕШЕНИЯ)
+# Какие приказы есть в живом мосте как есть (§44). Остальные — внутренние команды симулятора;
+# для них нужна просьба к Windows.
+В_МОСТЕ = {"ничего": True, "подмога": True, "удар_армия": True, "удар_крестьяне": True, "удар_база": True,
+           "держать": False, "к_своим": False, "вперёд": False, "собраться": False,
+           "на_меньшую": False, "отряд_на_меньшую": False}
+
+
+def _клетки(поле):
+    if not isinstance(поле, list):
+        return {}
+    return {(c["x"], c["y"]): c.get("n", 0) for c in поле if isinstance(c, dict) and c.get("n", 0) >= 1}
+
+
+def кучи(кл):
+    """Связные кучи клеток (8 соседей): [(n, cx, cy)] по убыванию n."""
+    ост, из = set(кл), []
+    while ост:
+        стек, куча = [ост.pop()], []
+        while стек:
+            p = стек.pop(); куча.append(p)
+            for dx in (-1, 0, 1):
+                for dy in (-1, 0, 1):
+                    q = (p[0] + dx, p[1] + dy)
+                    if q in ост:
+                        ост.remove(q); стек.append(q)
+        n = sum(кл[p] for p in куча)
+        из.append((n, sum(p[0] * кл[p] for p in куча) / n, sum(p[1] * кл[p] for p in куча) / n))
+    return sorted(из, reverse=True)
+
+
+def _в(кл, x, y, r):
+    return sum(n for (a, b), n in кл.items() if max(abs(a - x), abs(b - y)) <= r)
+
+
+class Ядро:
+    """Сеть 37 → 32 (tanh) → 11 и её память между шагами."""
+
+    def __init__(self, theta):
+        th = [float(v) for v in theta]
+        assert len(th) == N_ВЕСОВ, (len(th), N_ВЕСОВ)
+        i = 0
+        self.W1 = [th[i + r * СКРЫТЫЙ: i + (r + 1) * СКРЫТЫЙ] for r in range(N_ПРИЗНАКОВ)]; i += N_ПРИЗНАКОВ * СКРЫТЫЙ
+        self.b1 = th[i:i + СКРЫТЫЙ]; i += СКРЫТЫЙ
+        K = len(РЕШЕНИЯ)
+        self.W2 = [th[i + r * K: i + (r + 1) * K] for r in range(СКРЫТЫЙ)]; i += СКРЫТЫЙ * K
+        self.b2 = th[i:i + K]
+        self.след, self.приказ, self.с_приказа = 300.0, 0, 0.0
+        self.прошлое = None
+        self.меньшая = None
+        self.сводка = {}
+        self.история = []
+
+    def признаки(self, st, t):
+        наши, его = _клетки(st.get("ocells")), _клетки(st.get("ecells"))
+        мх, му = float(st.get("my_cx") or 2), float(st.get("my_cy") or 2)
+        eb = st.get("en_base") or [13, 13]
+        нк, ек = кучи(наши), кучи(его)
+        дом = min(нк, key=lambda k: math.hypot(k[1] - мх, k[2] - му)) if нк else (0, мх, му)
+        поле = [k for k in нк if k is not дом]
+        if поле and ек:
+            волна = min(поле, key=lambda k: min(math.hypot(k[1] - e[1], k[2] - e[2]) for e in ек))
+        else:
+            волна = поле[0] if поле else (0, мх, му)
+        ближ = min(ек, key=lambda e: math.hypot(e[1] - волна[1], e[2] - волна[2])) if ек else (0, eb[0], eb[1])
+        другие = [e for e in ек if e is not ближ]
+        # §42: его меньшая куча рядом — цель манёвра «растащить» (карта игрока 8:58: 63 и 21)
+        рядом_кучи = [e for e in ек if e[0] >= 5 and math.hypot(e[1] - волна[1], e[2] - волна[2]) <= 8]
+        self.меньшая = (min(рядом_кучи)[1], min(рядом_кучи)[2]) if len(рядом_кучи) >= 2 else None
+        втор = другие[0] if другие else (0, ближ[1], ближ[2])
+        d_ближ = math.hypot(ближ[1] - волна[1], ближ[2] - волна[2])
+        wx, wy = int(round(волна[1])), int(round(волна[2]))
+        наших5, его5 = _в(наши, wx, wy, 5), _в(его, wx, wy, 5)
+        его1 = _в(его, wx, wy, 1)
+        # движение его ближней кучи: сдвиг центра с прошлого шага
+        cos_в = cos_д = 0.0
+        if self.прошлое and self.прошлое.get("ближ"):
+            px, py = self.прошлое["ближ"]
+            dx, dy = ближ[1] - px, ближ[2] - py
+            dd = math.hypot(dx, dy)
+            if dd > 0.05:
+                for цель, ключ in (((волна[1], волна[2]), "в"), ((дом[1], дом[2]), "д")):
+                    vx, vy = цель[0] - px, цель[1] - py
+                    vv = math.hypot(vx, vy) or 1
+                    c = (dx * vx + dy * vy) / (dd * vv)
+                    if ключ == "в": cos_в = c
+                    else: cos_д = c
+        ln = lambda a, b: max(-3.0, min(3.0, math.log2((a + 1) / (b + 1))))
+        пр = self.прошлое or {}
+        наш_всего, его_всего = sum(наши.values()), sum(его.values())
+        x = [t / 900, наш_всего / 150, его_всего / 150,
+             волна[0] / 100, math.hypot(волна[1] - eb[0], волна[2] - eb[1]) / 16, math.hypot(волна[1] - мх, волна[2] - му) / 16,
+             ближ[0] / 100, d_ближ / 16, (пр.get("d_ближ", d_ближ) - d_ближ) / 2, cos_в, cos_д,
+             втор[0] / 100, math.hypot(втор[1] - ближ[1], втор[2] - ближ[2]) / 16,
+             дом[0] / 100, math.hypot(дом[1] - волна[1], дом[2] - волна[2]) / 16,
+             math.hypot(дом[1] - волна[1], дом[2] - волна[2]) * 16 / 1.15 / 60,
+             ln(волна[0], его1), ln(наших5, его5), ln(наш_всего, его_всего),
+             (наш_всего - пр.get("наш", наш_всего)) / 20, (его_всего - пр.get("его", его_всего)) / 20,
+             _в(его, int(eb[0]), int(eb[1]), 3) / 100, float(st.get("my_freewar") or 0) / 100,
+             sum(1 for u in str(st.get("upg_done") or "").split(",") if u.startswith("bar.pikeman")) / 8,
+             min(self.с_приказа / 120, 2.0), пр.get("лн1", 0.0), пр.get("лн5", 0.0)]
+        x += [1.0 if self.приказ == i else 0.0 for i in range(1, 8)]
+        x += [1.0 if self.приказ == i else 0.0 for i in (9, 10)] + [1.0 if self.меньшая else 0.0]
+        self.прошлое = dict(ближ=(ближ[1], ближ[2]), d_ближ=d_ближ, наш=наш_всего, его=его_всего,
+                            лн1=ln(волна[0], его1), лн5=ln(наших5, его5))
+        # сводка для журнала тени — то, что сеть «видит», словами
+        self.сводка = dict(волна=[round(волна[0]), round(волна[1], 1), round(волна[2], 1)],
+                           дом=[round(дом[0]), round(дом[1], 1), round(дом[2], 1)],
+                           его_ближ=[round(ближ[0]), round(ближ[1], 1), round(ближ[2], 1)],
+                           его_втор=[round(втор[0]), round(втор[1], 1), round(втор[2], 1)],
+                           до_ближ=round(d_ближ, 1), сближение=round(x[8] * 2, 2), к_волне=round(cos_в, 2), к_дому=round(cos_д, 2),
+                           наших5=round(наших5), его5=round(его5), его_в_клетке_волны=round(его1),
+                           наш_всего=round(наш_всего), его_всего=round(его_всего), куч_его=len(ек), куч_наших=len(нк))
+        assert len(x) == N_ПРИЗНАКОВ, len(x)
+        return x
+
+    def оценки(self, x):
+        скр = [math.tanh(self.b1[j] + sum(x[r] * self.W1[r][j] for r in range(N_ПРИЗНАКОВ))) for j in range(СКРЫТЫЙ)]
+        return [self.b2[k] + sum(скр[j] * self.W2[j][k] for j in range(СКРЫТЫЙ)) for k in range(len(РЕШЕНИЯ))]
+
+    def решить(self, st):
+        """Шаг раз в 15 с: (номер решения, признаки, оценки) или None между шагами."""
+        t = float(st.get("gametime") or 0)
+        if t < self.след:
+            return None
+        self.след = t + ШАГ
+        x = self.признаки(st, t)
+        л = self.оценки(x)
+        i = max(range(len(л)), key=lambda k: л[k])
+        self.с_приказа = 0.0 if i != self.приказ else self.с_приказа + ШАГ
+        if i:
+            self.приказ = i
+        self.история.append(i)
+        return i, x, л
+
+    def команды(self, i, st):
+        """Приказы решения `i` словарём моста; внутренние команды симулятора — с «_»."""
+        имя, своб, из = РЕШЕНИЯ[i], float(st.get("my_freewar") or 0), []
+        if имя == "держать":
+            из.append({"cmd": "_СТОЙ"})
+        elif имя == "подмога" and своб >= 1:
+            из.append({"cmd": "ATTACK", "count": "all", "target": "wave"})
+        elif имя == "к_своим":
+            из.append({"cmd": "_К_СВОИМ"})
+        elif имя == "вперёд":
+            из.append({"cmd": "_ВПЕРЁД", "target": "army"})
+        elif имя == "удар_армия" and своб >= 1:
+            из.append({"cmd": "ATTACK", "count": "all", "target": "army"})
+        elif имя == "удар_крестьяне" and своб >= 1:
+            из.append({"cmd": "ATTACK", "count": "all", "target": "peasants_free"})
+        elif имя == "удар_база" and своб >= 1:
+            из.append({"cmd": "ATTACK", "count": "all", "target": "base"})
+        elif имя == "собраться":
+            из.append({"cmd": "_СТОЙ"})
+            if своб >= 1:
+                из.append({"cmd": "ATTACK", "count": "all", "target": "wave"})
+        elif имя in ("на_меньшую", "отряд_на_меньшую") and self.меньшая:
+            aim = [round(self.меньшая[0], 1), round(self.меньшая[1], 1)]
+            if имя == "на_меньшую":
+                из.append({"cmd": "_НА_КЛЕТКУ", "aim": aim})
+                if своб >= 1:
+                    из.append({"cmd": "ATTACK", "count": "all", "target": "cell", "aim": [int(aim[0]), int(aim[1])]})
+            else:
+                из.append({"cmd": "_ОТРЯД", "share": 0.3, "aim": aim})
+        return из
