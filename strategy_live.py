@@ -78,6 +78,35 @@ class ЖиваяСтратегия:
             из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "food")]
             из.append({"cmd": "BALANCE", "role": "food", "total": цель_еды, "_важно": True})
             self.отдано["BALANCE food (переходник)"] += 1
+        # СТРОЙКА ЯВНО (3.10, контейнер `smoke_strategy` второй прогон: армия встала на 17 — железо
+        # кончилось к 4:57, шахты железа не было ни одной; вторая казарма и шахты золота 2-3 тоже
+        # не встали). Ярус 1 ставит закладку, только пока ничего не строится, а стратегия каждый
+        # такт просит академию — вживую что-то строится всегда; и потолок 7 срезал стройки в
+        # хвосте списка. Здесь — ОДНА закладка за такт, самая нужная по порядку: шахта железа →
+        # шахта золота → казармы → дом → академия. BUILD декларативный (total — сколько должно
+        # стоять), повтор безопасен.
+        из = [c for c in из if c["cmd"] not in ("BUILD", "BUILDERS")]
+        def ч(k):
+            return float(st.get(k) or 0)
+        есть_дер_кам = ч("wood") >= 100 and ч("stone") >= 100
+        закладка = None
+        if ч("ba17") >= 1 and ч("mines_iron") < 1 and есть_дер_кам:
+            закладка = ("mineiron", 1)
+        elif (ч("mines_gold") < int(self.п.get("шахт_золота", 2)) and ч("on_gold") >= 5 * ч("mines_gold") - 1
+              and есть_дер_кам):
+            закладка = ("minegold", int(ч("mines_gold")) + 1)
+        elif ч("ba17") >= 1 and ч("ba17") < int(self.п.get("казарм", 1)):
+            закладка = ("ba17", int(ч("ba17")) + 1)
+        elif ч("my_farm") - ч("my_farmused") <= 5 and есть_дер_кам:
+            закладка = ("house", int(ч("houses")) + 1)
+        elif self.стр.академия and ч("ba17") >= 1 and ч("academies") < 1 and gt >= getattr(self.стр, "академия_с", 0):
+            закладка = ("academi", 1)
+        if закладка:
+            из += [{"cmd": "BUILDERS", "total": 5}, {"cmd": "BUILD", "role": закладка[0], "total": закладка[1]}]
+            self.отдано[f"BUILD {закладка[0]} (переходник)"] += 1
+        if ч("mines_iron") >= 1 and ч("on_iron") < 5:
+            из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "iron")]
+            из.append({"cmd": "BALANCE", "role": "iron", "total": 5, "_важно": True})
         шахт = float(st.get("mines_gold") or 0)
         if шахт >= 1 and float(st.get("on_gold") or 0) < 5 * шахт:
             из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "gold")]
