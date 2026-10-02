@@ -329,7 +329,12 @@ def main():
     if СМЕСЬ:
         import glob as _g
         игрок_п = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок/*/*/coss3_snap.jsonl")))
-        print(f"ПРОТИВНИК: смесь (§49) — записи игрока ({len(игрок_п)}) с погоней, родной агент, одни мушкетёры", flush=True)
+        # §53: виды смеси — ключом COSS3_MIX (по умолчанию как в §49); «p2» — запись игрока-мушкетёра
+        ВИДЫ_СМЕСИ = os.environ.get("COSS3_MIX", "игрок,родной,мушкетёры").split(",")
+        _p2 = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_02_10_p2/*/coss3_snap.jsonl")))
+        def НАБОР_ВИДА(вид):
+            return игрок_п if вид == "игрок" else (_p2 if вид == "p2" else обуч)
+        print(f"ПРОТИВНИК: смесь (§49, §53) — {', '.join(ВИДЫ_СМЕСИ)}", flush=True)
     rng = np.random.default_rng(seed)
     global СОСТАВ
     СОСТАВ = РЫЧАГИ + (РЫЧАГИ_ХОЗ if "--хозяйство" in sys.argv_исх else ()) + (РЫЧАГИ_ТАКТ if "--тактика" in sys.argv_исх else ()) \
@@ -344,10 +349,11 @@ def main():
         for g in range(gens):
             X = np.clip(rng.normal(mu, sigma, size=(pop, n)), 0, 1)
             if СМЕСЬ:
-                треть = max(1, k // 3)
-                партии = [(игрок_п[i % len(игрок_п)], "смесь:игрок") for i in rng.choice(len(игрок_п) * 4, size=треть, replace=False)] + \
-                    [(обуч[i], "смесь:родной") for i in rng.choice(len(обуч), size=треть, replace=False)] + \
-                    [(обуч[i], "смесь:мушкетёры") for i in rng.choice(len(обуч), size=треть, replace=False)]
+                треть = max(1, k // len(ВИДЫ_СМЕСИ))
+                партии = []
+                for вид in ВИДЫ_СМЕСИ:
+                    набор = НАБОР_ВИДА(вид)
+                    партии += [(набор[i % len(набор)], "смесь:" + вид) for i in rng.choice(len(набор) * 4, size=треть, replace=False)]
                 задания = [(из_вектора(x), d, 1000 * g + j, вр, False) for x in X for j, (d, вр) in enumerate(партии)]
             else:
                 партии = [обуч[i] for i in rng.choice(len(обуч), size=k, replace=False)] * (4 if ИГРОК else 1)
@@ -370,7 +376,8 @@ def main():
                                                           еда_после=1 / 3, атака=0, защита=0, запас=0.0, мушкетёры=0,
                                                           T1=360.0, P1=0.5, Ц1=0, T2=2000.0, шаг=60.0, порог=5.0, Ц2=1))):
             if СМЕСЬ:
-                for вр, набор in (("игрок", игрок_п * 15), ("родной", тест), ("мушкетёры", тест)):
+                for вр in ВИДЫ_СМЕСИ:
+                    набор = (НАБОР_ВИДА(вр) * 15) if вр in ("игрок", "p2") else тест
                     р = пул.map(_партия, [(п, d, 100000 + i, "смесь:" + вр, False) for i, d in enumerate(набор)])
                     print(f"  {имя:26} {вр:10} {свод(р)}", flush=True)
                 continue
