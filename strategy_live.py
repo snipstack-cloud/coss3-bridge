@@ -65,6 +65,23 @@ class ЖиваяСтратегия:
                 атака = True
             self.отдано[cmd] += 1
             из.append(c)
+        # ЕДА И ЗОЛОТО ЯВНО (3.10, контейнер Windows `smoke_strategy/1`: стратегия ни разу не дала
+        # BALANCE food — еда 993 -> 0 к 2:33, крестьян 18 -> 3). Ярус 1 шлёт на еду только
+        # ПРОСТАИВАЮЩИХ (4 и больше) — в симуляторе их много, вживую почти нет, а мостовой дебют
+        # короткий (n бойцов) и кончается раньше созревания поля. Здесь доля еды из стратегии
+        # (`еда_до` до 7:00, `еда_после` после) и 5 на шахту золота выставляются каждый такт.
+        gt = float(st.get("gametime") or 0)
+        крест = float(st.get("peasants") or 0)
+        доля = float(self.п.get("еда_до", 2 / 3)) if gt < 420 else float(self.п.get("еда_после", 1 / 3))
+        цель_еды = int(крест * доля)
+        if float(st.get("mills") or 0) >= 1 and float(st.get("on_food") or 0) < цель_еды - 1:
+            из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "food")]
+            из.append({"cmd": "BALANCE", "role": "food", "total": цель_еды, "_важно": True})
+            self.отдано["BALANCE food (переходник)"] += 1
+        шахт = float(st.get("mines_gold") or 0)
+        if шахт >= 1 and float(st.get("on_gold") or 0) < 5 * шахт:
+            из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "gold")]
+            из.append({"cmd": "BALANCE", "role": "gold", "total": int(5 * шахт), "_важно": True})
         # мост читает не больше 7 команд за такт: волна и прокачки — вперёд, затем стройка
         # (BUILDERS сразу перед своим BUILD), найм, люди; повтор BALANCE по ресурсу — последний
         пары, прочее = [], []
@@ -81,7 +98,12 @@ class ЖиваяСтратегия:
                 балансы[c.get("role")] = c
         прочее = [c for c in прочее if c["cmd"] != "BALANCE"] + list(балансы.values())
         прочее.sort(key=lambda c: вес.get(c["cmd"], 6))
-        из = [c for c in прочее if вес.get(c["cmd"], 6) <= 1] + [x for п in пары for x in п] + \
+        важные = [c for c in прочее if c.get("_важно")]
+        прочее = [c for c in прочее if not c.get("_важно")]
+        for c in важные:
+            c.pop("_важно", None)
+        # еда и золото — сразу после волны и прокачек, раньше строек: их не срезает потолок
+        из = [c for c in прочее if вес.get(c["cmd"], 6) <= 1] + важные + [x for п in пары for x in п] + \
             [c for c in прочее if вес.get(c["cmd"], 6) > 1]
         if len(из) > 7:
             self.пропущено["сверх 7 команд"] += len(из) - 7
