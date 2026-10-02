@@ -30,7 +30,10 @@ import statistics as St
 import sys
 from multiprocessing import Pool
 
-import numpy as np
+try:
+    import numpy as np       # поиску нужен; живому мосту (strategy_live, Windows без numpy) — нет
+except ImportError:
+    np = None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 КОРПУС = os.path.join(os.path.dirname(os.path.abspath(__file__)), "корпус_27_09.txt")

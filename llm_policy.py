@@ -8923,6 +8923,9 @@ def загрузить_реплей(путь: str) -> int:
     return len(ответы)
 
 
+СТРАТЕГИЯ = None   # --strategy (§50): strategy_live.ЖиваяСтратегия вместо модели
+
+
 def следующий_ответ() -> dict:
     global _REPLAY_I
     with _REPLAY_LOCK:
@@ -9116,6 +9119,8 @@ def ask(client, model: str, prompt: str, think: bool = False,
     НИЧЕГО (34 и 35 с с полным рассуждением) — выключатель один. Пусто —
     ключ не посылается вовсе: облачным он чужой.
     """
+    if СТРАТЕГИЯ is not None:               # --strategy (§50): модель не зовём вовсе
+        return {"commands": [], "why": "режим стратегии: модель не зовётся"}
     if REPLAY:                              # --replay: модель не зовём вовсе
         return следующий_ответ()
     if isinstance(client, Родной):
@@ -9954,10 +9959,20 @@ def одна_партия(a, client, br: Bridge, plind: int,
             # модели у него нет НАРОЧНО: `spare` держит очередь облачных, а если
             # локальная молчит, честнее пропустить найм, чем тихо уехать в
             # облако и сжечь токены, которых мы и хотели избежать.
-            th = threading.Thread(target=think_worker,
-                                  args=(box, client, a.model, prompt, a.think,
-                                        a.tries, a.spare, ""),
-                                  daemon=True)
+            if СТРАТЕГИЯ is not None:
+                # §50: решение даёт стратегия поиска, синхронно, тем же путём ответа
+                try:
+                    box["data"] = СТРАТЕГИЯ.ответ(st)
+                except Exception as e:      # стратегия не роняет партию: такт пустой
+                    box["data"] = {"commands": [], "why": f"стратегия упала: {e!r}"}
+                box["ready"], box["provider"], box["tokens"] = time.time(), "стратегия", 0
+                box["tries"], box["model"], box["log"] = 1, "стратегия", []
+                th = threading.Thread(target=lambda: None, daemon=True)
+            else:
+                th = threading.Thread(target=think_worker,
+                                      args=(box, client, a.model, prompt, a.think,
+                                            a.tries, a.spare, ""),
+                                      daemon=True)
             th.start()
             pending = (th, box)
 
@@ -12466,6 +12481,10 @@ def main() -> int:
                     help="запасная модель, если основная упёрлась в лимит")
     ap.add_argument("--tries", type=int, default=3,
                     help="попыток на решение при 500/таймауте (вызов в фоне, повтор бесплатен)")
+    ap.add_argument("--strategy", default="", metavar="файл.json",
+                    help="СТРАТЕГИЯ ПОИСКА (§50): мост сам исполняет найденное симулятором "
+                         "(sim/поиск/*.json — хозяйство, прокачки, волны); модель не "
+                         "зовётся, ключ не нужен. Ставить вместе с --every 5")
     ap.add_argument("--replay", default="", metavar="файл",
                     help="играть заранее записанными ответами вместо модели: "
                          "проверка петли без ключа и без игры (см. log_review.py --replay-out)")
@@ -12590,7 +12609,15 @@ def main() -> int:
             a.lessons = "replay_lessons.txt"   # не пачкать настоящий журнал
             print(f"  уроки пишутся в {a.lessons}")
 
-    if not a.replay:                        # реплею ни ключ, ни клиент не нужны
+    if getattr(a, "strategy", ""):
+        # §50: стратегия поиска исполняется мостом; дебют — мостовой, длиной из стратегии
+        global СТРАТЕГИЯ
+        import strategy_live
+        СТРАТЕГИЯ = strategy_live.ЖиваяСтратегия(a.strategy)
+        a.debut = СТРАТЕГИЯ.n
+        print(f"СТРАТЕГИЯ: {a.strategy} — модель не зовём; дебют скриптом до {a.debut} бойцов, "
+              f"дальше команды стратегии раз в {a.every} с", flush=True)
+    if not a.replay and not getattr(a, "strategy", ""):   # реплею и стратегии ключ не нужен
         key, src = load_key(a.key)
         if not key:
             print("нет ключа. Любой из трёх способов, по порядку поиска:\n"
