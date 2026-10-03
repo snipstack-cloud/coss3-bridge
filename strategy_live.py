@@ -49,9 +49,31 @@ def _клетка(st: dict, x: float, z: float) -> tuple:
     return (max(0, min(15, int(float(x) // ш))), max(0, min(15, int(float(z) // в))))
 
 
+def _список(st: dict, ключ: str, разбор):
+    """Поле клеток или зданий СПИСКОМ, как бы оно ни пришло.
+
+    Куплено живой игрой 3.10 (`smoke_net/1`): в ЧАСТОМ СНИМКЕ эти поля уже списки
+    словарей, а в ЖИВОМ СОСТОЯНИИ — строки вида «x,y,...;...». Я написал обход по
+    `st.get("obuild")` напрямую — и в партии на каждом внутреннем приказе получал
+    `AttributeError: 'str' object has no attribute 'get'`: строка обходится по
+    символам. Такт при этом не пропадал (ловится «стратегия упала, запасная»), то
+    есть ошибка была ТИХОЙ. Разбор — тот же, которым пользуется весь проект
+    (`coss3_map`), а не свой.
+    """
+    v = st.get(ключ)
+    if isinstance(v, list):
+        return [c for c in v if isinstance(c, dict)]
+    try:
+        import coss3_map
+        return разбор(st)
+    except Exception:
+        return []
+
+
 def _дом(st: dict) -> tuple:
     """Клетка нашей ратуши. Берётся из `obuild` — там наши здания с координатами."""
-    for b in (st.get("obuild") or []):
+    import coss3_map
+    for b in _список(st, "obuild", coss3_map.наши_здания):
         if str(b.get("тип") or "") == "center":
             return _клетка(st, b.get("x") or 0, b.get("z") or 0)
     return (8, 8)
@@ -79,7 +101,9 @@ def _в_мостовые(c: dict, cmd: str, st: dict):
     дальше 60 от ратуши в порядке движка. Поэтому при одной куче в поле поведение
     совпадает, а при двух и больше приказ может достаться не той.
     """
-    кучи = [k for k in (st.get("ocells") or []) if int(k.get("n") or 0) > 0]
+    import coss3_map
+    кучи = [k for k in _список(st, "ocells", coss3_map.наши_клетки)
+            if int(k.get("n") or 0) > 0]
     дом = _дом(st)
     поле = [k for k in кучи if (int(k.get("x") or 0), int(k.get("y") or 0)) != дом]
     # «В ПОЛЕ» СЧИТАЕМ ТАК ЖЕ, КАК БЛОК, а не по клеткам. Блок берёт бойцов дальше 60
