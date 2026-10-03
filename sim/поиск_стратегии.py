@@ -65,7 +65,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 1.2-1.3 (+1, +2) найдены в коде — линейки до 6 и до 3.
 def _прокачки_из_описи():
     try:
-        о = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "опись.json")))
+        о = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                        "опись.json"), encoding="utf-8"))
     except OSError:
         return (), ()
     одиночные = tuple(sorted(r["имя"] for r in о if r["симулятор"] == "учтён" and not r["имя"].startswith("bar.")

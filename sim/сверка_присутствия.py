@@ -93,7 +93,8 @@ def main():
     with Pool(12) as пул:
         стили = sys.argv_стили if hasattr(sys, "argv_стили") else ("родной", "горячий", "осторожный")
         for стиль in стили:
-            поиск = json.load(open(os.path.join(К, "поиск", f"агент_{стиль}.json" if стиль != "нет" else "s1.json")))["итог"]
+            поиск = json.load(open(os.path.join(К, "поиск", f"агент_{стиль}.json" if стиль != "нет" else "s1.json"),
+                                   encoding="utf-8"))["итог"]
             кандидаты = [("сеть s1", "сеть", os.path.join(К, "ночь01", "армия_s1.npy")),
                          ("сеть s2", "сеть", os.path.join(К, "ночь01", "армия_s2.npy")),
                          ("сеть s3", "сеть", os.path.join(К, "ночь01", "армия_s3.npy")),
