@@ -33,10 +33,21 @@ if os.path.join(_ЗДЕСЬ, "sim") not in sys.path:
 
 
 class ЖиваяСтратегия:
-    def __init__(self, путь: str):
+    def __init__(self, путь: str, сеть: str = ""):
         with open(путь, encoding="utf-8") as f:
             w = json.load(f)
         self.п = w.get("итог", w)
+        # СЕТЬ ТАКТИКА ВОЮЕТ (3.10, §61): волны и тактика стратегии выключаются ровно как в
+        # обучении (`sim/тактик.Тактик`), решение о бое раз в 15 с даёт сеть.
+        self.сеть = None
+        if сеть:
+            import tactic_core
+            with open(сеть, encoding="utf-8") as f:
+                self.сеть = tactic_core.Ядро(json.load(f)["theta"])
+            self.имя_сети = os.path.basename(сеть)
+            self.п = {k: v for k, v in self.п.items() if k not in ("отход", "подмога", "слабая", "возврат")}
+            self.п.update(T1=1e9, T2=1e9, P1=0.0)
+            self.решения = collections.Counter()
         self.имя = os.path.basename(путь)
         import поиск_стратегии as ПС
         ПС.ПРАВИЛА_ЖИВЫЕ = True          # вживую правила моста действуют всегда
@@ -58,9 +69,36 @@ class ЖиваяСтратегия:
             return {"commands": [], "why": f"стратегия {self.имя}: ждёт конца дебюта"}
         из = self.стр(st)
         why = f"стратегия {self.имя}: {len(из)} команд"
+        из = [_мостовая_цель(c) for c in из]
+        if self.сеть is not None:
+            # признаки — тем же переводом живого снимка, что у тени (§44); приказ сети — первым
+            import shadow_tactic, tactic_core
+            с = shadow_tactic.из_моста(st)
+            р = self.сеть.решить(с)
+            if р is not None:
+                имя = tactic_core.РЕШЕНИЯ[р[0]]
+                self.решения[имя] += 1
+                бой = [_мостовая_цель(c) for c in self.сеть.команды(р[0], с, живой=True)
+                       if not str(c.get("cmd", "")).startswith("_")]
+                if бой:
+                    из = бой + [c for c in из if c["cmd"] not in ("ATTACK", "RETREAT")]
+                    из = из[:ПОТОЛОК_КОМАНД]
+                why += f"; сеть {self.имя_сети}: {имя}"
         if self.стр.пропущено:
             why += "; живая игра не умеет: " + ", ".join(f"{k} ×{v}" for k, v in self.стр.пропущено.most_common(4))
         return {"commands": из, "why": why}
+
+
+def _мостовая_цель(c: dict) -> dict:
+    """`peasants_free` есть только в симуляторе (крестьяне без его армии); у моста — `peasants`,
+    которая тоже ищет клетку с крестьянами и отбрасывает охраняемые (`клетка_охоты`)."""
+    if c.get("cmd") == "ATTACK" and c.get("target") == "peasants_free":
+        c = dict(c, target="peasants")
+    # клетка: симулятор пишет `aim: [x, y]`, мост ждёт `cx`, `cy` (`to_commands`)
+    if c.get("cmd") == "ATTACK" and c.get("target") == "cell" and isinstance(c.get("aim"), (list, tuple)):
+        c = dict(c, cx=int(c["aim"][0]), cy=int(c["aim"][1]))
+        c.pop("aim", None)
+    return c
 
 
 def привести(сырые: list, st: dict, п: dict, стр, пропущено, отдано) -> list:
