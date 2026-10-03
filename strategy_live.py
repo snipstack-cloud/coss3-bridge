@@ -76,11 +76,24 @@ class ЖиваяСтратегия:
         gt = float(st.get("gametime") or 0)
         крест = float(st.get("peasants") or 0)
         доля = float(self.п.get("еда_до", 2 / 3)) if gt < 420 else float(self.п.get("еда_после", 1 / 3))
-        цель_еды = int(крест * доля)
+        # ДОЛИ ОТ ЛЮДЕЙ НА ЗЕМЛЕ (3.10, третий прогон: на еде 9 из 35 при цели 17 — 20 человек в
+        # шахтах, на земле 15, а еда+дерево+камень просили 29, и мост резал все три
+        # пропорционально, `llm_policy.распределить_balance`). Земля — как у моста: крестьяне
+        # минус шахтёры минус строители. Еда первой (доля деревни, но не больше земли), дерево и
+        # камень — из остатка; сумма не превышает землю, и мосту резать нечего.
+        земля = max(0, int(крест - float(st.get("on_mine") or 0) - float(st.get("on_build") or 0)))
+        цель_еды = min(int(крест * доля), земля)
         if float(st.get("mills") or 0) >= 1 and float(st.get("on_food") or 0) < цель_еды - 1:
             из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") == "food")]
             из.append({"cmd": "BALANCE", "role": "food", "total": цель_еды, "_важно": True})
             self.отдано["BALANCE food (переходник)"] += 1
+        остаток = земля - (цель_еды if float(st.get("mills") or 0) >= 1 else 0)
+        for роль in ("wood", "stone"):
+            for c in из:
+                if c["cmd"] == "BALANCE" and c.get("role") == роль:
+                    c["total"] = max(0, min(int(c.get("total") or 0), остаток))
+            остаток -= min(int(self.п.get({"wood": "дерево", "stone": "камень"}[роль], 0)), max(остаток, 0))
+        из = [c for c in из if not (c["cmd"] == "BALANCE" and c.get("role") in ("wood", "stone") and c["total"] <= 0)]
         # СТРОЙКА ЯВНО (3.10, контейнер `smoke_strategy` второй прогон: армия встала на 17 — железо
         # кончилось к 4:57, шахты железа не было ни одной; вторая казарма и шахты золота 2-3 тоже
         # не встали). Ярус 1 ставит закладку, только пока ничего не строится, а стратегия каждый
