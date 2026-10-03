@@ -193,10 +193,14 @@ def отставание(с_приказа: float) -> float:
     "bar.pikeman.1.1": ("infantry17", {"atk": 1}), "bar.pikeman.1.2": ("infantry17", {"atk": 2}),
     "bar.pikeman.1.3": ("infantry17", {"atk": 2}), "bar.pikeman.1.4": ("infantry17", {"atk": 1}),
     "bar.pikeman.1.5": ("infantry17", {"atk": 2}),
+    # [код] 3.10: country.script:2106 (общая ветка, Нидерланды) — 1.6 даёт +2 урона пики
+    "bar.pikeman.1.6": ("infantry17", {"atk": 2}),
     "bar.pikeman.2.1": ("infantry17", {"dpike": 1, "dsword": 1}), "bar.pikeman.2.2": ("infantry17", {"dpike": 1, "dsword": 1}),
     "bar.pikeman.2.3": ("infantry17", {"dpike": 2, "dsword": 2}), "bar.pikeman.2.4": ("infantry17", {"dpike": 1, "dsword": 1}),
     "bar.pikeman.2.5": ("infantry17", {"dpike": 1, "dsword": 1}), "bar.pikeman.2.6": ("infantry17", {"dpike": 2, "dsword": 2}),
     "bar.musketeernet.1.1": ("musk17", {"atk": 1}),
+    # [код] 3.10: country.script:1064 (_net) — пуля +1, +1, +2 по ступеням 1.1-1.3
+    "bar.musketeernet.1.2": ("musk17", {"atk": 1}), "bar.musketeernet.1.3": ("musk17", {"atk": 2}),
     "bar.musketeernet.2.1": ("musk17", {"dpike": 1, "dsword": 1}), "bar.musketeernet.2.2": ("musk17", {"dpike": 1, "dsword": 1}),
     "bar.musketeernet.2.3": ("musk17", {"dpike": 2, "dsword": 2}), "bar.musketeernet.2.4": ("musk17", {"dpike": 1, "dsword": 1}),
     "bar.musketeernet.2.5": ("musk17", {"dpike": 1, "dsword": 1}), "bar.musketeernet.2.6": ("musk17", {"dpike": 2, "dsword": 2}),

@@ -36,7 +36,7 @@ sys.path.insert(0, К)
 ТИПЫ = {
     "effectfood": ("сбор еды, +%", True), "effectfoodperc": ("сбор еды, +%", True),
     "effectwoodperc": ("сбор дерева, +%", True), "effectstoneperc": ("сбор камня, +%", True),
-    "fieldlifeperc": ("срок жизни поля, +%", False), "fishingperc": ("рыбалка, +%", False),
+    "fieldlifeperc": ("срок жизни поля, +%", True), "fishingperc": ("рыбалка, +%", False),
     "damage": ("урон, +", True), "damageperc": ("урон, +%", True), "protection": ("защита, +", True),
     "shield": ("щит, +", False), "attpauseperc": ("перезарядка, %", True),
     "single_attpauseperc": ("перезарядка юнита, %", False), "attrangeperc": ("дальность, +%", False),
@@ -158,7 +158,7 @@ def из_записей():
 
 def в_симуляторе():
     import sim as SIM, core
-    учтено = set(SIM.ЭФФЕКТЫ) | {u for т in core.ЭФФЕКТ_РЕСУРСА.values() for u in т} | set(SIM.АКАДЕМИЯ_УРОН) | set(SIM.АКАДЕМИЯ_ПАУЗА)
+    учтено = set(SIM.ЭФФЕКТЫ) | {u for т in core.ЭФФЕКТ_РЕСУРСА.values() for u in т} | set(SIM.ЖИЗНЬ_ПОЛЯ) | set(SIM.АКАДЕМИЯ_УРОН) | set(SIM.АКАДЕМИЯ_ПАУЗА)
     import поиск_стратегии as ПС
     поиск = {f"bar.pikeman.{a}.{k}" for a in (1, 2) for k in range(1, 7)} | {"mil.1", "aca.1", "aca.2", "aca.3"}
     return учтено, поиск

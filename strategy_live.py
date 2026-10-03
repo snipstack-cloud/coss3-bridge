@@ -40,6 +40,8 @@ class ЖиваяСтратегия:
         self.имя = os.path.basename(путь)
         import поиск_стратегии as ПС
         ПС.ПРАВИЛА_ЖИВЫЕ = True          # вживую правила моста действуют всегда
+        import debut as _D               # §58: мостовой дебют — тем же порядком, что у стратегии
+        _D.ПОРЯДОК_ИГРОКА = bool(self.п.get("дебют_игрока", 0))
         self.стр = ПС.Стратегия(self.п)
         self.n = max(1, int(self.п.get("n", 20)))
         self.пропущено = collections.Counter()

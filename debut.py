@@ -37,6 +37,7 @@ from coss3_bridge import Bridge, build, train, builders, balance
 
 БОЙЦЫ = ("mil_inf", "mil_shooters", "mil_cav")
 ЦЕПОЧКА = (("center", "centers"), ("smith", "smiths"), ("ba17", "ba17"))
+ПОРЯДОК_ИГРОКА = False   # §58: дебют «как у игрока» по умолчанию для всех новых Дебют()
 
 
 def _int(st: dict, k: str) -> int:
@@ -73,7 +74,12 @@ class Дебют:
     секунда простоя котлована — секунда позже двадцатого бойца.
     """
 
-    def __init__(self, n: int = 20, mine: bool = True, food: int = 6):
+    def __init__(self, n: int = 20, mine: bool = True, food: int = 6, как_игрок: bool | None = None):
+        # ДЕБЮТ КАК У ИГРОКА (3.10, слова игрока): «беру 12 крестьян на ратушу и параллельно 6 на
+        # мельницу, те, кто построил ратушу, строят кузницу, параллельно идёт мельница; как
+        # мельница и кузница достроены — сразу всех на казарму». Казарма у него к 0:22-0:29, у
+        # прежнего дебюта — к 2:23-3:27. По умолчанию — модульный ПОРЯДОК_ИГРОКА (False).
+        self.как_игрок = ПОРЯДОК_ИГРОКА if как_игрок is None else как_игрок
         self.n = n
         self.mine = mine
         self.food = food
@@ -107,8 +113,22 @@ class Дебют:
         cmds: list = []
         слова: list[str] = []
         закладка = None
+        if self.как_игрок:
+            # ратуша 12, сразу мельница 6; кузница — строителями ратуши; казарма — когда готовы
+            # мельница и кузница, всеми. Одна закладка за такт: BUILDERS действует на новую стройку
+            if готово["center"] < 1 and "center" not in идут:
+                закладка = ("center", 12)
+            elif _int(st, "mills") < 1 and "mill" not in идут:
+                закладка = ("mill", 6)
+            elif готово["center"] >= 1 and готово["smith"] < 1 and "smith" not in идут:
+                закладка = ("smith", 99)
+            elif (готово["smith"] >= 1 and _int(st, "mills") >= 1 and готово["ba17"] < 1
+                  and "ba17" not in идут):
+                закладка = ("ba17", 99)
         # --- цепочка: одна закладка за такт, первая незакрытая ---
-        if готово["center"] < 1:
+        if self.как_игрок:
+            pass
+        elif готово["center"] < 1:
             if "center" not in идут:
                 закладка = ("center", 99)
         elif готово["smith"] < 1:
