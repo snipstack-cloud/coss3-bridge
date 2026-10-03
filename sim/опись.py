@@ -135,7 +135,7 @@ def из_записей():
         glob.glob(os.path.expanduser("~/coss3-res-игрок/*/*/coss3_bot.jsonl"))
     for f in трассы:
         видел, брал = set(), set()
-        for l in open(f, errors="replace"):
+        for l in open(f, encoding="utf-8", errors="replace"):
             if "upg_" not in l:
                 continue
             try:
@@ -190,7 +190,7 @@ def main():
                            взято=взято.get(имя, 0), симулятор=сим, поиск=имя in поиск))
     строки.sort(key=lambda r: (r["симулятор"] != "механика есть, эффект НЕ внесён", r["симулятор"] == "механики нет",
                                -r["показ"], r["имя"]))
-    json.dump(строки, open(os.path.join(К, "опись.json"), "w"), ensure_ascii=False, indent=1)
+    json.dump(строки, open(os.path.join(К, "опись.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
     def цена(c):
         return ", ".join(f"{dict(food='еда', wood='дерево', stone='камень', gold='золото', iron='железо', coal='уголь')[r]} {int(v)}"
@@ -214,7 +214,7 @@ def main():
             эф = r["смысл"] + (f" {r['значение']:g}" if isinstance(r["значение"], (int, float)) else "") + (f" ({r['оружие']})" if r["оружие"] else "") + (" · 18 век" if r["век18"] else "")
             md.append(f"| `{r['имя']}` | {эф} | {r['кому'] or 'всем'} | {цена(r['цена'])} ({r['цена_из']}) | {r['показ']} / {r['взято']} | {'да' if r['поиск'] else '—'} | {r['строка'] or '—'} |")
         md.append("")
-    open(os.path.join(К, "ОПИСЬ.md"), "w").write("\n".join(md))
+    open(os.path.join(К, "ОПИСЬ.md"), "w", encoding="utf-8").write("\n".join(md))
     print(f"прокачек {len(строки)}: " + ", ".join(f"{k} {v}" for k, v in сч.items()))
     print("из показанных боту: " + ", ".join(f"{k} {v}" for k, v in сч_пок.items()))
 

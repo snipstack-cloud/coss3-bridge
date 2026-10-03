@@ -72,6 +72,7 @@ def docker(*аргс: str, тихо: bool = False, ждать: float = 20.0) -> 
     """
     try:
         р = subprocess.run(["docker", *аргс], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace",
                            timeout=ждать)
     except subprocess.TimeoutExpired:
         if not тихо:

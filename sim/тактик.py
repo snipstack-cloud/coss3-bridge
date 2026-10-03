@@ -238,7 +238,7 @@ def main():
         th = np.load(откуда)
         os.makedirs(os.path.dirname(куда) or ".", exist_ok=True)
         json.dump({"theta": [round(float(v), 6) for v in th], "откуда": os.path.basename(откуда),
-                   "погоня": ПОГОНЯ}, open(куда, "w"), ensure_ascii=False)
+                   "погоня": ПОГОНЯ}, open(куда, "w", encoding="utf-8"), ensure_ascii=False)
         print("веса →", куда, len(th))
         return
     with Pool(12) as пул:

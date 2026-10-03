@@ -414,7 +414,7 @@ def main():
                 continue
             р = пул.map(_партия, [(п, d, 100000 + 100 * j + i, ВРАГ, ИГРОК) for j in range(3 if not ИГРОК else 15) for i, d in enumerate(тест)])
             print(f"  {имя:26} {свод(р)}", flush=True)
-    json.dump({"итог": итог, "лучший": из_вектора(лучший), "лучшая_r": лучшая_r}, open(выход, "w"), ensure_ascii=False, indent=1)
+    json.dump({"итог": итог, "лучший": из_вектора(лучший), "лучшая_r": лучшая_r}, open(выход, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("сохранено", выход)
 
 

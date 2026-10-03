@@ -69,7 +69,8 @@ for путь in очередь[:сколько]:
     print(f"\n=== {сделано + 1}. {os.path.relpath(путь, РЕЗ)}  "
           f"{datetime.now():%H:%M}", flush=True)
     r = subprocess.run([sys.executable, os.path.join(КОРЕНЬ, "разбор_трассы.py"),
-                        путь, "--факты"], capture_output=True, text=True)
+                        путь, "--факты"], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     хвост = [с for с in (r.stdout or "").splitlines() if "находок" in с or "модель" in с]
     print("    " + " | ".join(хвост) if хвост else "    " + (r.stderr or "")[-200:],
           flush=True)

@@ -46,7 +46,8 @@ def выполнить(аргс, где="", ключ="", терпеть=False):
     окр = dict(os.environ)
     if ключ:
         окр["GIT_SSH_COMMAND"] = f"ssh -i {ключ} -o IdentitiesOnly=yes -o BatchMode=yes"
-    р = subprocess.run(аргс, cwd=где or None, env=окр, capture_output=True, text=True)
+    р = subprocess.run(аргс, cwd=где or None, env=окр, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if р.returncode and not терпеть:
         print(f"  ! {' '.join(аргс[:3])}: {(р.stdout + р.stderr).strip()[:300]}")
     return р.returncode, р.stdout + р.stderr

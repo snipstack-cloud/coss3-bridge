@@ -35,7 +35,7 @@ def мир(d, на):
 
 
 def заказ(d, w, cap):
-    with open(os.path.join(d, "coss3_cmd_P0.dat"), "w") as f:
+    with open(os.path.join(d, "coss3_cmd_P0.dat"), "w", encoding="utf-8") as f:
         f.write(f"count=2\n0_cmd=BUILDERS\n0_a1={cap}\n0_a2=0\n"
                 f"1_cmd=BUILD\n1_a1={BA17}\n1_a2=2\n")
     w.команды()

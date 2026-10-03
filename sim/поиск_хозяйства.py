@@ -59,7 +59,7 @@ def main():
     gens, pop, seed = опц("--gens", 40), опц("--pop", 48), опц("--seed", 1)
     import glob
     игрок = sorted(os.path.dirname(x) for x in glob.glob(os.path.expanduser("~/coss3-res-игрок/*/*/coss3_snap.jsonl")))
-    корпус = [x.strip() for x in open(os.path.join(К, "корпус_27_09.txt")) if x.strip()]
+    корпус = [x.strip() for x in open(os.path.join(К, "корпус_27_09.txt"), encoding="utf-8") if x.strip()]
     rng = np.random.default_rng(seed)
     партии = игрок + [корпус[i] for i in rng.choice(len(корпус), 6, replace=False)]
     n = len(РЫЧАГИ)
@@ -81,7 +81,7 @@ def main():
             р = пул.map(_партия, [(п, d, 50000 + i + 100 * j) for j in range(3) for i, d in enumerate(игрок)])
             print(f"\n{имя}: {json.dumps(п, ensure_ascii=False)}")
             print("  на записях игрока: " + ", ".join(f"{k} {St.mean(q[k] for q in р):.0f} (игрок {ЦЕЛЬ[k]})" for k in ЦЕЛЬ))
-    json.dump({"итог": из_вектора(mu), "лучший": из_вектора(лучший)}, open(os.path.join(К, "поиск", f"хозяйство_s{seed}.json"), "w"), ensure_ascii=False, indent=1)
+    json.dump({"итог": из_вектора(mu), "лучший": из_вектора(лучший)}, open(os.path.join(К, "поиск", f"хозяйство_s{seed}.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 
 if __name__ == "__main__":
