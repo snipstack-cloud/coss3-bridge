@@ -77,6 +77,7 @@ def _прокачки_из_описи():
     tuple(x for имя, _, n in ЛИНЕЙКИ for x in ((имя, 0, n, True), ("срок " + имя, 0, 1200, False)))
 
 
+ПРАВИЛА_ЖИВЫЕ = os.environ.get("COSS3_LIVE_RULES", "1") == "1"   # §57: правила живого моста в симуляторе
 СОСТАВ = None   # 2.10: состав вектора задаётся ключами в main, а не угадывается по длине
 
 
@@ -136,6 +137,19 @@ class Стратегия:
         self.запас_стоит = None
 
     def __call__(self, st):
+        """Команды такта. После дебюта — через `strategy_live.привести` (3.10, §57): те же правила
+        хозяйства, порядок и потолок, что исполняет живой мост; внутренние команды симулятора
+        (`_ЗАПАС`, `_ВПЕРЁД`) отбрасываются — вживую их нет. `ПРАВИЛА_ЖИВЫЕ = False` — как до §57."""
+        сырые = self._сырые(st)
+        if not ПРАВИЛА_ЖИВЫЕ or not self.я.дебют.готов(st):
+            return сырые
+        import strategy_live as SL
+        if not hasattr(self, "пропущено"):
+            import collections
+            self.пропущено, self.отдано = collections.Counter(), collections.Counter()
+        return SL.привести(сырые, st, self.п, self, self.пропущено, self.отдано)
+
+    def _сырые(self, st):
         п = self.п
         из = self.я(st)
         t = float(st.get("gametime") or 0)
