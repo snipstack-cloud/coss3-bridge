@@ -189,6 +189,12 @@ if [ -n "$COSS3_BRIDGE_GIT" ]; then
         # и sim — НЕТ. Семь мегабайт, копируется мгновенно.
         rm -rf /opt/bridge/sim
         cp -a /opt/bridge-git/sim /opt/bridge/ 2>/dev/null || true
+        # КАТАЛОГ nets — тем же порядком и по той же причине (3.10). Ключ
+        # `--tactic-net nets/tactic_shadow.json` (§61) ищет сеть от рабочего
+        # каталога политики, то есть в /opt/bridge, а маска выше его не брала:
+        # прогон «воюет сеть» упал бы на открытии файла. Двадцать килобайт.
+        rm -rf /opt/bridge/nets
+        cp -a /opt/bridge-git/nets /opt/bridge/ 2>/dev/null || true
         echo "$SHA" > "$COSS3_IO/bridge.sha"
         log "мост обновлён: $(git -C /opt/bridge-git log --oneline -1)"
         log "  SHA записан в ${COSS3_IO}/bridge.sha"
