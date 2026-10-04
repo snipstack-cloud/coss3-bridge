@@ -1083,6 +1083,13 @@
       [*] = ;               begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'count');
       [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, hapre + 'target');
+      [*] = ;            // GROUP (4.10, par.78): which army of ours this order is about.
+      [*] = ;            // Zero or missing - behave exactly as before, so old hints and
+      [*] = ;            // --strategy do not change at all.
+      [*] = ;            var hagid : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'group');
+      [*] = ;            // Order TO an existing group carries no count: the men are the ones
+      [*] = ;            // remembered when the group was made, minus the dead.
+      [*] = ;            var hagold : Boolean = (hagid > 0) and (hawant <= 0);
       [*] = ;            // MOVE: the same order file, only the mode differs. A player moves his
       [*] = ;            // troops wherever he likes with a click and is not obliged to send them
       [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
@@ -1130,6 +1137,32 @@
       [*] = ;            end;
       [*] = ;            // Where to go. The model chooses: peasants (the objective), base, or army.
       [*] = ;            var hatx, hatz : Float;
+      [*] = ;            // THE REMEMBERED COMPOSITION of group hagid. The selection loop above
+      [*] = ;            // added nobody (its guard is count, and an order to a group has none),
+      [*] = ;            // so the list is empty and we fill it from the parser.
+      [*] = ;            if (hagold) then
+      [*] = ;            begin
+      [*] = ;               var hagp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;               if (hagp <> 0) then
+      [*] = ;               begin
+      [*] = ;                  var hagn : Integer = ParserGetIntValueByKeyByHandle(hagp, 'g' + IntToStr(hagid) + '_n');
+      [*] = ;                  for hak := 0 to hagn-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hagh : Integer = ParserGetIntValueByKeyByHandle(hagp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hak));
+      [*] = ;                     if (hagh <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var haghp : Pointer = _unit_GetTObj(hagh);
+      [*] = ;                        // Dead men are dropped silently here and loudly below: the
+      [*] = ;                        // count that went into the game is written to the log.
+      [*] = ;                        if (haghp<>nil) then
+      [*] = ;                        if (not TObj(haghp).bdead) then
+      [*] = ;                        gIntegerList.Add(hagh);
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               Log('bridge-human: GROUP ' + IntToStr(hagid) + ' order to ' +
+      [*] = ;                   IntToStr(gIntegerList.GetCount) + ' remembered soldiers');
+      [*] = ;            end;
       [*] = ;            var hafound : Boolean = False;
       [*] = ;            var habest : Float = 1000000;
       [*] = ;            var hapl : Integer;
@@ -1205,12 +1238,29 @@
       [*] = ;               // The army went out and never arrived. HANDOFF describes the same thing
       [*] = ;               // on the AI side, where the cause sat elsewhere.
       [*] = ;               // Eight names in a circle: no more waves than that live at once.
+      [*] = ;               // A NUMBERED group keeps its own name, so an order to it finds the
+      [*] = ;               // same group object; a nameless order keeps the old wave slots.
       [*] = ;               var hagname : String = 'coss3_wave_' + IntToStr(Round(GetGameTime) mod 8) + '_' + IntToStr(haoi);
+      [*] = ;               if (hagid > 0) then
+      [*] = ;               hagname := 'coss3_grp_' + IntToStr(hagid);
       [*] = ;               var hagr : Integer = _misc_GetOrCreateGroupByName(haph, hagname);
       [*] = ;               GroupClearGameObjectsByHandle(hagr);
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               GroupAddGameObjectByHandle(hagr, gIntegerList.Get(hak));
       [*] = ;               _group_Initialize(hagr, nil);
+      [*] = ;               // REMEMBER WHO IS IN THE GROUP (only when it is being made: an
+      [*] = ;               // order to an existing group must not rewrite its roll).
+      [*] = ;               if (hagid > 0) and (not hagold) then
+      [*] = ;               begin
+      [*] = ;                  var hagsp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;                  if (hagsp = 0) then
+      [*] = ;                  hagsp := ParserCreate('br_hgrp');
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n', gIntegerList.GetCount);
+      [*] = ;                  for hak := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hak), gIntegerList.Get(hak));
+      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' made of ' +
+      [*] = ;                      IntToStr(gIntegerList.GetCount) + ' soldiers');
+      [*] = ;               end;
       [*] = ;               // These men are busy now: the next order of this tick skips them.
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               gTmpIntList.Add(gIntegerList.Get(hak));

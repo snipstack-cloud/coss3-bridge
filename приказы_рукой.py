@@ -15,8 +15,16 @@
                             --приказ "200 cell retreat 6 7"
     python приказы_рукой.py --список            # что лежит в состоянии сейчас
 
-Приказ словами: `<count> <target> [mode] [cx cy]`, где target — peasants, base,
-army, cell, home; mode — пусто (атака), move, retreat, engage.
+Приказ словами: `<count> <target> [mode] [cx cy] [g<номер>]`, где target —
+peasants, base, army, cell, home; mode — пусто (атака), move, retreat, engage;
+`g<номер>` — НОМЕР ГРУППЫ (§78):
+
+    "20 cell move 9 7 g1"   создать группу 1 из 20 отобранных и повести в клетку
+    "0 cell move 11 9 g1"   приказ УЖЕ созданной группе 1: отбора нет, идут те же
+    "0 home retreat g1"     она же домой
+
+Группа без count — это и есть «адресный приказ»: трогается только она, остальные
+стоят. Так проверяется мера мака: куча с этим номером сдвинулась, прочие нет.
 
 ЧТО СМОТРЕТЬ ПОСЛЕ. В логе игры (`мост_в_игре.log` либо `game.log`) на один такт
 должно быть СТОЛЬКО строк `bridge-human:`, сколько приказов, а в состоянии —
@@ -53,8 +61,14 @@ def разобрать(текст: str) -> dict:
         приказ["mode"] = части[2]
     if len(части) > 4:
         приказ["cx"], приказ["cy"] = int(части[3]), int(части[4])
+    for ч in части[1:]:
+        if ч.startswith("g") and ч[1:].isdigit():
+            приказ["group"] = int(ч[1:])
     if приказ.get("target") == "cell" and "cx" not in приказ:
         raise SystemExit("цель cell требует двух чисел: cx и cy")
+    if приказ["count"] <= 0 and not приказ.get("group"):
+        raise SystemExit("count 0 имеет смысл только с номером группы: "
+                         "кому тогда приказ?")
     return приказ
 
 

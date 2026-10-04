@@ -589,7 +589,7 @@ class Bridge:
     ЦЕЛИ_ДВИЖЕНИЯ = ("home", "peasants", "base", "army", "cell")
 
     def attack(self, count: int, target: str = "base", mode: str = "",
-               cx: int = -1, cy: int = -1, who: str = "") -> bool:
+               cx: int = -1, cy: int = -1, who: str = "", group: int = 0) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -608,13 +608,13 @@ class Bridge:
         False, если предыдущий приказ ещё не забран."""
         if os.path.exists(self.atk_path):
             return False
-        приказ = self._приказ(count, target, mode, cx, cy, who)
+        приказ = self._приказ(count, target, mode, cx, cy, who, group)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
 
     def _приказ(self, count: int, target: str = "base", mode: str = "",
-                cx: int = -1, cy: int = -1, who: str = ""):
+                cx: int = -1, cy: int = -1, who: str = "", group: int = 0):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
@@ -649,6 +649,16 @@ class Bridge:
         # Пустой mode означает атаку: старый блок такого ключа не знает и просто
         # его не прочитает, поведение остаётся прежним.
         приказ = {"count": int(count), "target": цель}
+        # ГРУППА (4.10, §78): какой НАШЕЙ армии приказ. Номер даёт python, а не
+        # блок: так обе стороны знают его без переговоров, и состояние может
+        # называть группы теми же числами, которыми их создавали.
+        #   group > 0 и count > 0 — создать (пересобрать) группу из отобранных;
+        #   group > 0 и count = 0 — приказ УЖЕ существующей группе, без отбора;
+        #   group нет             — как раньше.
+        if int(group or 0) > 0:
+            приказ["group"] = int(group)
+        elif int(count) <= 0:
+            return None      # приказ, который никого не берёт, бессмыслен
         # КЕМ бить: имя вида, как оно приходит в состоянии (infantry17, musk17,
         # uniq_inf17, dragoon17). Пусто — всеми, как раньше. Ключ лишний для
         # старого блока в игре, и он его просто не прочитает.
@@ -693,7 +703,8 @@ class Bridge:
                 str(п.get("mode", "") or ""),
                 int(п.get("cx", -1) if п.get("cx") is not None else -1),
                 int(п.get("cy", -1) if п.get("cy") is not None else -1),
-                str(п.get("who", "") or ""))
+                str(п.get("who", "") or ""),
+                int(п.get("group", 0) or 0))
             if собран is None:
                 return False
             готовые.append(собран)

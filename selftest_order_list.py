@@ -89,6 +89,25 @@ with tempfile.TemporaryDirectory() as кат:
     if br.attack_many([]):
         беды.append("пустой список приказов не должен уходить в игру")
 
+    # --- 6. ГРУППЫ (§78): номер уезжает, приказ без count живёт только с ним
+    if not br.attack_many([
+            {"count": 20, "target": "cell", "mode": "move", "cx": 9, "cy": 7, "group": 1},
+            {"count": 0, "target": "home", "mode": "retreat", "group": 2}]):
+        беды.append("список с номерами групп не ушёл")
+    else:
+        п = поля(open(br.atk_path, encoding="latin-1").read())
+        if п.get("0_group") != "1" or п.get("1_group") != "2":
+            беды.append(f"номера групп не уехали: {п}")
+        if п.get("1_count") != "0":
+            беды.append("приказ существующей группе должен идти с count 0 — "
+                        "тогда блок берёт запомненных, а не отбирает заново")
+        os.unlink(br.atk_path)
+    # Приказ без группы и без бойцов не берёт никого — он бессмыслен.
+    if br.attack_many([{"count": 0, "target": "home", "mode": "retreat"}]):
+        беды.append("приказ с count 0 и без группы ушёл в игру")
+    if os.path.exists(br.atk_path):
+        os.unlink(br.atk_path)
+
 # --- 6. то, что должно стоять в БЛОКЕ --------------------------------------
 # Сам блок проверяется живой игрой (контейнер для .inc негоден), но его форму
 # можно прочитать здесь — и не узнать потом, что цикла в установленном файле нет.
@@ -100,6 +119,13 @@ inc = open(os.path.join(ЗДЕСЬ, "block_hcmd.inc"), encoding="latin-1").read(
     ("имя группы с номером приказа", "+ '_' + IntToStr(haoi)"),
     ("занятые бойцы не делятся", "gTmpIntList.Add(gIntegerList.Get(hak))"),
     ("ключи читаются с префиксом", "hapre + 'count'"),
+    # Группы (§78): номер читается, состав запоминается в парсере и берётся из него.
+    ("номер группы из приказа", "hapre + 'group'"),
+    ("приказ существующей группе", "var hagold : Boolean = (hagid > 0) and (hawant <= 0)"),
+    ("состав группы в парсере", "ParserCreate('br_hgrp')"),
+    ("состав группы читается", "ParserSelectByKey('br_hgrp')"),
+    ("погибшие не берутся", "if (not TObj(haghp).bdead) then"),
+    ("своё имя у номерной группы", "'coss3_grp_' + IntToStr(hagid)"),
 ]
 for имя, кусок in для_каждого:
     if кусок not in inc:
