@@ -118,12 +118,71 @@
       [*] = ;                  var hcsid : String = gCountry[hccid].members[hcid];
       [*] = ;                  // Do we already have enough of these? BUILD is declarative.
       [*] = ;                  var hchave : Integer;
+      [*] = ;                  var hcunf : Integer = 0;
       [*] = ;                  for hck := 0 to hcobjn-1 do
       [*] = ;                  begin
       [*] = ;                     var hgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
       [*] = ;                     var hpo : Pointer = _unit_GetTObj(hgo);
       [*] = ;                     if (hpo<>nil) and (TObj(hpo).cid = hccid) and (TObj(hpo).id = hcid) then
-      [*] = ;                     hchave := hchave + 1;
+      [*] = ;                     begin
+      [*] = ;                        hchave := hchave + 1;
+      [*] = ;                        if (hcunf = 0) and (not TObj(hpo).bbuilt) then
+      [*] = ;                        hcunf := hgo;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  // A LAID FOUNDATION COUNTS INTO hchave, so a declarative BUILD already
+      [*] = ;                  // satisfied by a 0% pit did nothing at all. Live game 4.10 against the
+      [*] = ;                  // impossible AI: the gold mine stood at 0% from 2:14 to 6:11 with 26
+      [*] = ;                  // peasants, 542 wood and 460 stone free, on_build 0 the whole time; gold
+      [*] = ;                  // fell to 1 at 5:05 and stayed there, no upgrades, no mercenaries. The
+      [*] = ;                  // engine crews a project ONCE, at laying - _ai_CallPeasantsToBuildProject
+      [*] = ;                  // runs for its own slots only - and when that call comes up empty nobody
+      [*] = ;                  // ever returns. So re-crew it here, and ONLY when nobody is on it: the
+      [*] = ;                  // target carries the engine's own stolist, the very list _unit_OrderBuild
+      [*] = ;                  // reads to decide whether a build point is taken. Parallel building stays
+      [*] = ;                  // allowed; this branch adds no second crew to a site that has one.
+      [*] = ;                  if (hchave >= hca2) and (hcunf <> 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hcsto : Pointer = _misc_GetObjectArgData(hcunf, gc_argunit_stolist);
+      [*] = ;                     var hcbz : Integer;
+      [*] = ;                     if (hcsto <> nil) then
+      [*] = ;                     for hck := 0 to TIntegerList(hcsto).GetCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hczp : Pointer = _unit_GetTObj(TIntegerList(hcsto).Get(hck));
+      [*] = ;                        if (hczp <> nil) then
+      [*] = ;                        if (TObj(hczp).orders[0].itype = gc_obj_order_type_build) then
+      [*] = ;                        hcbz := hcbz + 1;
+      [*] = ;                     end;
+      [*] = ;                     if (hcbz <= 0) then
+      [*] = ;                     begin
+      [*] = ;                        // Same two passes as laying: idle men first, then men on the ground.
+      [*] = ;                        gIntegerList.Clear;
+      [*] = ;                        var hzpass : Integer;
+      [*] = ;                        for hzpass := 0 to 1 do
+      [*] = ;                        if (hzpass = 0) or (gIntegerList.GetCount < hccap) then
+      [*] = ;                        for hck := 0 to hcobjn-1 do
+      [*] = ;                        if (gIntegerList.GetCount < hccap) then
+      [*] = ;                        begin
+      [*] = ;                           var hzgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                           var hzpo : Pointer = _unit_GetTObj(hzgo);
+      [*] = ;                           if (hzpo<>nil) then
+      [*] = ;                           if (gObjProp[TObj(hzpo).cid][TObj(hzpo).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                           if (TObj(hzpo).insideofuid = 0) then
+      [*] = ;                           if ((hzpass = 1) or (TObj(hzpo).orders[0].itype = gc_obj_order_type_none)) then
+      [*] = ;                           if ((hzpass = 0) or (TObj(hzpo).orders[0].itype <> gc_obj_order_type_none)) then
+      [*] = ;                           if (TObj(hzpo).orders[0].itype <> gc_obj_order_type_gotomine) then
+      [*] = ;                           if (TObj(hzpo).orders[0].itype <> gc_obj_order_type_build) then
+      [*] = ;                           if (TObj(hzpo).orders[0].itype <> gc_obj_order_type_repair) then
+      [*] = ;                           gIntegerList.Add(hzgo);
+      [*] = ;                        end;
+      [*] = ;                        if (gIntegerList.GetCount > 0) then
+      [*] = ;                        begin
+      [*] = ;                           _player_OrderUnitsToBuild(gIntegerList, hcunf, True, False, True);
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BUILD ' + hcsid +
+      [*] = ;                                ': the site stood unmanned, sent ' + IntToStr(gIntegerList.GetCount) + ' workers back to it');
+      [*] = ;                           Log('bridge-human: BUILD ' + hcsid + ' re-crewed an unmanned site with ' + IntToStr(gIntegerList.GetCount) + ' workers');
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;                  // Not enough for it? SAY SO, with the price. Until 13.09 this branch was
       [*] = ;                  // simply not taken and the bridge stayed silent: from the Python side that
