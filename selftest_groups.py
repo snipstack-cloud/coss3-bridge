@@ -215,6 +215,13 @@ _о4 = _живая([{"cmd": "RETREAT", "count": 0, "target": "home", "group": 1}
 if [c.get("group") for c in _о4["commands"]] != [1]:
     беды.append(f"приказ группе 1 не должен переименовываться: {_о4['commands']}")
 
+# COUNT СЛОВОМ «ALL» — так стратегия и сеть просят всех свободных («подмога»).
+# Живая игра проверки 5: номер получила ОДНА волна из 81, потому что int(float("all"))
+# падал и число считалось нулём; восемьдесят ушли безымянными.
+_оall = _живая([{"cmd": "ATTACK", "count": "all", "target": "wave"}]).ответ(_дома)
+if _оall["commands"][0].get("group") != 1:
+    беды.append(f"волна с count=all должна получить номер: {_оall['commands']}")
+
 # Номер волны обязан доезжать до моста: ветка ATTACK в to_commands его читает.
 _вых = L.to_commands({"commands": [{"cmd": "ATTACK", "count": 20, "target": "army", "group": 3}]},
                      set(), set(), st={"gametime": 300, "my_freewar": 30})
