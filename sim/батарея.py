@@ -301,7 +301,7 @@ def _вехи(з):
     for в in ВЕХИ:
         до = [x for x in ж if x[0] <= в]
         t, наши, его, кр = до[-1] if до else (0, 0.0, 0.0, 0.0)
-        из[int(в)] = (round(наши, 1), round(его, 1))
+        из[int(в)] = {"наши": round(наши, 1), "его": round(его, 1)}
     return из
 
 
@@ -316,12 +316,12 @@ def динамика(пул, p2, p3):
         for в in ВЕХИ:
             сн = [x for x in з.снапы if float(x["gametime"]) <= в]
             if сн:
-                факт[int(в)] = (round(SIM.ч(сн[-1].get("my_mil_lost")) - SIM.ч(з.снапы[0].get("my_mil_lost")), 1),
-                                round(SIM.ч(сн[-1].get("p1_mil_lost")) - SIM.ч(з.снапы[0].get("p1_mil_lost")), 1))
+                факт[int(в)] = {"наши": round(SIM.ч(сн[-1].get("my_mil_lost")) - SIM.ч(з.снапы[0].get("my_mil_lost")), 1),
+                                "его": round(SIM.ч(сн[-1].get("p1_mil_lost")) - SIM.ч(з.снапы[0].get("p1_mil_lost")), 1)}
         из[имя] = {"факт": факт}
         for вид in ("запись", вид_агента):
             р = пул.map(_вехи, [(записи[0], s, вид) for s in range(ЗЁРЕН)])
-            из[имя][вид] = {в: (round(St.median(x[в][0] for x in р), 1), round(St.median(x[в][1] for x in р), 1)) for в in (int(v) for v in ВЕХИ)}
+            из[имя][вид] = {в: {"наши": round(St.median(x[в]["наши"] for x in р), 1), "его": round(St.median(x[в]["его"] for x in р), 1)} for в in (int(v) for v in ВЕХИ)}
     return из
 
 
@@ -431,7 +431,7 @@ def печать(р):
         print("3 ДИНАМИКА: потери наши/его к " + "/".join(str(int(v) // 60) + ":00" for v in ВЕХИ))
         for имя, x in р["динамика"].items():
             for вид, вехи in x.items():
-                print(f"  {имя} {вид:8} " + "  ".join(f"{вехи[int(v)][0]:.0f}/{вехи[int(v)][1]:.0f}" for v in ВЕХИ if int(v) in вехи))
+                print(f"  {имя} {вид:8} " + "  ".join(f"{вехи[int(v)]['наши']:.0f}/{вехи[int(v)]['его']:.0f}" for v in ВЕХИ if int(v) in вехи))
     if "цикл" in р:
         ц = р["цикл"]
         print(f"4 ЗАМКНУТЫЙ ЦИКЛ, {ц['партий']} отложенных, исходы {ц['исходы']}: " +
