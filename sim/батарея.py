@@ -59,7 +59,8 @@ sys.path.insert(0, os.path.dirname(К))
 def хэш():
     корень = os.path.dirname(К)
     h = subprocess.run(["git", "-C", корень, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip() or "без-git"
-    грязь = subprocess.run(["git", "-C", корень, "status", "--short", "--", "sim", "combat_math.py", "tactic_core.py"],
+    # грязь — только изменённые ОТСЛЕЖИВАЕМЫЕ файлы ядра: веса, логи и сами файлы батареи не в счёт
+    грязь = subprocess.run(["git", "-C", корень, "status", "--short", "--untracked-files=no", "--", "sim", "combat_math.py", "tactic_core.py"],
                            capture_output=True, text=True).stdout.strip()
     return h, bool(грязь)
 
