@@ -608,6 +608,18 @@ class Bridge:
         False, если предыдущий приказ ещё не забран."""
         if os.path.exists(self.atk_path):
             return False
+        приказ = self._приказ(count, target, mode, cx, cy, who)
+        if приказ is None:
+            return False
+        return self._послать_приказы([приказ])
+
+    def _приказ(self, count: int, target: str = "base", mode: str = "",
+                cx: int = -1, cy: int = -1, who: str = ""):
+        """Один приказ словарём полей файла, или None, если он негоден.
+
+        Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
+        проверки у списка и у одиночного приказа обязаны быть одни и те же, иначе
+        в список уедет то, что одиночный путь отверг бы."""
         _режим = str(mode or "").strip().lower()
         # retreat (18.09): третий режим того же файла — бойцов ДАЛЬШЕ 60 от
         # ратуши, чем бы они ни были заняты, блок ведёт домой без боя.
@@ -649,10 +661,59 @@ class Bridge:
         # который про cell ещё не знает. Ровно так же 16.09 приехал "mode".
         if цель == "cell":
             if not (0 <= int(cx) <= 15 and 0 <= int(cy) <= 15):
-                return False
+                return None
             приказ["cx"] = int(cx)
             приказ["cy"] = int(cy)
-        text = dump_parser_file("br_atk", приказ)
+        return приказ
+
+    def attack_many(self, приказы: list[dict]) -> bool:
+        """НЕСКОЛЬКО приказов за такт (4.10, просьба мака §78).
+
+        Зачем. До этого файл приказа несла ОДНА команда, и «приманка отходит, пока
+        основные бьют» выразить было нечем: два приказа одного рода в такте
+        затирали друг друга ещё до чтения игрой. Движок не запрещал ничего —
+        `_player_SetGroupPosition` работает по группе, а группы здесь делаются по
+        имени; предел был в формате файла и в цикле чтения блока. Теперь блок идёт
+        по списку (`block_hcmd.inc`, ключ `orders`).
+
+        Каждый приказ — те же поля, что у `attack`: count, target, mode, who, cx, cy.
+        Проверяются они тем же путём: приказ собирается вызовом `attack`-правил, а
+        не руками, иначе в списке окажется то, что одиночный приказ бы отверг.
+
+        Бойца двум приказам блок не отдаёт: взятые первым приказом пропускаются
+        следующими в этом же такте.
+        """
+        if not приказы:
+            return False
+        готовые = []
+        for п in приказы:
+            собран = self._приказ(
+                int(п.get("count", 0) or 0),
+                str(п.get("target", "") or ""),
+                str(п.get("mode", "") or ""),
+                int(п.get("cx", -1) if п.get("cx") is not None else -1),
+                int(п.get("cy", -1) if п.get("cy") is not None else -1),
+                str(п.get("who", "") or ""))
+            if собран is None:
+                return False
+            готовые.append(собран)
+        return self._послать_приказы(готовые)
+
+    def _послать_приказы(self, приказы: list[dict]) -> bool:
+        """Записать файл приказа: список с ключом `orders` плюс плоские ключи первого.
+
+        Плоские ключи остаются НАРОЧНО: блок в игре может быть старым, и тогда он
+        прочитает первый приказ ровно как прежде, а остальные молча не увидит. Так
+        же 16.09 приезжал `mode`.
+        """
+        if os.path.exists(self.atk_path):
+            return False
+        поля: dict[str, object] = dict(приказы[0])
+        поля["orders"] = len(приказы)
+        for i, п in enumerate(приказы):
+            for к, v in п.items():
+                поля[f"{i}_{к}"] = v
+        text = dump_parser_file("br_atk", поля)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:
             with os.fdopen(fd, "w", encoding="latin-1") as f:

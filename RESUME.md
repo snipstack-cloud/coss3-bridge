@@ -172,11 +172,11 @@ Windows, — с `encoding="utf-8"`. Без него `open()` берёт cp1252 �
 | файл | `wc -l` |
 |---|---|
 | `block_hstate.inc` | **2271** |
-| `block_hcmd.inc` | **1221** |
+| `block_hcmd.inc` | **1261** (было 1221; +40 на список приказов, 4.10) |
 | `block_gameloop.inc` | **304** |
 | `block_endgame.inc` | **108** |
 | `block_kills.inc` | **105** (CRLF, как lib-скрипт игры) |
-| установленный `progress.inc` | **3989** |
+| установленный `progress.inc` | **4029** (было 3989) |
 | установленный `lib/miscext2.script` | **4849** |
 
 > **ПОПРАВКА К ПРЕЖНЕМУ ЧИСЛУ:** для `miscext2.script` в документах стояло **4850**, а

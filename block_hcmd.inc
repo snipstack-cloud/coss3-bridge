@@ -991,46 +991,28 @@
       [*] = ;         ParserClearByHandle(hah);
       [*] = ;         var haok : Boolean = ParserLoadFromFileByHandle(hah, hapath);
       [*] = ;         DeleteFileStream(hapath);
-      [*] = ;         // Mode is read HERE, before the condition that uses it. First try put
-      [*] = ;         // the declaration inside the block and the test in its own condition -
-      [*] = ;         // a name used before it is declared. The whole Progress tick stopped
-      [*] = ;         // compiling, exactly as PROGRESS.md 5.4 describes.
-      [*] = ;         var hamode : String = ParserGetValueByKeyByHandle(hah, 'mode');
-      [*] = ;         // WHO (19.09): take only fighters of ONE kind, if the model named it.
-      [*] = ;         // Empty means everybody, as before. The names are the same the state
-      [*] = ;         // writes in 'fighters': infantry17, musk17, uniq_inf17, dragoon17 - so
-      [*] = ;         // the model orders with the word she already reads.
-      [*] = ;         // Why at all: the bridge counts the exchange now, and it differs by kind
-      [*] = ;         // - 19.09 our pikeman traded 10 to 1 against his, while the musketeer
-      [*] = ;         // traded even. Sending everybody drags into the fight those who only
-      [*] = ;         // die there.
-      [*] = ;         var hawho : String = ParserGetValueByKeyByHandle(hah, 'who');
-      [*] = ;         var hawrole : Integer = -1;
-      [*] = ;         if (hawho = 'infantry17') then hawrole := gc_ai_unit_infantry17;
-      [*] = ;         if (hawho = 'musk17') then hawrole := gc_ai_unit_musk17;
-      [*] = ;         if (hawho = 'uniq_inf17') then hawrole := gc_ai_unit_uniq_inf17;
-      [*] = ;         if (hawho = 'dragoon17') then hawrole := gc_ai_unit_dragoon17;
-      [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
-      [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
-      [*] = ;         // the field, wounded or not - and walks them home in default mode.
-      [*] = ;         // MOVE could not do it: it takes idle men only, and a fighting wave is
-      [*] = ;         // never idle. A player does it with one click on the minimap.
-      [*] = ;         var haretreat : Boolean = (hamode = 'retreat');
-      [*] = ;         // ENGAGE (18.09): the marching column is INTERCEPTED. Soldiers on a MOVE
-      [*] = ;         // order cannot be re-collected by ATTACK (it takes idle men only), so
-      [*] = ;         // the column walks on and gets picked apart. This mode takes everybody
-      [*] = ;         // farther than 60 from the centre, whatever their order - exactly the
-      [*] = ;         // retreat set - and sends them into the ATTACK path instead of home.
-      [*] = ;         var haengage : Boolean = (hamode = 'engage');
-      [*] = ;         if (haok) and ((not gbool_peacemode) or (hamode = 'move') or (haretreat)) then
+      [*] = ;         // A LIST OF ORDERS IN ONE FILE (4.10, request of the mac, par.78). Until now
+      [*] = ;         // the file carried ONE order and the block obeyed one wave per tick, so
+      [*] = ;         // 'the decoy walks back while the main force strikes' was impossible to
+      [*] = ;         // express: two orders of one kind in a tick overwrote each other in the
+      [*] = ;         // file. The engine never forbade it - _player_SetGroupPosition is per
+      [*] = ;         // group, and groups are made by name here - the limit was this file and
+      [*] = ;         // this loop.
+      [*] = ;         // FORMAT: 'orders' = how many; keys of order i are prefixed '<i>_'.
+      [*] = ;         // No 'orders' key means the OLD single-order file with flat keys, and the
+      [*] = ;         // bridge still writes those for order 0 - so a new bridge works with an
+      [*] = ;         // old block in the game, and a new block with an old bridge.
+      [*] = ;         var haon : Integer = ParserGetIntValueByKeyByHandle(hah, 'orders');
+      [*] = ;         var hanew : Boolean = (haon > 0);
+      [*] = ;         if (not hanew) then
+      [*] = ;         haon := 1;
+      [*] = ;         // Counters live HERE, not inside the loop: a number declared in a nested
+      [*] = ;         // begin does not accumulate (HANDOFF, six army counters, 17.09).
+      [*] = ;         var haoi : Integer;
+      [*] = ;         var hatk : Integer;
+      [*] = ;         var hapre : String;
+      [*] = ;         if (haok) then
       [*] = ;         begin
-      [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, 'count');
-      [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, 'target');
-      [*] = ;            // MOVE: the same order file, only the mode differs. A player moves his
-      [*] = ;            // troops wherever he likes with a click and is not obliged to send them
-      [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
-      [*] = ;            // stand aside, take a place in advance - was physically impossible.
-      [*] = ;            // Empty mode means attack: an older client sends no such key.
       [*] = ;            var haph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;            var han : Integer = GetPlayerGameObjectsCountByHandle(haph);
       [*] = ;            // Our own anchor point: the ATTACK file is read outside the command
@@ -1058,6 +1040,54 @@
       [*] = ;               hax := GetGameObjectPositionXByHandle(haany);
       [*] = ;               haz := GetGameObjectPositionZByHandle(haany);
       [*] = ;            end;
+      [*] = ;            // ONE SOLDIER IS NOT SHARED BY TWO ORDERS of the same tick: whoever is
+      [*] = ;            // taken goes into gTmpIntList and is skipped by the orders that follow.
+      [*] = ;            gTmpIntList.Clear;
+      [*] = ;            for haoi := 0 to haon-1 do
+      [*] = ;            begin
+      [*] = ;               hapre := '';
+      [*] = ;               if (hanew) then
+      [*] = ;               hapre := IntToStr(haoi) + '_';
+      [*] = ;         // Mode is read HERE, before the condition that uses it. First try put
+      [*] = ;         // the declaration inside the block and the test in its own condition -
+      [*] = ;         // a name used before it is declared. The whole Progress tick stopped
+      [*] = ;         // compiling, exactly as PROGRESS.md 5.4 describes.
+      [*] = ;         var hamode : String = ParserGetValueByKeyByHandle(hah, hapre + 'mode');
+      [*] = ;         // WHO (19.09): take only fighters of ONE kind, if the model named it.
+      [*] = ;         // Empty means everybody, as before. The names are the same the state
+      [*] = ;         // writes in 'fighters': infantry17, musk17, uniq_inf17, dragoon17 - so
+      [*] = ;         // the model orders with the word she already reads.
+      [*] = ;         // Why at all: the bridge counts the exchange now, and it differs by kind
+      [*] = ;         // - 19.09 our pikeman traded 10 to 1 against his, while the musketeer
+      [*] = ;         // traded even. Sending everybody drags into the fight those who only
+      [*] = ;         // die there.
+      [*] = ;         var hawho : String = ParserGetValueByKeyByHandle(hah, hapre + 'who');
+      [*] = ;         var hawrole : Integer = -1;
+      [*] = ;         if (hawho = 'infantry17') then hawrole := gc_ai_unit_infantry17;
+      [*] = ;         if (hawho = 'musk17') then hawrole := gc_ai_unit_musk17;
+      [*] = ;         if (hawho = 'uniq_inf17') then hawrole := gc_ai_unit_uniq_inf17;
+      [*] = ;         if (hawho = 'dragoon17') then hawrole := gc_ai_unit_dragoon17;
+      [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
+      [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
+      [*] = ;         // the field, wounded or not - and walks them home in default mode.
+      [*] = ;         // MOVE could not do it: it takes idle men only, and a fighting wave is
+      [*] = ;         // never idle. A player does it with one click on the minimap.
+      [*] = ;         var haretreat : Boolean = (hamode = 'retreat');
+      [*] = ;         // ENGAGE (18.09): the marching column is INTERCEPTED. Soldiers on a MOVE
+      [*] = ;         // order cannot be re-collected by ATTACK (it takes idle men only), so
+      [*] = ;         // the column walks on and gets picked apart. This mode takes everybody
+      [*] = ;         // farther than 60 from the centre, whatever their order - exactly the
+      [*] = ;         // retreat set - and sends them into the ATTACK path instead of home.
+      [*] = ;         var haengage : Boolean = (hamode = 'engage');
+      [*] = ;               if ((not gbool_peacemode) or (hamode = 'move') or (haretreat)) then
+      [*] = ;               begin
+      [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'count');
+      [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, hapre + 'target');
+      [*] = ;            // MOVE: the same order file, only the mode differs. A player moves his
+      [*] = ;            // troops wherever he likes with a click and is not obliged to send them
+      [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
+      [*] = ;            // stand aside, take a place in advance - was physically impossible.
+      [*] = ;            // Empty mode means attack: an older client sends no such key.
       [*] = ;            var hak : Integer;
       [*] = ;            // Idle soldiers only: a unit already marching is left alone, otherwise
       [*] = ;            // a new order regroups the wave and it stalls - learned the hard way.
@@ -1088,6 +1118,11 @@
       [*] = ;                     // refused the man.
       [*] = ;                     if (hatake2) and (hawrole >= 0) then
       [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) then
+      [*] = ;                     hatake2 := False;
+      [*] = ;                     // Already taken by an earlier order of THIS tick - skip.
+      [*] = ;                     if (hatake2) and (gTmpIntList.GetCount > 0) then
+      [*] = ;                     for hatk := 0 to gTmpIntList.GetCount-1 do
+      [*] = ;                     if (gTmpIntList.Get(hatk) = hago) then
       [*] = ;                     hatake2 := False;
       [*] = ;                     if (hatake2) then gIntegerList.Add(hago);
       [*] = ;                  end;
@@ -1141,8 +1176,8 @@
       [*] = ;            if (hatrg = 'cell') then
       [*] = ;            begin
       [*] = ;               var hacn : Integer = 16;   // cHmGrid in the state block; grids must match
-      [*] = ;               var hacx : Integer = ParserGetIntValueByKeyByHandle(hah, 'cx');
-      [*] = ;               var hacy : Integer = ParserGetIntValueByKeyByHandle(hah, 'cy');
+      [*] = ;               var hacx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cx');
+      [*] = ;               var hacy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cy');
       [*] = ;               if (hacx < 0) then hacx := 0;
       [*] = ;               if (hacy < 0) then hacy := 0;
       [*] = ;               if (hacx > hacn-1) then hacx := hacn-1;
@@ -1170,12 +1205,15 @@
       [*] = ;               // The army went out and never arrived. HANDOFF describes the same thing
       [*] = ;               // on the AI side, where the cause sat elsewhere.
       [*] = ;               // Eight names in a circle: no more waves than that live at once.
-      [*] = ;               var hagname : String = 'coss3_wave_' + IntToStr(Round(GetGameTime) mod 8);
+      [*] = ;               var hagname : String = 'coss3_wave_' + IntToStr(Round(GetGameTime) mod 8) + '_' + IntToStr(haoi);
       [*] = ;               var hagr : Integer = _misc_GetOrCreateGroupByName(haph, hagname);
       [*] = ;               GroupClearGameObjectsByHandle(hagr);
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               GroupAddGameObjectByHandle(hagr, gIntegerList.Get(hak));
       [*] = ;               _group_Initialize(hagr, nil);
+      [*] = ;               // These men are busy now: the next order of this tick skips them.
+      [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
+      [*] = ;               gTmpIntList.Add(gIntegerList.Get(hak));
       [*] = ;               if (hamode = 'move') or (haretreat) then
       [*] = ;               begin
       [*] = ;                  // No _unit_ListSetSearchEnemy here on purpose: that is what turns a
@@ -1216,6 +1254,8 @@
       [*] = ;            else
       [*] = ;            Log('bridge-human: ATTACK skipped - soldiers ' + IntToStr(gIntegerList.GetCount) +
       [*] = ;                ', target found ' + BoolToStr(hafound));
+      [*] = ;               end;
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;      end;
       [*] = ;   end;
