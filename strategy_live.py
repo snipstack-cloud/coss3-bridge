@@ -261,6 +261,83 @@ def _мостовая_цель(c: dict) -> dict:
     return c
 
 
+def _его_база(st: dict):
+    v = st.get("en_base")
+    if isinstance(v, str):
+        v = [x for x in v.replace(";", ",").split(",") if x.strip()]
+    try:
+        return (int(float(v[0])), int(float(v[1])))
+    except (TypeError, ValueError, IndexError):
+        return None
+
+
+def _наша_база(st: dict) -> tuple:
+    if st.get("my_cx") is not None and st.get("my_cy") is not None:
+        return (int(float(st["my_cx"])), int(float(st["my_cy"])))
+    return _дом(st)
+
+
+def клетка_сбора(st: dict, от_его: int = 4):
+    """§74: на прямой от нашей ратуши к его — в `от_его` клетках (Чебышёв) от его ратуши."""
+    е, н = _его_база(st), _наша_база(st)
+    if е is None:
+        return None
+    dx, dy = н[0] - е[0], н[1] - е[1]
+    d = max(abs(dx), abs(dy))
+    if d <= от_его:
+        return н
+    return (е[0] + round(dx * от_его / d), е[1] + round(dy * от_его / d))
+
+
+def _сбор(из: list, st: dict, п: dict, стр, пропущено, отдано) -> list:
+    """СБОР ВОЛН (4.10, §74; задание Windows в ПЛАН.md). Волну стратегии (ATTACK) мост не
+    отдаёт сразу: сперва стоячий STAGE в клетку сбора (4 клетки от его ратуши), и когда там
+    `сбор_доля` наших бойцов И (наших не меньше его армии ИЛИ ждём `сбор_ждать` с) — STAGE off и
+    ENGAGE на цель волны. Проверка 3: волна входила в его базу кусками 24 → 15+15 → 25 → 29 → 35.
+    Общее для симулятора и моста (§57). Выключено, пока у стратегии нет рычага `сбор` ≥ 0,5."""
+    if float(п.get("сбор", 0) or 0) < 0.5:
+        return из
+    t = float(st.get("gametime") or 0)
+    с = getattr(стр, "_сбор_сост", None)
+    волны = [c for c in из if c.get("cmd") == "ATTACK"]
+    из = [c for c in из if c.get("cmd") != "ATTACK"]
+    if any(c.get("cmd") == "RETREAT" for c in из):
+        return из              # отход стратегии главнее; сбор не сбрасывается — вернувшиеся свободны,
+                               # и STAGE снова ведёт их в клетку сбора (перегруппировка)
+    if с is None and волны:
+        кл = клетка_сбора(st, int(п.get("сбор_клеток", 4)))
+        if кл is None:
+            return из + волны[:1]
+        цель = волны[0].get("target") or "army"
+        с = {"клетка": кл, "цель": "army" if цель == "wave" else цель, "aim": волны[0].get("aim"), "t0": None}
+        стр._сбор_сост = с
+        отдано["STAGE (сбор)"] += 1
+        return [{"cmd": "STAGE", "cx": int(кл[0]), "cy": int(кл[1]), "keep": 0}] + из
+    if с is None:
+        return из
+    if волны:
+        пропущено["ATTACK -> копим в сборе"] += len(волны)
+    кл = с["клетка"]
+    собрано = sum(float(c.get("n") or 0) for c in _список(st, "ocells", __import__("coss3_map").наши_клетки)
+                  if abs(int(c.get("x", -9)) - кл[0]) <= 1 and abs(int(c.get("y", -9)) - кл[1]) <= 1)
+    всего = sum(float(st.get(k) or 0) for k in ("mil_inf", "mil_shooters", "mil_cav"))
+    if собрано >= 1 and с["t0"] is None:
+        с["t0"] = t
+    вс = st.get("враг_слот")
+    его = float(st.get(f"p{int(вс)}_army" if вс is not None else "p1_army") or 0)
+    ждём = t - с["t0"] if с["t0"] is not None else 0.0
+    if всего > 0 and собрано >= float(п.get("сбор_доля", 0.8)) * всего and \
+            (собрано >= его or ждём >= float(п.get("сбор_ждать", 120))):
+        стр._сбор_сост = None
+        # count обязателен: без него мост бракует ENGAGE («нужно число бойцов > 0», selftest_сбор)
+        удар = {"cmd": "ENGAGE", "count": 200, "target": с["цель"]}
+        if с["цель"] == "cell" and с.get("aim"):
+            удар.update(cx=int(с["aim"][0]), cy=int(с["aim"][1]))
+        отдано["ENGAGE (сбор)"] += 1
+        return [{"cmd": "STAGE", "off": 1}, удар] + из
+    return из
+
+
 def привести(сырые: list, st: dict, п: dict, стр, пропущено, отдано) -> list:
     """Команды стратегии → то, что уходит в игру за такт (3.10, §57; общее для симулятора и моста).
 
@@ -296,6 +373,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
             атака = True
         отдано[cmd] += 1
         из.append(c)
+    из = _сбор(из, st, п, стр, пропущено, отдано)
     # ЕДА И ЗОЛОТО ЯВНО (3.10, контейнер Windows `smoke_strategy/1`: стратегия ни разу не дала
     # BALANCE food — еда 993 -> 0 к 2:33, крестьян 18 -> 3). Ярус 1 шлёт на еду только
     # ПРОСТАИВАЮЩИХ (4 и больше) — в симуляторе их много, вживую почти нет, а мостовой дебют
@@ -398,7 +476,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
             пары.append([пред, c] if пред else [c])
         elif c["cmd"] != "BUILDERS":
             прочее.append(c)
-    вес = {"ATTACK": 0, "RETREAT": 0, "UPGRADE": 1, "SEED": 3, "TRAIN": 4, "BALANCE": 5}
+    вес = {"ATTACK": 0, "RETREAT": 0, "STAGE": 0, "ENGAGE": 0, "UPGRADE": 1, "SEED": 3, "TRAIN": 4, "BALANCE": 5}
     балансы = {}
     for c in прочее:
         if c["cmd"] == "BALANCE":

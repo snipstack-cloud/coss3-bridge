@@ -255,6 +255,7 @@ def отставание(с_приказа: float) -> float:
 # любом (живых 40/58/78/148). Корпус 103 партий: изменилась 1 (его 8818 → 8817), игрок 1.10 и p2 — 0.
 ЗАСЛОН = float(_os.environ.get("COSS3_SCREEN", "0.9"))
 ЗАСЛОН_ДОЛЯ_ПИК = 0.25
+ПОЛЕ_КЛЕТОК = 60.0 / 16.0  # §74: «в поле» по мерке блока — дальше 60 единиц от ратуши
 ЗАСЛОН_ИСХ = ЗАСЛОН       # умолчание: к нему возвращают розыгрыш без ключа и `тактик._настроить`
 # СТРОЙ АГЕНТА ПРИ ЗАСЛОНЕ (3.10, §72). Агент без родов войск: в клетке боя у него 51 % его окна
 # 3×3 ЛЮБОГО рода. Живьём (до 10:00, `ecells`): p3 — пик окна в клетке боя 55 %, стрелков 20 %;
@@ -600,6 +601,14 @@ class Симулятор:
         BUILDERS 18 в одном такте — и на стройке сразу 18)."""
         for c in sorted(список, key=lambda x: 0 if x.get("cmd") == "BUILDERS" else 1):
             self.команда(c)
+        # НАКОПЛЕНИЕ (4.10, §74) — как у моста (`llm_policy.py`, «НАКОПЛЕНИЕ»): стоячий STAGE
+        # каждый такт уводит свободных сверх `keep` в клетку ходом без боя, если в этом такте нет
+        # своего ATTACK/MOVE/RETREAT. Прежде STAGE здесь был разовым маршем `keep` бойцов.
+        н = getattr(self, "накопление", None)
+        if н and not any(x.get("cmd") in ("ATTACK", "MOVE", "RETREAT", "ENGAGE") for x in список):
+            надо = sum(self.группы[0]["состав"].values()) - н["keep"]
+            if надо >= 1:
+                self.послать({"cmd": "MOVE", "count": int(надо), "target": "cell", "aim": [н["cx"], н["cy"]]}, "MOVE")
 
     def команда(self, c: dict):
         cmd = c.get("cmd")
@@ -746,7 +755,25 @@ class Симулятор:
                 return self.отказ(f"UPGRADE {имя}: не хватает — в очереди")
             self.эк.списать(цена, f"UPGRADE {имя}", self.t)
             self.апгрейды.add(имя)
-        elif cmd in ("ATTACK", "MOVE", "STAGE"):
+        elif cmd == "STAGE":
+            if str(c.get("off", "")).strip() not in ("", "0", "false", "False"):
+                self.накопление = None
+            elif c.get("cx") is not None or c.get("aim") is not None:
+                кл = c.get("aim") or [c.get("cx"), c.get("cy")]
+                self.накопление = {"cx": int(кл[0]), "cy": int(кл[1]), "keep": max(0, int(ч(c.get("keep") or 0)))}
+            else:
+                return self.отказ("STAGE: нужна клетка cx, cy")
+        elif cmd == "ENGAGE":
+            # §74, как мост (§63): бойцы ДАЛЬШЕ 60 от ратуши разворачиваются в бой на цель —
+            # в клетках это ~4 (клетка 16 единиц); домашние не идут
+            st = self.з.такт_до(self.t)[1]
+            цель = self.клетка_цели(c.get("target"), c.get("aim") or ([c.get("cx"), c.get("cy")] if c.get("cx") is not None else None), st)
+            for г in self.группы[1:]:
+                if sum(г["состав"].values()) > 0 and math.hypot(г["x"] - self.з.my_cx, г["y"] - self.з.my_cy) >= ПОЛЕ_КЛЕТОК:
+                    г["цель"], г["конечная"], г["режим"] = tuple(цель), tuple(цель), "марш"
+                    г.pop("стоит", None)
+                    г.pop("ведомая_за", None)
+        elif cmd in ("ATTACK", "MOVE"):
             self.послать(c, cmd)
         elif cmd == "RETREAT":
             for г in self.группы[1:]:
