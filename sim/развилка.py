@@ -28,7 +28,10 @@ sys.path.insert(0, os.path.dirname(К))
 
 ВЕХИ = (780.0, 827.0, 900.0)
 ВИДЫ_АГЕНТА = ("p3", "p2", "родной")
-ВЕТКИ = ("ждать", "удар сразу", "удар через 30", "удар через 60", "удар через 90", "к своим")
+ВЕТКИ = ("ждать", "удар сразу", "удар через 30", "удар через 60", "удар через 90", "к своим", "по правилу")
+# «по правилу» — проверка правила для стратегии: бить ближайшую его кучу, когда наша куча ≥ ПРАВИЛО_ПЕРЕВЕС её
+# и в ПРАВИЛО_РАДИУС клетках от неё нет другой его кучи (подкрепления); иначе ждать
+ПРАВИЛО_ПЕРЕВЕС, ПРАВИЛО_РАДИУС = 1.2, 3
 
 
 def _кучи_с_составом(ячейки):
@@ -137,6 +140,19 @@ class Ветка:
                 if ц:
                     self.цель, self.этап = (ц[0], ц[1]), 2
                     return из + [{"cmd": "ATTACK", "group": self.id, "target": "cell", "cx": ц[0], "cy": ц[1]}]
+        if self.имя == "по правилу" and self.этап == 1:
+            from tactic_core import кучи
+            его = {(c["x"], c["y"]): c.get("n", 0) for c in (st.get("ecells") or []) if c.get("n", 0) >= 1}
+            к = [q for q in кучи(его) if q[0] >= 5]
+            наша = next((g for g in (st.get("groups") or []) if g["id"] == self.id), None)
+            if к and наша:
+                n, cx, cy = min(к, key=lambda q: math.hypot(q[1] - наша["cx"], q[2] - наша["cy"]))
+                далеко = math.hypot(cx - наша["cx"], cy - наша["cy"]) > 2.5
+                подкрепление = any(q is not None and (q[1], q[2]) != (cx, cy) and math.hypot(q[1] - cx, q[2] - cy) <= ПРАВИЛО_РАДИУС for q in к)
+                if not далеко and not подкрепление and наша["n"] >= ПРАВИЛО_ПЕРЕВЕС * n:
+                    self.цель, self.этап = (int(round(cx)), int(round(cy))), 2
+                    self.t_удара = t
+                    return из + [{"cmd": "ATTACK", "group": self.id, "target": "cell", "cx": int(round(cx)), "cy": int(round(cy))}]
         if self.этап == 2:
             его = {(c["x"], c["y"]): c.get("n", 0) for c in (st.get("ecells") or []) if c.get("n", 0) >= 1}
             рядом = sum(n for (x, y), n in его.items() if max(abs(x - self.цель[0]), abs(y - self.цель[1])) <= 1)
@@ -162,7 +178,7 @@ def _прогон(з):
             if в not in вехи and сим.t >= в:
                 вехи[в] = (сим.my_mil_lost, сим.убито_бойцов, sum(sum(г["состав"].values()) for г in сим.группы), сим.враг.всего())
     SIM.ФОРМА_ВРАГА = None
-    return dict(вид=вид, ветка=имя, вехи=вехи, наши=сим.my_mil_lost, его=сим.убито_бойцов,
+    return dict(вид=вид, ветка=имя, вехи=вехи, наши=сим.my_mil_lost, его=сим.убито_бойцов, t_удара=getattr(п, "t_удара", None),
                 армия=sum(sum(г["состав"].values()) for г in сим.группы), его_армия=сим.враг.всего())
 
 
@@ -196,6 +212,9 @@ def main():
                 if вв:
                     строка.append(f"{int(в // 60)}:{int(в % 60):02d} {St.median(v[0] for v in вв):3.0f}/{St.median(v[1] for v in вв):3.0f}")
             размен = sum(x["его"] for x in рр) / max(sum(x["наши"] for x in рр), 1)
+            tу = [x["t_удара"] for x in рр if x.get("t_удара") is not None]
+            if tу:
+                строка.append(f"удар в {int((t + St.median(tу)) // 60)}:{int((t + St.median(tу)) % 60):02d} ({len(tу)}/{len(рр)})")
             print(f"    {имя:14} " + " | ".join(строка) + f" | конец {St.median(x['наши'] for x in рр):3.0f}/{St.median(x['его'] for x in рр):3.0f} размен {размен:.2f} армии {St.median(x['армия'] for x in рр):.0f}/{St.median(x['его_армия'] for x in рр):.0f}")
 
 
