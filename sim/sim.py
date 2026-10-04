@@ -312,6 +312,12 @@ def отставание(с_приказа: float) -> float:
 БУКВЫ = {"f": "food", "w": "wood", "s": "stone", "g": "gold", "i": "iron", "c": "coal"}
 
 
+def контракт_волны() -> bool:
+    """§97: контракт волны живого моста (`strategy_live.РеестрВолн`, Windows 5.10) — номера групп
+    раздаёт он, приказ «число + номер» рождает или пополняет группу. По умолчанию ВЫКЛ."""
+    return _os.environ.get("COSS3_WAVE_CONTRACT", "0") == "1"
+
+
 def ч(v):
     try:
         return float(v or 0)
@@ -501,6 +507,10 @@ class Симулятор:
         self.my_mil_lost = 0.0
         self.my_pea_lost = 0.0
         self.след_id = 1          # §82: имена групп — сквозные за партию, как просим у моста (ПЛАН 4.10)
+        if контракт_волны():
+            # §97: номера 1-16 раздаёт контракт волны (`strategy_live.РеестрВолн`), как блок моста; свои
+            # номера симулятора — выше, чтобы не занять номер живой волны
+            self.след_id = 17
         self.убито_бойцов = 0.0
         self.убито_крестьян = 0.0
         self.журнал_боя = []
@@ -687,6 +697,15 @@ class Симулятор:
         г = self.группа_по_id(c.get("group"))
         if г is None:
             return self.отказ(f"{cmd} group={c.get('group')}: такой группы нет")
+        if контракт_волны():
+            # §97: под одним номером может идти несколько колонн (подмога вошла в волну) — приказ всем
+            for г2 in [g for g in self.группы[1:] if g.get("id") == c.get("group") and g is not г
+                       and sum(g["состав"].values()) > 0.5]:
+                self._приказ_одной(г2, c)
+        return self._приказ_одной(г, c)
+
+    def _приказ_одной(self, г: dict, c: dict):
+        cmd = c.get("cmd")
         for к in ("стоит", "ведомая_за", "пришли", "сливаться"):
             г.pop(к, None)
         if cmd == "_СТОЙ":
@@ -711,6 +730,16 @@ class Симулятор:
 
     def команда(self, c: dict):
         cmd = c.get("cmd")
+        if (контракт_волны() and c.get("group") is not None and cmd in ("ATTACK", "ENGAGE", "MOVE")
+                and (c.get("count") in ("all", "все") or ч(c.get("count") or 0) > 0)):
+            # §97, КАК БЛОК МОСТА (§78, правка 2): приказ с числом бойцов И номером — из дома уходят
+            # бойцы и становятся группой с ЭТИМ номером; если такая уже есть — входят в неё (идут
+            # отдельной колонной под тем же номером, в состоянии номер один)
+            было = len(self.группы)
+            отк = self.послать({k: v for k, v in c.items() if k != "group"}, cmd)
+            if len(self.группы) > было:
+                self.группы[-1]["id"] = int(c["group"])
+            return отк
         if c.get("group") is not None and cmd in ("ATTACK", "ENGAGE", "MOVE", "RETREAT", "_СТОЙ"):
             return self.приказ_группе(c)
         if cmd == "BALANCE":
@@ -2035,7 +2064,22 @@ class Симулятор:
         s["ocells"] = [dict(x=к[0], y=к[1], n=round(sum(v)), пик=round(v[0]), стрелков=round(v[1]), конных=round(v[2]))
                        for к, v in _ок.items() if round(sum(v)) >= 1]
         # §82: группы с именами — тот контракт, что просим у моста (ПЛАН 4.10): id, состав, клетка, режим, цель
-        s["groups"] = [dict(id=г["id"], n=round(sum(г["состав"].values())), пик=round(г["состав"].get("infantry17", 0.0)),
+        if контракт_волны():
+            # §97: блок моста отдаёт группу ОДНОЙ строкой на номер — колонны под одним номером сводятся
+            # (n — сумма, клетка — по весу)
+            _по = {}
+            for г in self.группы[1:]:
+                _n = sum(г["состав"].values())
+                if г.get("id") is None or _n < 0.5:
+                    continue
+                a = _по.setdefault(г["id"], [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+                a[0] += _n; a[1] += _n * г["x"]; a[2] += _n * г["y"]
+                a[3] += г["состав"].get("infantry17", 0.0); a[4] += г["состав"].get("musk17", 0.0); a[5] += г["состав"].get("dragoon17", 0.0)
+            s["groups"] = [dict(id=i, n=round(a[0]), пик=round(a[3]), стрелков=round(a[4]), конных=round(a[5]),
+                                cx=int(round(a[1] / a[0])), cy=int(round(a[2] / a[0])))
+                           for i, a in _по.items() if round(a[0]) >= 1]
+        else:
+            s["groups"] = [dict(id=г["id"], n=round(sum(г["состав"].values())), пик=round(г["состав"].get("infantry17", 0.0)),
                             стрелков=round(г["состав"].get("musk17", 0.0)), конных=round(г["состав"].get("dragoon17", 0.0)),
                             cx=int(round(г["x"])), cy=int(round(г["y"])), mode=г["режим"], стоит=bool(г.get("стоит")),
                             tx=None if г.get("цель") is None else int(round(г["цель"][0])), ty=None if г.get("цель") is None else int(round(г["цель"][1])))
