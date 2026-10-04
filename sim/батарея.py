@@ -58,10 +58,10 @@ sys.path.insert(0, os.path.dirname(К))
 
 def хэш():
     корень = os.path.dirname(К)
-    h = subprocess.run(["git", "-C", корень, "rev-parse", "--short", "HEAD"], capture_output=True, text=True).stdout.strip() or "без-git"
+    h = subprocess.run(["git", "-C", корень, "rev-parse", "--short", "HEAD"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip() or "без-git"
     # грязь — только изменённые ОТСЛЕЖИВАЕМЫЕ файлы ядра: веса, логи и сами файлы батареи не в счёт
     грязь = subprocess.run(["git", "-C", корень, "status", "--short", "--untracked-files=no", "--", "sim", "combat_math.py", "tactic_core.py"],
-                           capture_output=True, text=True).stdout.strip()
+                           capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
     return h, bool(грязь)
 
 
@@ -256,7 +256,7 @@ def инварианты(пул, тест):
 
 # ---------------------------------------------------------------- уровень 2: ворота как есть
 def _запустить(скрипт, арг):
-    r = subprocess.run([sys.executable, os.path.join(К, скрипт)] + арг, capture_output=True, text=True, cwd=os.path.dirname(К))
+    r = subprocess.run([sys.executable, os.path.join(К, скрипт)] + арг, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=os.path.dirname(К))
     return r.stdout + ("\n[stderr] " + r.stderr[-600:] if r.returncode else "")
 
 
