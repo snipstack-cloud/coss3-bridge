@@ -8758,6 +8758,15 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                 if total > 0:
                     attack = max(attack, total)
                     кем_атака = кем
+                    # НОМЕР ГРУППЫ у волны (4.10): стратегия даёт его каждой
+                    # уходящей волне, и без этой строки он не доехал бы до моста
+                    # — ветка ATTACK читала бы всё, кроме него.
+                    try:
+                        _гра = int(float(item.get("group", 0) or 0))
+                    except (TypeError, ValueError):
+                        _гра = 0
+                    if _гра > 0:
+                        globals()["ГРУППА_АТАКИ"] = _гра
                     цель = str(item.get("target", item.get("where", ""))).strip().lower()
                     if цель in ПОЛИТИКА["цели_ATTACK"]:
                         цель_атаки = цель
@@ -11174,7 +11183,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                       f"свободно (свободных {св}, в пуле {аг})")
                 attack = урезано
                 if not br.attack(attack, цель_атаки,
-                                 cx=клетка[0], cy=клетка[1], who=кем_атака):
+                                 cx=клетка[0], cy=клетка[1], who=кем_атака,
+                                 group=ГРУППА_АТАКИ):
                     print("        ATTACK не отправлен: прошлый приказ ещё не забран игрой")
                 else:
                     next_attack = gt + a.attack_every
@@ -11187,7 +11197,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         дневник.волна(gt, attack, цель_атаки, st)
                     волна_была = True
                     удар_в_такте = True
-                    print(f"        волна {len(волны)}: {attack} бойцов ушли на {цель_атаки}")
+                    print(f"        волна {len(волны)}: {attack} бойцов ушли на {цель_атаки}"
+                          + (f", группа {ГРУППА_АТАКИ}" if ГРУППА_АТАКИ else ""))
             elif not a.native_war and attack > св + аг:
                 # Раньше здесь стояло вето «агрессоров больше нуля — не слать».
                 # Оно било мимо: my_agressors — это ПУЛ бойцов, назначенных в
