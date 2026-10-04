@@ -1258,16 +1258,25 @@
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n', gIntegerList.GetCount);
       [*] = ;                  for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hak), gIntegerList.Get(hak));
-      [*] = ;                  // MODE of the group, so the state can say what it is doing:
-      [*] = ;                  // 0 attack, 1 move, 2 retreat, 3 engage. Cheaper and honester than
-      [*] = ;                  // guessing it from the order of a single man in the state block.
+      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' made of ' +
+      [*] = ;                      IntToStr(gIntegerList.GetCount) + ' soldiers');
+      [*] = ;               end;
+      [*] = ;               // MODE OF THE GROUP, written for EVERY order with a number, not only
+      [*] = ;               // when the group is made. It was inside the 'made' branch at first,
+      [*] = ;               // and the live game showed the lie at once: group 1 was ordered home,
+      [*] = ;               // walked home, and the state still said mode 1 (walking) instead of 2
+      [*] = ;               // (retreating), because that was its mode at birth. 0 attack, 1 move,
+      [*] = ;               // 2 retreat, 3 engage.
+      [*] = ;               if (hagid > 0) then
+      [*] = ;               begin
+      [*] = ;                  var hagmp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;                  if (hagmp = 0) then
+      [*] = ;                  hagmp := ParserCreate('br_hgrp');
       [*] = ;                  var hagm : Integer = 0;
       [*] = ;                  if (hamode = 'move') then hagm := 1;
       [*] = ;                  if (haretreat) then hagm := 2;
       [*] = ;                  if (haengage) then hagm := 3;
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_m', hagm);
-      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' made of ' +
-      [*] = ;                      IntToStr(gIntegerList.GetCount) + ' soldiers');
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m', hagm);
       [*] = ;               end;
       [*] = ;               // These men are busy now: the next order of this tick skips them.
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
