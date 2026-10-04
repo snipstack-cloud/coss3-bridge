@@ -40,6 +40,7 @@ sys.path.insert(0, os.path.dirname(К))
 
 T0 = 600.0
 ДИАПАЗОНЫ = (("n_a", 10, 30, True), ("n_b", 20, 60, True), ("n_h", 20, 70, True), ("d_ab", 3, 6, True), ("d_ah", 2, 4, True))
+ПРИКРЫТИЕ = False     # --прикрытие: у нас ещё стрелки S дома (доля 0,2-0,5 от A+B) — семейство «пики с отдельным прикрытием»
 
 
 def сцена(rng, записи):
@@ -48,6 +49,7 @@ def сцена(rng, записи):
     с["враг"] = dict(СВ.разыграть(rng), найм=0.0)
     с["враг"]["вступать_при"] = round(float(rng.uniform(0.0, 1.0)), 3)
     с["запись"] = записи[int(rng.integers(len(записи)))]
+    с["n_s"] = int(round(float(rng.uniform(0.2, 0.5)) * (с["n_a"] + с["n_b"]))) if ПРИКРЫТИЕ else 0
     return с
 
 
@@ -83,13 +85,16 @@ def построить(с, seed):
     A = _клетка(дом, зап.en_base, с["d_ab"])
     H = _клетка(дом, зап.en_base, с["d_ab"] + с["d_ah"])
     # наши: дом — B пикинёров; A — группа в поле, идёт на H
-    сим.группы[0]["состав"] = {"infantry17": float(с["n_b"]), "musk17": 0.0, "dragoon17": 0.0}
-    сим.эк.армия = {"mil_inf": float(с["n_b"] + с["n_a"]), "mil_shooters": 0.0, "mil_cav": 0.0}
+    n_s = float(с.get("n_s", 0))
+    сим.группы[0]["состав"] = {"infantry17": float(с["n_b"]), "musk17": n_s, "dragoon17": 0.0}
+    сим.эк.армия = {"mil_inf": float(с["n_b"] + с["n_a"]), "mil_shooters": n_s, "mil_cav": 0.0}
     сим.эк.запас_найма = 1e12                 # найм стоит
     сим.группы.append({"состав": {"infantry17": float(с["n_a"]), "musk17": 0.0, "dragoon17": 0.0},
-                       "x": float(A[0]), "y": float(A[1]), "цель": (float(H[0]), float(H[1])), "режим": "марш", "карман": 0.0,
+                       "x": float(A[0]), "y": float(A[1]), "цель": (float(H[0]), float(H[1])), "режим": "марш", "карман": 0.0, "id": 1,
                        "конечная": (float(H[0]), float(H[1])), "без_армии": False, "старт": (float(A[0]), float(A[1])),
                        "t_приказа": сим.t, "хвост": 0.0})
+    сим.след_id = 2
+    SIM.СЛИЯНИЕ_ПО_ПРИКАЗУ = False
     # его: вся армия на H, хочет там и стоять
     N = len(сим.враг.h)
     сим.враг.h = [[0.0] * N for _ in range(N)]
@@ -138,6 +143,64 @@ class Скрипт:
                     return [{"cmd": "_НА_КЛЕТКУ", "aim": [self.H[0], self.H[1]]}]
             return []
         return []
+
+
+class Миссии:
+    """§82: политика назначает МИССИИ группировкам, исполнитель `миссии.Исполнитель` переводит их в
+    приказы с `group`. Группы: A (id 1, в поле), B (пики дома → именная группа первым тактом),
+    S (стрелки дома → именная группа). Виды:
+      встреча-миссии  — A ASSEMBLE на месте и ждёт B; B ASSEMBLE к A; собрались (или 150 с) — обе ATTACK_GROUP H
+      прикрытие       — B ATTACK_GROUP H, S SUPPORT_GROUP(B) на клетку позади, A ATTACK_GROUP H"""
+
+    def __init__(self, имя, H, A):
+        import миссии as М
+        self.имя, self.H, self.A = имя, H, A
+        self.и = М.Исполнитель()
+        self.этап = 0
+        self.B = self.S = None
+
+    def __call__(self, сим, st):
+        import sim as SIM, миссии as М
+        SIM.СЛИЯНИЕ_ПО_ПРИКАЗУ = True
+        t = сим.t - сим.t0
+        из = []
+        if self.этап == 0:
+            # дать имена домашним силам: ход «на месте» рождает группы с id
+            из.append({"cmd": "MOVE", "count": "all", "who": "infantry17", "target": "cell", "cx": int(round(сим.з.my_cx)), "cy": int(round(сим.з.my_cy))})
+            if сим.группы[0]["состав"].get("musk17", 0) >= 1:
+                из.append({"cmd": "MOVE", "count": "all", "who": "musk17", "target": "cell", "cx": int(round(сим.з.my_cx)), "cy": int(round(сим.з.my_cy))})
+            self.этап = 1
+            return из
+        группы = st.get("groups") or []
+        if self.этап == 1:
+            for g in группы:
+                if g["id"] == 1:
+                    continue
+                if g["стрелков"] >= 1 and g["пик"] == 0:
+                    self.S = g["id"]
+                elif self.B is None:
+                    self.B = g["id"]
+            if self.B is None:
+                return из
+            if self.имя == "встреча-миссии":
+                self.и.назначить(М.миссия("ASSEMBLE", 1, точка=self.A, ждать=[self.B]), сим.t)
+                self.и.назначить(М.миссия("ASSEMBLE", self.B, точка=self.A), сим.t)
+            else:
+                self.и.назначить(М.миссия("ATTACK_GROUP", 1, цель=self.H), сим.t)
+                self.и.назначить(М.миссия("ATTACK_GROUP", self.B, цель=self.H), сим.t)
+                if self.S is not None:
+                    self.и.назначить(М.миссия("SUPPORT_GROUP", self.S, подопечная=self.B, дистанция=1.0), сим.t)
+            self.этап = 2
+        if self.этап == 2 and self.имя == "встреча-миссии":
+            д = self.и.действующие()
+            собрались = all(м["вид"] != "ASSEMBLE" for м in д.values())
+            if собрались or t >= 150:
+                for gid in (1, self.B):
+                    self.и.назначить(М.миссия("ATTACK_GROUP", gid, цель=self.H), сим.t)
+                if self.S is not None:
+                    self.и.назначить(М.миссия("SUPPORT_GROUP", self.S, подопечная=self.B, дистанция=1.0), сим.t)
+                self.этап = 3
+        return из + self.и.шаг(st)
 
 
 class Правила:
@@ -215,6 +278,11 @@ def _задача(з):
         п = Скрипт(имя, H)
     elif имя == "правила":
         п = Правила()
+    elif имя in ("встреча-миссии", "прикрытие"):
+        import sim as SIM
+        зап = SIM.Запись(с["запись"])
+        дом = (float(зап.my_cx), float(зап.my_cy))
+        п = Миссии(имя, _клетка(дом, зап.en_base, с["d_ab"] + с["d_ah"]), _клетка(дом, зап.en_base, с["d_ab"]))
     elif имя in ("сеть", "сеть без глаз"):
         п = Сеть(theta, среднее)
     р = прогнать(с, п, seed, T)
@@ -232,6 +300,9 @@ def свод(р):
 
 
 def main():
+    global ПРИКРЫТИЕ
+    ПРИКРЫТИЕ = "--прикрытие" in sys.argv
+
     def опц(имя, умолч, тип=int):
         return тип(sys.argv[sys.argv.index(имя) + 1]) if имя in sys.argv else умолч
     n, seed, T = опц("--n", 100), опц("--seed", 7), опц("--T", 420, float)
@@ -240,8 +311,10 @@ def main():
     _, тест, _, _ = Б.наборы()
     rng = np.random.default_rng(seed)
     сцены = [сцена(rng, тест) for _ in range(n)]
+    if ПРИКРЫТИЕ:
+        print(f"ПРИКРЫТИЕ: у нас ещё стрелки S дома, медиана {St.median(с['n_s'] for с in сцены):.0f} на сцену", flush=True)
     theta = _веса()
-    политики = ["ничего", "лоб", "сбор", "встреча", "правила"] + (["сеть"] if theta else [])
+    политики = ["ничего", "лоб", "сбор", "встреча", "встреча-миссии", "правила"] + (["прикрытие"] if ПРИКРЫТИЕ else []) + (["сеть"] if theta and not ПРИКРЫТИЕ else [])
     итог = {}
     print(f"ЭПИЗОДЫ «сбор и повторный удар»: {n} сцен, зерно {seed}, T {T:.0f} с, t0 {T0:.0f}; A {ДИАПАЗОНЫ[0][1]}-{ДИАПАЗОНЫ[0][2]}, B {ДИАПАЗОНЫ[1][1]}-{ДИАПАЗОНЫ[1][2]}, H {ДИАПАЗОНЫ[2][1]}-{ДИАПАЗОНЫ[2][2]}", flush=True)
     with Pool(12) as пул:
