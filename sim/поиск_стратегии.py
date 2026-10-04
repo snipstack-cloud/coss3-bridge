@@ -58,6 +58,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 РЫЧАГИ_ТАКТ = (("отход", 0.0, 1.5, False), ("подмога", 0, 80, False), ("слабая", 0, 1, True))
 # СБОР ВОЛН §74 — ключом `--сбор`: волна копится стоячим STAGE в клетке сбора и бьёт ENGAGE
 # одним кулаком (`strategy_live._сбор`, общее с мостом)
+# СОСТАВ §75 — ключом `--состав`: доля мушкетёров прикрытия и с какой секунды их нанимать
+РЫЧАГИ_СОСТАВ = (("доля_мушк", 0.0, 0.6, False), ("мушк_с", 0, 600, False))
 РЫЧАГИ_СБОР = (("сбор", 0, 1, True), ("сбор_доля", 0.5, 1.0, False), ("сбор_ждать", 30, 240, False),
                ("сбор_клеток", 3, 6, True))
 
@@ -182,7 +184,15 @@ class Стратегия:
             if запас != self.запас_стоит:
                 из.append({"cmd": "_ЗАПАС", "food": запас})
                 self.запас_стоит = запас
-            if п["мушкетёры"] and float(st.get("ba17") or 0) > 0 and "musketeer" not in str(st.get("train_now") or ""):
+            if "доля_мушк" in п:
+                # СОСТАВ ДОЛЕЙ (4.10, §75): мушкетёры прикрытия партиями по 3, пока их доля ниже
+                # `доля_мушк`; пикинёры идут своей бесконечной очередью. Вживую — тот же TRAIN N
+                _пик, _стр = float(st.get("mil_inf") or 0), float(st.get("mil_shooters") or 0)
+                if (п["доля_мушк"] > 0.02 and float(st.get("ba17") or 0) > 0 and t >= п.get("мушк_с", 0)
+                        and _стр < п["доля_мушк"] * (_пик + _стр + 1)
+                        and "musketeer" not in str(st.get("train_now") or "")):
+                    из.append({"cmd": "TRAIN", "role": "musk17", "total": 3})
+            elif п["мушкетёры"] and float(st.get("ba17") or 0) > 0 and "musketeer" not in str(st.get("train_now") or ""):
                 из.append({"cmd": "TRAIN", "role": "musk17", "total": -1})
         свободных = float(st.get("my_freewar") or 0)
         if not self.первый and t >= п["T1"] and свободных >= 5:
@@ -368,7 +378,8 @@ def main():
     global СОСТАВ
     СОСТАВ = РЫЧАГИ + (РЫЧАГИ_ХОЗ if "--хозяйство" in sys.argv_исх else ()) + (РЫЧАГИ_ТАКТ if "--тактика" in sys.argv_исх else ()) \
         + (РЫЧАГИ_ПРОК if "--все-прокачки" in sys.argv_исх else ()) \
-        + (РЫЧАГИ_СБОР if "--сбор" in sys.argv_исх else ())
+        + (РЫЧАГИ_СБОР if "--сбор" in sys.argv_исх else ()) \
+        + (РЫЧАГИ_СОСТАВ if "--состав" in sys.argv_исх else ())
     if "--все-прокачки" in sys.argv_исх:
         print(f"ВСЕ ПРОКАЧКИ (§47): одиночных {len(ОДИНОЧНЫЕ)} — {', '.join(ОДИНОЧНЫЕ)}; линейки {', '.join(л[1] for л in ЛИНЕЙКИ)}", flush=True)
     n = len(СОСТАВ)
