@@ -25,6 +25,7 @@
     python3 sim/поиск_стратегии.py [--gens 40] [--pop 48] [--k 8] [--seed 1] [--враг родной|горячий|осторожный] [--против-игрока] [--хозяйство] [--тактика] [--out файл.json]
 """
 import json
+import math
 import os
 import statistics as St
 import sys
@@ -227,6 +228,23 @@ class Стратегия:
             from sim import сетка
             его = сетка([st.get(f"frow{y}") or "" for y in range(16)]) if st.get("frow0") is not None else сетка(st.get("frow"))
             wx, wy = int(round(float(st.get("wave_cx") or 0))), int(round(float(st.get("wave_cy") or 0)))
+            # ГОЛОВА, А НЕ ЦЕНТР (4.10, §88, проверка 4): «подмога» каждые 5 с досылает к волне по одному,
+            # и вживую волна — колонна на 8 клеток; её центр (`wave_cx/cy`) в 8:32 стоял в (4,1), а голова
+            # гибла у его базы (14,1) — 29 наших на 3 его, и отход не сработал ни разу (вокруг центра врага
+            # нет). Решаем по нашей клетке (3+ бойца, `ocells`) ближайшей к его базе. Без `ocells` — центр.
+            _eb = st.get("en_base")
+            try:
+                _eb = [float(x) for x in (_eb.replace(";", ",").split(",") if isinstance(_eb, str) else _eb)][:2]
+            except (TypeError, ValueError, AttributeError):
+                _eb = None
+            import strategy_live as _SL
+            import coss3_map as _CM
+            _кл = [c for c in _SL._список(st, "ocells", _CM.наши_клетки) if float(c.get("n") or 0) >= 3]
+            _дом = _SL._наша_база(st)
+            _кл = [c for c in _кл if max(abs(int(c["x"]) - _дом[0]), abs(int(c["y"]) - _дом[1])) > 1]
+            if _eb and _кл:
+                _г = min(_кл, key=lambda c: math.hypot(int(c["x"]) - _eb[0], int(c["y"]) - _eb[1]))
+                wx, wy = int(_г["x"]), int(_г["y"])
             # НАШИ РЯДОМ С ВОЛНОЙ (2.10, §40, игрок по карте 13:35): отход судил по одной
             # головной группе (29 против его ~50) и развернул домой и подмогу 23 в трёх клетках
             # позади — вместе 52. Теперь сила — вся наша армия в 5 клетках от волны.
@@ -234,6 +252,10 @@ class Стратегия:
             наши_рядом = (sum(нашa[yy][xx] for yy in range(max(0, wy - 5), min(len(нашa), wy + 6))
                               for xx in range(max(0, wx - 5), min(len(нашa[yy]), wx + 6))) if нашa else волна)
             наши_рядом = max(наши_рядом, волна)
+            if _eb and _кл:
+                # §88: у головы — наши в 2 клетках от неё по `ocells`, а не вся растянутая волна
+                наши_рядом = sum(float(c.get("n") or 0) for c in _кл
+                                 if max(abs(int(c["x"]) - wx), abs(int(c["y"]) - wy)) <= 2)
             if волна <= 0.5:
                 self.отходит = False
             elif его and getattr(self, "отходит", False):
