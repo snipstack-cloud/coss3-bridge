@@ -1786,7 +1786,8 @@ class Симулятор:
         # первым — 36 домов против 2 и +3400 очков (очки3 s1), чего в живом мосту
         # быть не может: там поля настоящие.
         s["my_farm"], s["my_farmused"] = (round(x) for x in self.эк.предел_населения())
-        s["squads"] = 1 if self.строй else 0
+        s["squads"] = int(getattr(self, "отряды_собрано", 0)) if self.в_отрядах > 0 else 0   # §80
+        s["squad_units"] = round(self.в_отрядах)
         s["my_mil_lost"], s["my_pea_lost"] = round(self.my_mil_lost), round(self.my_pea_lost)
         # НАШИ УБИЙСТВА ОТДЕЛЬНО ОТ ЕГО СЧЁТЧИКА (27.09). `p1_mil_lost` в записи
         # растёт САМ: ярус 1, не убивающий ни одного бойца, «набирает» по нему 48

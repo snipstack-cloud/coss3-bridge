@@ -476,7 +476,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
             пары.append([пред, c] if пред else [c])
         elif c["cmd"] != "BUILDERS":
             прочее.append(c)
-    вес = {"ATTACK": 0, "RETREAT": 0, "STAGE": 0, "ENGAGE": 0, "UPGRADE": 1, "SEED": 3, "TRAIN": 4, "BALANCE": 5}
+    вес = {"ATTACK": 0, "RETREAT": 0, "STAGE": 0, "ENGAGE": 0, "UPGRADE": 1, "FORMATION": 1, "SEED": 3, "TRAIN": 4, "BALANCE": 5}
     балансы = {}
     for c in прочее:
         if c["cmd"] == "BALANCE":
