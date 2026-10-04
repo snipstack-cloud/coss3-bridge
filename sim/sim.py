@@ -854,6 +854,34 @@ class Симулятор:
                     г.pop("ведомая_за", None)
         elif cmd in ("ATTACK", "MOVE"):
             self.послать(c, cmd)
+        elif cmd == "RETREAT" and (c.get("who") or c.get("cx") is not None or c.get("aim")):
+            # §87, КАК МОСТ (`block_hcmd.inc`: RETREAT берёт бойцов ДАЛЬШЕ 60 от ратуши, `who` — фильтр
+            # рода, цель-клетка — ход без боя туда): из групп в поле выделяются бойцы рода `who` (или все)
+            # и идут в клетку; там стоят без приказа. Прежде любой RETREAT здесь вёл всех домой.
+            кем = str(c.get("who") or "").strip()
+            кл = c.get("aim") or ([c.get("cx"), c.get("cy")] if c.get("cx") is not None else None)
+            цель = (float(кл[0]), float(кл[1])) if кл else (self.з.my_cx, self.з.my_cy)
+            for г in list(self.группы[1:]):
+                n = sum(г["состав"].values())
+                if n <= 0 or math.hypot(г["x"] - self.з.my_cx, г["y"] - self.з.my_cy) < ПОЛЕ_КЛЕТОК:
+                    continue
+                if кем and кем in г["состав"]:
+                    k = г["состав"][кем]
+                    if k <= 0:
+                        continue
+                    if k < n - 0.01:
+                        # выделить род в свою группу; остальные продолжают свой приказ
+                        г["состав"][кем] = 0.0
+                        новая = {kk: (k if kk == кем else 0.0) for kk in г["состав"]}
+                        self.группы.append({"состав": новая, "x": г["x"], "y": г["y"], "цель": цель, "режим": "движение",
+                                            "карман": 0.0, "конечная": цель, "без_армии": False, "старт": (г["x"], г["y"]),
+                                            "t_приказа": self.t, "хвост": 0.0, "id": getattr(self, "след_id", 0)})
+                        if hasattr(self, "след_id"):
+                            self.след_id += 1
+                        continue
+                for к in ("стоит", "ведомая_за", "пришли", "сливаться"):
+                    г.pop(к, None)
+                г["цель"], г["конечная"], г["режим"] = цель, цель, ("движение" if кл else "домой")
         elif cmd == "RETREAT":
             for г in self.группы[1:]:
                 г["цель"] = (self.з.my_cx, self.з.my_cy)
