@@ -1258,6 +1258,14 @@
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n', gIntegerList.GetCount);
       [*] = ;                  for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hak), gIntegerList.Get(hak));
+      [*] = ;                  // MODE of the group, so the state can say what it is doing:
+      [*] = ;                  // 0 attack, 1 move, 2 retreat, 3 engage. Cheaper and honester than
+      [*] = ;                  // guessing it from the order of a single man in the state block.
+      [*] = ;                  var hagm : Integer = 0;
+      [*] = ;                  if (hamode = 'move') then hagm := 1;
+      [*] = ;                  if (haretreat) then hagm := 2;
+      [*] = ;                  if (haengage) then hagm := 3;
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_m', hagm);
       [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' made of ' +
       [*] = ;                      IntToStr(gIntegerList.GetCount) + ' soldiers');
       [*] = ;               end;

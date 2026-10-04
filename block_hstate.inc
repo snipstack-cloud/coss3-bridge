@@ -2083,6 +2083,112 @@
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'ocells', hmos);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_n', hmon);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'ocells_all', hmoall);
+      [*] = ;            // GROUPS WITH NAMES (4.10, par.78 of the mac): our armies with numbers,
+      [*] = ;            // made by the command block (field `group` of an order) and remembered
+      [*] = ;            // in the parser br_hgrp. Row: id,n,pike,shooters,horse,cx,cy,mode,tx,ty.
+      [*] = ;            // WHY FROM A PARSER AND NOT FROM THE ENGINE: the script API has no way
+      [*] = ;            // to walk a player's groups or read a group's members - only
+      [*] = ;            // _misc_GetOrCreateGroupByName, GroupAdd/Clear and _group_Initialize.
+      [*] = ;            // And a unit cannot be marked either: the field that would fit,
+      [*] = ;            // scenariogroupid, is read on death (units/unit.inc/ondeath.inc:23)
+      [*] = ;            // and sends the engine into gScenario, which a skirmish does not have.
+      [*] = ;            // ALL COUNTERS ARE DECLARED HERE, before the loops: a number declared
+      [*] = ;            // inside a nested begin does not accumulate (six army counters, 17.09).
+      [*] = ;            var hggp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;            var hgstr : String = '';
+      [*] = ;            var hgrows : Integer = 0;
+      [*] = ;            var hgid : Integer;
+      [*] = ;            var hgk : Integer;
+      [*] = ;            var hgcnt : Integer;
+      [*] = ;            var hgliv : Integer;
+      [*] = ;            var hgpk : Integer;
+      [*] = ;            var hgsh : Integer;
+      [*] = ;            var hgcv : Integer;
+      [*] = ;            var hgsx : Integer;
+      [*] = ;            var hgsz : Integer;
+      [*] = ;            var hgtx : Integer;
+      [*] = ;            var hgty : Integer;
+      [*] = ;            var hgmode : Integer;
+      [*] = ;            if (hggp <> 0) then
+      [*] = ;            for hgid := 1 to 16 do
+      [*] = ;            begin
+      [*] = ;               hgcnt := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n');
+      [*] = ;               if (hgcnt > 0) then
+      [*] = ;               begin
+      [*] = ;                  hgliv := 0;
+      [*] = ;                  hgpk := 0;
+      [*] = ;                  hgsh := 0;
+      [*] = ;                  hgcv := 0;
+      [*] = ;                  hgsx := 0;
+      [*] = ;                  hgsz := 0;
+      [*] = ;                  hgtx := -1;
+      [*] = ;                  hgty := -1;
+      [*] = ;                  hgmode := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_m');
+      [*] = ;                  for hgk := 0 to hgcnt-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hgh : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk));
+      [*] = ;                     if (hgh <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hgp : Pointer = _unit_GetTObj(hgh);
+      [*] = ;                        if (hgp<>nil) then
+      [*] = ;                        if (not TObj(hgp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           var hgu : Integer = gObjProp[TObj(hgp).cid][TObj(hgp).id].usage;
+      [*] = ;                           hgliv := hgliv + 1;
+      [*] = ;                           hgsx := hgsx + Round(GetGameObjectPositionXByHandle(hgh)+hmhw);
+      [*] = ;                           hgsz := hgsz + Round(GetGameObjectPositionZByHandle(hgh)+hmhh);
+      [*] = ;                           // The same three marks as mil_inf/mil_shooters/mil_cav,
+      [*] = ;                           // so the columns sum to n exactly as they do in ocells.
+      [*] = ;                           if (hgu = gc_obj_usage_lightinfantry) or (hgu = gc_obj_usage_weak) or
+      [*] = ;                              (hgu = gc_obj_usage_grenadier) then
+      [*] = ;                           hgpk := hgpk + 1;
+      [*] = ;                           if (hgu = gc_obj_usage_shooter) or (hgu = gc_obj_usage_archer) then
+      [*] = ;                           hgsh := hgsh + 1;
+      [*] = ;                           if (hgu = gc_obj_usage_fasthorse) or (hgu = gc_obj_usage_hardhorse) or
+      [*] = ;                              (hgu = gc_obj_usage_horseshooter) then
+      [*] = ;                           hgcv := hgcv + 1;
+      [*] = ;                           // WHERE THE GROUP IS GOING: the first live man with an order
+      [*] = ;                           // speaks for the group - they walk under one order. Same
+      [*] = ;                           // reading as the enemy cells use (orders[0].info).
+      [*] = ;                           if (hgtx < 0) then
+      [*] = ;                           if (TObj(hgp).orders[0].itype <> gc_obj_order_type_none) then
+      [*] = ;                           begin
+      [*] = ;                              var hgox : Float = TObj(hgp).orders[0].info.x;
+      [*] = ;                              var hgoy : Float = TObj(hgp).orders[0].info.y;
+      [*] = ;                              if (TObj(hgp).orders[0].itype = gc_obj_order_type_attackobj) then
+      [*] = ;                              if (TObj(hgp).orders[0].info.trg <> 0) then
+      [*] = ;                              begin
+      [*] = ;                                 hgox := GetGameObjectPositionXByHandle(TObj(hgp).orders[0].info.trg);
+      [*] = ;                                 hgoy := GetGameObjectPositionZByHandle(TObj(hgp).orders[0].info.trg);
+      [*] = ;                              end;
+      [*] = ;                              if (hgox > -999999) then
+      [*] = ;                              begin
+      [*] = ;                                 hgtx := floor((hgox+hmhw)*cHmGrid/hmw);
+      [*] = ;                                 hgty := floor((hgoy+hmhh)*cHmGrid/hmh);
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  // A group with nobody alive is not written at all: the model must
+      [*] = ;                  // not order a group that no longer exists.
+      [*] = ;                  if (hgliv > 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hgrows > 0) then
+      [*] = ;                     hgstr := hgstr + ';';
+      [*] = ;                     hgstr := hgstr + IntToStr(hgid) + ',' + IntToStr(hgliv) + ',' +
+      [*] = ;                          IntToStr(hgpk) + ',' + IntToStr(hgsh) + ',' + IntToStr(hgcv) + ',' +
+      [*] = ;                          IntToStr(floor((hgsx div hgliv)*cHmGrid/hmw)) + ',' +
+      [*] = ;                          IntToStr(floor((hgsz div hgliv)*cHmGrid/hmh)) + ',' +
+      [*] = ;                          IntToStr(hgmode) + ',' + IntToStr(hgtx) + ',' + IntToStr(hgty);
+      [*] = ;                     hgrows := hgrows + 1;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hgstr = '') then
+      [*] = ;            hgstr := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'groups', hgstr);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'groups_n', hgrows);
       [*] = ;            // BUILDINGS OF BOTH SIDES (29.09, P6): 'type,x,z,done,hp%' through ';',
       [*] = ;            // at most 60, with *_all saying how many there were in all. Coordinates
       [*] = ;            // are ENGINE UNITS SHIFTED to the grid frame (0..map_w), the same frame
