@@ -51,6 +51,8 @@ class Тактик:
         self.лог = []           # признаки каждого шага (для ворот «без глаз»)
         self.история = []       # (роль, действие) назначенных миссий
         self.постоянные = None  # ворота «без глаз»: вектор вместо признаков
+        self.сэмпл = None       # §84 (PPO): генератор random.Random — выбирать действия из softmax, не argmax
+        self.траектория = []    # при сэмпле: (x, действия[3], logp[3], маска[3]) на каждом шаге
 
     def роли_из(self, группы):
         ид = {g["id"]: g for g in группы}
@@ -107,11 +109,25 @@ class Тактик:
         import миссии as М
         из = []
         t = float(st.get("gametime") or 0)
+        _acts, _logp, _mask = [0] * len(РОЛИ), [0.0] * len(РОЛИ), [0.0] * len(РОЛИ)
         for i, р in enumerate(РОЛИ):
             g = гр.get(р)
             if not g:
                 continue
-            k = max(range(len(ДЕЙСТВИЯ)), key=lambda j: л[i * len(ДЕЙСТВИЯ) + j])
+            лог = л[i * len(ДЕЙСТВИЯ):(i + 1) * len(ДЕЙСТВИЯ)]
+            if self.сэмпл is not None:
+                m = max(лог)
+                e = [math.exp(v - m) for v in лог]
+                z = sum(e)
+                u = self.сэмпл.random() * z
+                k, acc = 0, 0.0
+                for k, v in enumerate(e):
+                    acc += v
+                    if acc >= u:
+                        break
+                _acts[i], _logp[i], _mask[i] = k, math.log(e[k] / z), 1.0
+            else:
+                k = max(range(len(ДЕЙСТВИЯ)), key=lambda j: лог[j])
             имя = ДЕЙСТВИЯ[k]
             м = self._миссия(имя, р, g, гр)
             if м is None:
@@ -126,6 +142,8 @@ class Тактик:
             self.и.назначить(м, t)
             self.история.append((р, имя))
             из.append((р, имя))
+        if self.сэмпл is not None:
+            self.траектория.append((x, _acts, _logp, _mask))
         return из
 
     def _миссия(self, имя, р, g, гр):
