@@ -583,13 +583,14 @@ class Bridge:
         except OSError:
             pass
 
-    ЦЕЛИ_АТАКИ = ("peasants", "base", "army", "cell")
+    ЦЕЛИ_АТАКИ = ("peasants", "base", "army", "cell", "group")
     # MOVE ходит туда же, куда ATTACK, плюс домой. 'home' — единственная цель,
     # которой не нужен враг: это наша собственная ратуша.
-    ЦЕЛИ_ДВИЖЕНИЯ = ("home", "peasants", "base", "army", "cell")
+    ЦЕЛИ_ДВИЖЕНИЯ = ("home", "peasants", "base", "army", "cell", "group")
 
     def attack(self, count: int, target: str = "base", mode: str = "",
-               cx: int = -1, cy: int = -1, who: str = "", group: int = 0) -> bool:
+               cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
+               gid: int = 0) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -608,13 +609,14 @@ class Bridge:
         False, если предыдущий приказ ещё не забран."""
         if os.path.exists(self.atk_path):
             return False
-        приказ = self._приказ(count, target, mode, cx, cy, who, group)
+        приказ = self._приказ(count, target, mode, cx, cy, who, group, gid)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
 
     def _приказ(self, count: int, target: str = "base", mode: str = "",
-                cx: int = -1, cy: int = -1, who: str = "", group: int = 0):
+                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
+                gid: int = 0):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
@@ -669,6 +671,13 @@ class Bridge:
         # Клетка едет ОТДЕЛЬНЫМИ ключами, а не внутри строки цели: старый блок
         # лишних ключей не читает, и мост остаётся совместим с мостом в игре,
         # который про cell ещё не знает. Ровно так же 16.09 приехал "mode".
+        # ЦЕЛЬ «ГРУППА» (4.10, §78): идти к ДРУГОЙ своей группе и влиться в неё.
+        # Это «к своим» без «домой» (§51), только адресно. Номер получателя — в
+        # `gid`; без него цель бессмысленна, и приказ не уезжает.
+        if цель == "group":
+            if int(gid or 0) <= 0:
+                return None
+            приказ["gid"] = int(gid)
         if цель == "cell":
             if not (0 <= int(cx) <= 15 and 0 <= int(cy) <= 15):
                 return None
@@ -704,7 +713,8 @@ class Bridge:
                 int(п.get("cx", -1) if п.get("cx") is not None else -1),
                 int(п.get("cy", -1) if п.get("cy") is not None else -1),
                 str(п.get("who", "") or ""),
-                int(п.get("group", 0) or 0))
+                int(п.get("group", 0) or 0),
+                int(п.get("gid", 0) or 0))
             if собран is None:
                 return False
             готовые.append(собран)

@@ -1222,6 +1222,49 @@
       [*] = ;               hafound := True;
       [*] = ;            end;
       [*] = ;            // 'home' is our own anchor: the only target that needs no enemy at all.
+      [*] = ;            // TARGET 'group' (4.10, par.78): go to ANOTHER army of ours, named by
+      [*] = ;            // gid, and merge into it on arrival. The place of that group is its
+      [*] = ;            // men's average - the same reading the state block does, and the only
+      [*] = ;            // one available: the engine cannot be asked where a group is.
+      [*] = ;            if (hatrg = 'group') then
+      [*] = ;            begin
+      [*] = ;               var hatgid : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'gid');
+      [*] = ;               var hatgp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;               if (hatgid > 0) and (hatgp <> 0) then
+      [*] = ;               begin
+      [*] = ;                  var hatgn : Integer = ParserGetIntValueByKeyByHandle(hatgp, 'g' + IntToStr(hatgid) + '_n');
+      [*] = ;                  var hatsx : Float = 0;
+      [*] = ;                  var hatsz : Float = 0;
+      [*] = ;                  var hatliv : Integer = 0;
+      [*] = ;                  for hak := 0 to hatgn-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hath : Integer = ParserGetIntValueByKeyByHandle(hatgp, 'g' + IntToStr(hatgid) + '_h' + IntToStr(hak));
+      [*] = ;                     if (hath <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hathp : Pointer = _unit_GetTObj(hath);
+      [*] = ;                        if (hathp<>nil) then
+      [*] = ;                        if (not TObj(hathp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           hatsx := hatsx + GetGameObjectPositionXByHandle(hath);
+      [*] = ;                           hatsz := hatsz + GetGameObjectPositionZByHandle(hath);
+      [*] = ;                           hatliv := hatliv + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hatliv > 0) then
+      [*] = ;                  begin
+      [*] = ;                     hatx := hatsx / hatliv;
+      [*] = ;                     hatz := hatsz / hatliv;
+      [*] = ;                     hafound := True;
+      [*] = ;                     // WHO WE ARE WALKING TO is remembered: the merge itself happens
+      [*] = ;                     // in the state block, which looks at every group each tick.
+      [*] = ;                     if (hagid > 0) then
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hatgp, 'g' + IntToStr(hagid) + '_to', hatgid);
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' walks to group ' +
+      [*] = ;                         IntToStr(hatgid) + ' (' + IntToStr(hatliv) + ' men there)');
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
       [*] = ;            if (hatrg = 'home') then
       [*] = ;            begin
       [*] = ;               hatx := hax;

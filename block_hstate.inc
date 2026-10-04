@@ -2109,6 +2109,19 @@
       [*] = ;            var hgtx : Integer;
       [*] = ;            var hgty : Integer;
       [*] = ;            var hgmode : Integer;
+      [*] = ;            // Cells and live counts BY GROUP NUMBER, for the merge pass below.
+      [*] = ;            // Arrays, not scalars: an array survives a nested begin by reference,
+      [*] = ;            // a number does not (six army counters, 17.09).
+      [*] = ;            var hgcell : array [0..16] of Integer;
+      [*] = ;            var hgcelly : array [0..16] of Integer;
+      [*] = ;            var hglive : array [0..16] of Integer;
+      [*] = ;            var hgto : Integer;
+      [*] = ;            for hgid := 0 to 16 do
+      [*] = ;            begin
+      [*] = ;               hgcell[hgid] := -1;
+      [*] = ;               hgcelly[hgid] := -1;
+      [*] = ;               hglive[hgid] := 0;
+      [*] = ;            end;
       [*] = ;            if (hggp <> 0) then
       [*] = ;            for hgid := 1 to 16 do
       [*] = ;            begin
@@ -2181,6 +2194,9 @@
       [*] = ;                          IntToStr(floor((hgsx div hgliv)*cHmGrid/hmw)) + ',' +
       [*] = ;                          IntToStr(floor((hgsz div hgliv)*cHmGrid/hmh)) + ',' +
       [*] = ;                          IntToStr(hgmode) + ',' + IntToStr(hgtx) + ',' + IntToStr(hgty);
+      [*] = ;                     hgcell[hgid] := floor((hgsx div hgliv)*cHmGrid/hmw);
+      [*] = ;                     hgcelly[hgid] := floor((hgsz div hgliv)*cHmGrid/hmh);
+      [*] = ;                     hglive[hgid] := hgliv;
       [*] = ;                     hgrows := hgrows + 1;
       [*] = ;                  end;
       [*] = ;               end;
@@ -2189,6 +2205,39 @@
       [*] = ;            hgstr := 'none';
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'groups', hgstr);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'groups_n', hgrows);
+      [*] = ;            // MERGE ON ARRIVAL (4.10, par.78). A group told to walk to another one
+      [*] = ;            // carries g<A>_to = B. Arrived means THE SAME CELL - the same measure
+      [*] = ;            // ocells and the whole post-mortem use, and the only one visible in the
+      [*] = ;            // state. Then A's men are appended to B's roll and A is emptied: a group
+      [*] = ;            // with nobody alive is not written at all, so A disappears by itself.
+      [*] = ;            // Done here and not in the command block because only this one runs
+      [*] = ;            // every tick, and arrival is not an event - it is a condition.
+      [*] = ;            if (hggp <> 0) then
+      [*] = ;            for hgid := 1 to 16 do
+      [*] = ;            begin
+      [*] = ;               hgto := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_to');
+      [*] = ;               if (hgto > 0) and (hgto <= 16) then
+      [*] = ;               if (hglive[hgid] > 0) and (hglive[hgto] > 0) then
+      [*] = ;               if (hgcell[hgid] = hgcell[hgto]) and (hgcelly[hgid] = hgcelly[hgto]) then
+      [*] = ;               begin
+      [*] = ;                  hgcnt := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n');
+      [*] = ;                  var hgbn : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgto) + '_n');
+      [*] = ;                  for hgk := 0 to hgcnt-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hgmh : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk));
+      [*] = ;                     if (hgmh <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgto) + '_h' + IntToStr(hgbn), hgmh);
+      [*] = ;                        hgbn := hgbn + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgto) + '_n', hgbn);
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', 0);
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_to', 0);
+      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hgid) + ' merged into ' +
+      [*] = ;                      IntToStr(hgto) + ', now ' + IntToStr(hgbn) + ' men');
+      [*] = ;               end;
+      [*] = ;            end;
       [*] = ;            // BUILDINGS OF BOTH SIDES (29.09, P6): 'type,x,z,done,hp%' through ';',
       [*] = ;            // at most 60, with *_all saying how many there were in all. Coordinates
       [*] = ;            // are ENGINE UNITS SHIFTED to the grid frame (0..map_w), the same frame

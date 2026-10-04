@@ -73,6 +73,30 @@ with tempfile.TemporaryDirectory() as кат:
     if "GROUP 9" not in str(м.отказ):
         беды.append(f"приказ несуществующей группе должен давать отказ, а дал {м.отказ!r}")
 
+    # --- 2б. СЛИЯНИЕ: цель `group` + номер получателя `gid` ------------------
+    br.attack_many([
+        {"count": 3, "target": "cell", "mode": "move", "cx": 9, "cy": 7, "group": 3},
+        {"count": 2, "target": "cell", "mode": "move", "cx": 9, "cy": 7, "group": 4}])
+    м.атака()
+    br.attack_many([{"count": 0, "target": "group", "mode": "move", "group": 3, "gid": 4}])
+    м.атака()
+    м.состояние()
+    после = {г["id"]: г["n"] for г in M.наши_группы(br.read_state() or {})}
+    if 3 in после:
+        беды.append(f"влившаяся группа 3 должна исчезнуть, а осталась: {после}")
+    if после.get(4) != 5:
+        беды.append(f"группа 4 должна была стать из 2+3 = 5, а стала {после.get(4)}")
+    # Цель `group` без номера получателя не уезжает вовсе.
+    if br.attack_many([{"count": 0, "target": "group", "mode": "move", "group": 4}]):
+        беды.append("цель group без gid ушла в игру — некуда идти")
+    if os.path.exists(br.atk_path):
+        os.unlink(br.atk_path)
+    # Слияние в несуществующую группу — отказ вслух.
+    br.attack_many([{"count": 0, "target": "group", "mode": "move", "group": 4, "gid": 9}])
+    м.атака()
+    if "no group 9" not in str(м.отказ):
+        беды.append(f"слияние в несуществующую должно отказывать, а дало {м.отказ!r}")
+
 # --- 3. обвязка: промпт, критик, снимок -------------------------------------
 L.АРМИЯ_ПО_КЛЕТКАМ = True
 полное = dict(st, ocells="2,3,9,9,0,0", ocells_all=1, gametime=300,
@@ -99,7 +123,12 @@ for имя, кусок, файл in (
         ("число групп пишется", "'groups_n'", hstate),
         ("состав читается из br_hgrp", "ParserSelectByKey('br_hgrp')", hstate),
         ("мёртвые не считаются", "if (not TObj(hgp).bdead) then", hstate),
-        ("режим группы запоминается", "'_m', hagm)", hcmd)):
+        ("режим группы запоминается", "'_m', hagm)", hcmd),
+        # Слияние: цель group в блоке команд, сам слив — в блоке состояния.
+        ("цель group в приказе", "if (hatrg = 'group') then", hcmd),
+        ("к кому идём запоминается", "'_to', hatgid)", hcmd),
+        ("слияние по приходу", "merged into", hstate),
+        ("дошли = та же клетка", "if (hgcell[hgid] = hgcell[hgto])", hstate)):
     if кусок not in файл:
         беды.append(f"нет: {имя} ({кусок!r})")
 # Накопители групп объявлены ДО циклов: число во вложенном begin не накапливает.
