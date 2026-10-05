@@ -51,6 +51,12 @@ def проверить(стратегия, сеть=None, пул=None):
         import glob as _g
         _p5 = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/*/coss3_snap.jsonl")))
         наборы.append(("p5", [(вид, арг, хоз, "p3о", d, 100000 + i) for i, d in enumerate(_p5 * 30)]))
+    if os.environ.get("COSS3_RAID_SET", "0") == "1":
+        # §107: НАЛЁТЧИК — повадки игрока + налёт туда, где нашей армии нет; на записях p3, p5, p6 по 10 зёрен
+        import glob as _g
+        _рз = sorted(os.path.dirname(x) for p in ("igrok_03_10_p3", "igrok_04_10_p5", "igrok_06_10_p6")
+                     for x in _g.glob(os.path.expanduser(f"~/coss3-res-игрок-отл/{p}/*/coss3_snap.jsonl")))
+        наборы.append(("налёт", [(вид, арг, хоз, "налётчик_о", d, 100000 + i) for i, d in enumerate(_рз * 10)]))
     if os.environ.get("COSS3_P6", "0") == "1":
         # 6.10: p6 — набег на нашу базу в 7:00 (запись восстановлена: враг слота 0 переложен в p1_*, §104)
         import glob as _g
@@ -64,14 +70,16 @@ def проверить(стратегия, сеть=None, пул=None):
         уб, пот = sum(x["убито"] for x in р), sum(x["потери"] for x in р)
         итог[имя] = dict(уничтожена=sum(x["уничтожена"] for x in р), n=len(р),
                          награда=round(St.mean(x["награда"] for x in р), 3), размен=round(уб / max(пот, 1), 3),
-                         наша15=St.median(x["наша15"] for x in р), его15=St.median(x["его15"] for x in р))
+                         наша15=St.median(x["наша15"] for x in р), его15=St.median(x["его15"] for x in р),
+                         крест=St.median(x.get("наши_крест", 0) for x in р))
     return итог
 
 
 def печать(подпись, итог):
     for имя, x in итог.items():
         print(f"  {подпись:34} {имя:9} уничтожена {x['уничтожена']:3d}/{x['n']:<3d} | награда {x['награда']:+5.2f} | "
-              f"размен {x['размен']:4.2f} | наша 15:00 {x['наша15']:4.0f} | его 15:00 {x['его15']:4.0f}", flush=True)
+              f"размен {x['размен']:4.2f} | наша 15:00 {x['наша15']:4.0f} | его 15:00 {x['его15']:4.0f}"
+              f" | наших крестьян {x.get('крест', 0):3.0f}", flush=True)
 
 
 def main():
