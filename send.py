@@ -220,6 +220,23 @@ def main() -> int:
     ap.add_argument("--move-target", default="home",
                     choices=("home", "peasants", "base", "army"),
                     help="куда двигать: home — к своей ратуше (по умолчанию)")
+    # КЛЕТКА И ENGAGE РУКАМИ (5.10, §99). Мера «порог в поле по клетке доехал»
+    # просит ровно трёх вещей: MOVE в НАЗВАННУЮ клетку в двух клетках от ратуши,
+    # RETREAT оттуда и ENGAGE на его армию. Первого и третьего у send не было, и
+    # мера была неисполнима руками, хотя блок это умеет с 18.09.
+    ap.add_argument("--cell", default="",
+                    help="цель — КЛЕТКА сетки 16x16 как cx,cy (для --move, "
+                         "--attack и --engage). Перебивает --move-target")
+    ap.add_argument("--engage", type=int, default=0,
+                    help="развернуть в БОЙ до N бойцов, стоящих в поле (дальше "
+                         "одной клетки от ратуши), чем бы они ни были заняты")
+    ap.add_argument("--engage-target", default="army",
+                    choices=("army", "base", "peasants", "home"),
+                    help="на кого разворачивать (по умолчанию ближайшая его армия)")
+    ap.add_argument("--field", action="store_true",
+                    help="НИЧЕГО НЕ ПОСЫЛАТЬ: показать, кто по мерке блока в "
+                         "поле — клетка ратуши, mil_away/near/far и наши кучи "
+                         "с расстоянием по Чебышёву")
     ap.add_argument("--retreat", type=int, default=0,
                     help="отозвать домой до N бойцов, стоящих ДАЛЬШЕ ОДНОЙ КЛЕТКИ от ратуши, "
                          "чем бы они ни были заняты (блок с 18.09)")
@@ -334,6 +351,53 @@ def main() -> int:
               f"игровое время {ack.get('gametime')}")
         return 0
 
+    # Клетка разбирается ОДИН раз и для всех трёх приказов: «cx,cy» -> цель
+    # cell. Негодная клетка гасится ЗДЕСЬ и вслух, а не уезжает в игру молча.
+    кл = None
+    if (a.cell or "").strip():
+        куски = (a.cell or "").replace(";", ",").split(",")
+        try:
+            кл = (int(куски[0]), int(куски[1]))
+        except (ValueError, IndexError):
+            print("--cell " + str(a.cell) + " не разобрался: нужно два числа, как 10,10")
+            return 1
+        if not (0 <= кл[0] <= 15 and 0 <= кл[1] <= 15):
+            print(f"--cell {кл[0]},{кл[1]} вне сетки 16x16")
+            return 1
+
+    if a.field:
+        # Мера «в поле» ГЛАЗАМИ БЛОКА, без приказов (5.10, §99): по этим числам
+        # проверяется, что порог по клетке доехал. Чебышёв считается здесь так
+        # же, как в обоих блоках: большая из двух разниц клеток.
+        plind = a.plind if a.plind is not None else find_ai_plind(d)
+        if plind is None:
+            print("слот не найден: " + почему_нет_слота(d))
+            return 1
+        st = Bridge(d, plind).read_state() or {}
+        if not st:
+            print("состояния нет: игра не пишет coss3_eco_P<n>.dat")
+            return 1
+        дx, дy = int(st.get("my_cx", -1)), int(st.get("my_cy", -1))
+        print(f"время {st.get('gametime')}  ратуша в клетке ({дx},{дy})  "
+              f"сетка {st.get('grid_n')}  карта {st.get('map_w')}x{st.get('map_h')}")
+        print(f"в поле mil_away={st.get('mil_away')}  ближайший из них "
+              f"mil_near={st.get('mil_near')} ед.  самый дальний "
+              f"mil_far={st.get('mil_far')} ед.  ранены {st.get('mil_hurt')}")
+        print(f"свободных my_freewar={st.get('my_freewar')}  "
+              f"армия {st.get('mil_inf')} пех + {st.get('mil_shooters')} стрел")
+        кучи = st.get("ocells") or []
+        if isinstance(кучи, str):
+            кучи = []
+        print("наши кучи (клетка, бойцов, Чебышёв от ратуши, по мерке блока):")
+        for к in sorted(кучи, key=lambda к: -int(к.get("n") or 0)):
+            кx, кy, n = int(к.get("x", -1)), int(к.get("y", -1)), int(к.get("n") or 0)
+            if n <= 0:
+                continue
+            ч = max(abs(кx - дx), abs(кy - дy))
+            print(f"  ({кx:2d},{кy:2d})  {n:4d}  Чебышёв {ч}  "
+                  + ("В ПОЛЕ" if ч > 1 else "дома"))
+        return 0
+
     if a.move:
         # Руками, без модели: единственный способ проверить MOVE на живой игре
         # отдельно от всего остального. Перемирие движению не мешает - бой оно
@@ -343,8 +407,32 @@ def main() -> int:
             print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
-        ушло = br.attack(a.move, a.move_target, mode="move", who=(a.who or "").strip())
-        print(f"MOVE {a.move} -> {a.move_target} отправлен" if ушло
+        цель = "cell" if кл else a.move_target
+        ушло = br.attack(a.move, цель, mode="move", who=(a.who or "").strip(),
+                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
+        куда = f"клетку {кл[0]},{кл[1]}" if кл else a.move_target
+        print(f"MOVE {a.move} -> {куда} отправлен" if ушло
+              else "предыдущий приказ ещё не забран игрой")
+        return 0
+
+    if a.engage:
+        # ENGAGE руками (5.10): разворачивает в бой тех, кто В ПОЛЕ по мерке
+        # блока, чем бы они ни были заняты. Отличие от --attack в том, что тот
+        # берёт только СВОБОДНЫХ и только из дома.
+        plind = a.plind if a.plind is not None else find_ai_plind(d)
+        if plind is None:
+            print("слот не найден: " + почему_нет_слота(d))
+            return 1
+        br = Bridge(d, plind)
+        st = br.read_state() or {}
+        if st.get("peacemode"):
+            print("идёт перемирие — бой заблокирован движком, приказ не отправлен")
+            return 1
+        цель = "cell" if кл else a.engage_target
+        ушло = br.attack(a.engage, цель, mode="engage",
+                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
+        куда = f"клетку {кл[0]},{кл[1]}" if кл else a.engage_target
+        print(f"ENGAGE {a.engage} -> {куда} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
         return 0
 
@@ -372,8 +460,11 @@ def main() -> int:
             print("идёт перемирие — атака заблокирована движком, приказ не отправлен")
             return 1
         кем = (a.who or "").strip()
-        print(("волна отправлена" + (f", только {кем}" if кем else ""))
-              if br.attack(a.attack, who=кем)
+        цель = "cell" if кл else "base"
+        print(("волна отправлена" + (f", только {кем}" if кем else "")
+               + (f", в клетку {кл[0]},{кл[1]}" if кл else ""))
+              if br.attack(a.attack, цель, who=кем,
+                           cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
               else "предыдущий приказ атаки ещё не забран")
         return 0
 

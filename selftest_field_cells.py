@@ -105,6 +105,32 @@ for имя in ("llm_policy.py", "strategy_live.py", "coss3_bridge.py", "send.py"
               and "60 от ратуши" not in текст,
               "%s: слов про 60 единиц не осталось" % имя)
 
+print("7. руками мера исполнима: клетка и ENGAGE есть в send.py")
+ОТПРАВКА = io.open(os.path.join(ЗДЕСЬ, "send.py"), encoding="utf-8").read()
+for ключ in ("--cell", "--engage", "--field"):
+    проверить('"%s"' % ключ in ОТПРАВКА, "send.py знает %s" % ключ)
+
+sys.path.insert(0, ЗДЕСЬ)
+import coss3_bridge as B
+
+мост = B.Bridge.__new__(B.Bridge)
+мост.atk_path = os.path.join(ЗДЕСЬ, "нет-такого-файла.dat")
+
+
+def приказ(count, target, mode, cx=-1, cy=-1):
+    return B.Bridge._приказ(мост, count, target, mode, cx, cy, "", 0, 0)
+
+
+п = приказ(200, "army", "engage")
+проверить(п is not None and п.get("mode") == "engage" and п.get("target") == "army",
+          "ENGAGE на армию собирается: %s" % п)
+п = приказ(200, "cell", "move", 10, 10)
+проверить(п is not None and п.get("cx") == 10 and п.get("cy") == 10,
+          "MOVE в названную клетку собирается: %s" % п)
+п = приказ(200, "home", "retreat")
+проверить(п is not None and п.get("mode") == "retreat",
+          "RETREAT домой собирается: %s" % п)
+
 print()
 print("ошибок:", ошибок)
 sys.exit(1 if ошибок else 0)
