@@ -59,6 +59,7 @@
   шахты противника: gold 2, iron 1
   здания противника: center 2, mill 1, smith 1, ba17 2, store 1, market 1, academi 1
   ближайший враг в 148 единицах
+  КУДА ОН ИДЁТ: угроз базе и хозяйству нет
 
 # MAP
 The map is 320x320 world units, split into a 16x16 grid; one cell is 20x20 units. Column 0 is west, row 0 is north.
