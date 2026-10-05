@@ -377,25 +377,12 @@ def main() -> int:
         if not st:
             print("состояния нет: игра не пишет coss3_eco_P<n>.dat")
             return 1
-        дx, дy = int(st.get("my_cx", -1)), int(st.get("my_cy", -1))
-        print(f"время {st.get('gametime')}  ратуша в клетке ({дx},{дy})  "
-              f"сетка {st.get('grid_n')}  карта {st.get('map_w')}x{st.get('map_h')}")
-        print(f"в поле mil_away={st.get('mil_away')}  ближайший из них "
-              f"mil_near={st.get('mil_near')} ед.  самый дальний "
-              f"mil_far={st.get('mil_far')} ед.  ранены {st.get('mil_hurt')}")
-        print(f"свободных my_freewar={st.get('my_freewar')}  "
-              f"армия {st.get('mil_inf')} пех + {st.get('mil_shooters')} стрел")
-        кучи = st.get("ocells") or []
-        if isinstance(кучи, str):
-            кучи = []
-        print("наши кучи (клетка, бойцов, Чебышёв от ратуши, по мерке блока):")
-        for к in sorted(кучи, key=lambda к: -int(к.get("n") or 0)):
-            кx, кy, n = int(к.get("x", -1)), int(к.get("y", -1)), int(к.get("n") or 0)
-            if n <= 0:
-                continue
-            ч = max(abs(кx - дx), abs(кy - дy))
-            print(f"  ({кx:2d},{кy:2d})  {n:4d}  Чебышёв {ч}  "
-                  + ("В ПОЛЕ" if ч > 1 else "дома"))
+        import coss3_map
+        print(f"время {st.get('gametime')}  сетка {st.get('grid_n')}  "
+              f"карта {st.get('map_w')}x{st.get('map_h')}  армия "
+              f"{st.get('mil_inf')} пех + {st.get('mil_shooters')} стрел")
+        for строка in coss3_map.строки_поля(st):
+            print(строка)
         return 0
 
     if a.move:

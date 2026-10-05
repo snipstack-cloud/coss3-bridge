@@ -391,6 +391,17 @@ class Bridge:
         except OSError:
             return False
 
+    def возраст_состояния(self):
+        """Сколько секунд назад игра записала состояние слота, либо None.
+
+        None — файла нет вовсе. Нужно затем, чтобы водители руками не принимали
+        ЗАЛЕЖЬ прошлой партии за живые числа: `read_state` отдаёт содержимое и
+        про его свежесть не говорит (5.10)."""
+        try:
+            return time.time() - os.path.getmtime(self.state_path)
+        except OSError:
+            return None
+
     def outcome(self, свежесть: float = 0.0) -> str:
         """'win', 'lose' или '' — чем кончилась партия, по мнению самой игры.
 
