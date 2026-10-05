@@ -297,6 +297,37 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'mapsize', gMap.settings.gen.mapsize);
       [*] = ;            ParserSetIntValueByKeyByHandle(back, 'speed', floor(GetTimeSpeedFactor));
       [*] = ;            ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
+      [*] = ;            // MEMORY OF THE MATCH DIES WITH THE MATCH (5.10, par.103). Handles of units
+      [*] = ;            // are valid only inside one match, and these parsers live in the process:
+      [*] = ;            //   br_hgrp  - the roll of every numbered group, handle by handle;
+      [*] = ;            //   br_hwave - how many went in the last wave;
+      [*] = ;            //   br_kills - the ring of death events;
+      [*] = ;            //   br_hstate - the per-slot stamp of when state was last written;
+      [*] = ;            //   br_hfail, br_hlog - what the command block refused and said.
+      [*] = ;            // Found by a live game: a match against a HUMAN started in the same process
+      [*] = ;            // right after a match against the native AI froze the state block at game
+      [*] = ;            // second 27-33 for BOTH human slots - the tick lived, the pulse kept writing,
+      [*] = ;            // and the state file stayed complete at second 33 forever. The groups section
+      [*] = ;            // of the state block switches on together with the grid, that is exactly when
+      [*] = ;            // the town hall goes up - 27-33 seconds in - and it walked the OLD match's
+      [*] = ;            // handles. Nothing said a word, because a handle that resolves to garbage is
+      [*] = ;            // not an error the engine reports.
+      [*] = ;            // Cleared BEFORE DoNewGame on purpose: after it the map is already loading and
+      [*] = ;            // the first ticks of the new match can run before we get back here.
+      [*] = ;            var brnp : Integer;
+      [*] = ;            brnp := ParserSelectByKey('br_hgrp');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            brnp := ParserSelectByKey('br_hwave');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            brnp := ParserSelectByKey('br_kills');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            brnp := ParserSelectByKey('br_hstate');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            brnp := ParserSelectByKey('br_hfail');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            brnp := ParserSelectByKey('br_hlog');
+      [*] = ;            if (brnp <> 0) then ParserClearByHandle(brnp);
+      [*] = ;            Log('bridge-human: NEW - memory of the previous match cleared');
       [*] = ;            GUIExecuteState('DoNewGame');
       [*] = ;         end;
       [*] = ;         ParserSaveToFileByHandle(back, '@@OUT@@coss3_ack.dat');
