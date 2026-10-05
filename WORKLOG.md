@@ -68,6 +68,20 @@
 
 **Метка `verified` передвинута.**
 
+**Прогон отправлен, и этим закрыт долг со 3.10.** `results/2026-10-05/pole_05_10_mera/1`,
+коммит `1283f47`. Отправка с Windows идёт ОДНОЙ дорогой, и её стоит записать: ключ с
+правом записи живёт только в WSL (`~/.ssh/coss3_results`), а свежий `push_results.py` —
+только в репозитории Windows (клон в WSL отстаёт, сегодня на 19e5105). Значит запускать
+надо репозиторий Windows ИЗ WSL через `/mnt/c`:
+
+    wsl -e bash -c 'cd /mnt/c/Users/LapSt/Downloads/coss3-git && python3 push_results.py \
+        --io /mnt/c/coss3-io-igrok --repo git@github.com:snipstack-cloud/coss3-results.git \
+        --branch results --key ~/.ssh/coss3_results --name pole_05_10_mera/1'
+
+Прошло чисто с первого раза: «обыск чист, отправляю файлов: 8». Этим проверен и
+`encoding="utf-8"` в `push_results.py` (2d203b8), про который в `RESUME` с 3.10 стояло «на
+Windows не проверено — первый запуск из WSL покажет».
+
 ## 5.10 день (Windows) — ПОРОГ «В ПОЛЕ» ПО КЛЕТКЕ вместо 60 единиц (§99)
 
 Задание мака. Правка одна, но живёт в двух блоках, и это главная её трудность.
