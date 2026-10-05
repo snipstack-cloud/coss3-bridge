@@ -86,7 +86,8 @@ def проверка(пул, theta, тест, подпись="ppo v2"):
     import случайный_враг as СВ
     хоз = _хоз()
     случ = СВ.тест() or []
-    п1 = np.array(json.load(open(os.path.join(os.path.dirname(К), "nets", "tactic_shadow.json")))["theta"])
+    п1 = np.array(json.load(open(os.path.join(os.path.dirname(К), "nets", "tactic_shadow.json"),
+                            encoding="utf-8"))["theta"])
     итог = {}
     for имя, задания in наборы_оценки(тест, случ):
         строки = {}

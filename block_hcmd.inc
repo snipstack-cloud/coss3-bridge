@@ -1099,6 +1099,28 @@
       [*] = ;               hax := GetGameObjectPositionXByHandle(haany);
       [*] = ;               haz := GetGameObjectPositionZByHandle(haany);
       [*] = ;            end;
+      [*] = ;            // 'IN THE FIELD' IS A CELL, NOT 60 UNITS (5.10, par.99). In check 5 a heap of
+      [*] = ;            // 74 of ours stood in cell (10,10) with the town hall in (12,13): 3.6 cells,
+      [*] = ;            // about 58 units. By the old measure it was NOT in the field (further than 60
+      [*] = ;            // from the hall), and it did not count as free either, because it stood under
+      [*] = ;            // an order - so RETREAT and ENGAGE, which take the FAR ones, could not reach
+      [*] = ;            // it, while ATTACK and MOVE take idle men only. The main force was out of
+      [*] = ;            // reach of every order, and 'strike the squad next to us' was impossible even
+      [*] = ;            // when the decision was right.
+      [*] = ;            // The measure is now THE GRID THE MODEL ITSELF NAMES: a man is in the field
+      [*] = ;            // when his cell is neither the town hall cell nor one next to it, that is
+      [*] = ;            // further than one cell by Chebyshev (32 units and up on a 256 map).
+      [*] = ;            // hafn/hafr must match cHmGrid/cHmHome in the state block: what the bridge
+      [*] = ;            // REPORTS as away has to be exactly what it CAN order, or the two measures
+      [*] = ;            // drift apart again.
+      [*] = ;            var hafn : Integer = 16;   // cHmGrid in the state block; grids must match
+      [*] = ;            var hafr : Integer = 1;    // cHmHome there: the hall cell and the eight around it
+      [*] = ;            var hafw : Integer = GetMapWidth;
+      [*] = ;            var hafh : Integer = GetMapHeight;
+      [*] = ;            var hafhw : Integer = hafw div 2;
+      [*] = ;            var hafhh : Integer = hafh div 2;
+      [*] = ;            var hafbx : Integer = floor((hax+hafhw)*hafn/hafw);
+      [*] = ;            var hafby : Integer = floor((haz+hafhh)*hafn/hafh);
       [*] = ;            // ONE SOLDIER IS NOT SHARED BY TWO ORDERS of the same tick: whoever is
       [*] = ;            // taken goes into gTmpIntList and is skipped by the orders that follow.
       [*] = ;            gTmpIntList.Clear;
@@ -1173,9 +1195,13 @@
       [*] = ;                     var hatake2 : Boolean = False;
       [*] = ;                     if (haretreat) or (haengage) then
       [*] = ;                     begin
-      [*] = ;                        var hadd : Float = VectorDistance(GetGameObjectPositionXByHandle(hago), 0,
-      [*] = ;                             GetGameObjectPositionZByHandle(hago), hax, 0, haz);
-      [*] = ;                        if (hadd > 60) then hatake2 := True;
+      [*] = ;                        var hafux : Integer = floor((GetGameObjectPositionXByHandle(hago)+hafhw)*hafn/hafw);
+      [*] = ;                        var hafuy : Integer = floor((GetGameObjectPositionZByHandle(hago)+hafhh)*hafn/hafh);
+      [*] = ;                        var hafdc : Integer = Round(Abs(hafux - hafbx));
+      [*] = ;                        var hafdy : Integer = Round(Abs(hafuy - hafby));
+      [*] = ;                        // Chebyshev distance without a Max: the larger of the two.
+      [*] = ;                        if (hafdc < hafdy) then hafdc := hafdy;
+      [*] = ;                        if (hafdc > hafr) then hatake2 := True;
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then hatake2 := True;
@@ -1393,7 +1419,8 @@
       [*] = ;                  Log('bridge-human: MOVE ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
       [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
       [*] = ;                  if (haretreat) then
-      [*] = ;                  Log('bridge-human: RETREAT ' + IntToStr(gIntegerList.GetCount) + ' far soldiers walk home');
+      [*] = ;                  Log('bridge-human: RETREAT ' + IntToStr(gIntegerList.GetCount) +
+      [*] = ;                      ' far soldiers walk home [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
       [*] = ;               end
       [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then
@@ -1409,7 +1436,8 @@
       [*] = ;                  // model read 'no waves at all' right after sending one.
       [*] = ;                  // A named parser lives between ticks and knows nothing of groups.
       [*] = ;                  if (haengage) then
-      [*] = ;                  Log('bridge-human: ENGAGE ' + IntToStr(gIntegerList.GetCount) + ' far soldiers turn to fight');
+      [*] = ;                  Log('bridge-human: ENGAGE ' + IntToStr(gIntegerList.GetCount) +
+      [*] = ;                      ' far soldiers turn to fight [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
       [*] = ;                  // ENGAGE is not a new wave: wave_sent stays as it was.
       [*] = ;                  if (not haengage) then
       [*] = ;                  begin
@@ -1422,7 +1450,7 @@
       [*] = ;            end
       [*] = ;            else
       [*] = ;            Log('bridge-human: ATTACK skipped - soldiers ' + IntToStr(gIntegerList.GetCount) +
-      [*] = ;                ', target found ' + BoolToStr(hafound));
+      [*] = ;                ', target found ' + BoolToStr(hafound) + ' [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;

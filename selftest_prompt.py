@@ -193,7 +193,10 @@ def main() -> int:
         текст = запрос(st, параметры(имя).get("волны"))
         снимок = os.path.join(КАТАЛОГ, f"{имя}.prompt.txt")
         if ОБНОВИТЬ or not os.path.exists(снимок):
-            with open(снимок, "w", encoding="utf-8") as f:
+            # newline="" ОБЯЗАТЕЛЬНо: без него Windows пишет CRLF, и --update переписывает
+            # ВСЕ четыре снимка целиком одними концами строк — правка на две строки
+            # уезжает в коммит почти тысячей строк разницы (5.10).
+            with open(снимок, "w", encoding="utf-8", newline="") as f:
                 f.write(текст)
             print(f"  снимок записан: {имя}.prompt.txt ({len(текст)} символов)")
         else:

@@ -366,7 +366,22 @@
       [*] = ;         // A SECOND pass on purpose: hscx/hscz (our centre) is only final after
       [*] = ;         // the first loop - a soldier met before the town centre would have been
       [*] = ;         // measured from 0,0.
-      [*] = ;         var hswaway : Integer = 0;   // soldiers further than 60 from our centre
+      [*] = ;         // 'IN THE FIELD' BY CELL, not by 60 units (5.10, par.99). The same measure
+      [*] = ;         // sits in block_hcmd (hafn/hafr): what we report here as away must be exactly
+      [*] = ;         // what the command block can order, or a heap of 74 ends up away for neither -
+      [*] = ;         // too close for RETREAT and ENGAGE, under an order so not free for ATTACK.
+      [*] = ;         // cHmGrid and hmw are declared FURTHER DOWN, with the minimap, and a name used
+      [*] = ;         // before its declaration kills the whole tick - hence the copies here, with the
+      [*] = ;         // same values and this note. hscx/hscz are final: this is the second pass.
+      [*] = ;         const cHmHome = 1;         // home = the hall cell and the eight around it
+      [*] = ;         var hqn  : Integer = 16;   // cHmGrid below; the grids must match
+      [*] = ;         var hqw  : Integer = GetMapWidth;
+      [*] = ;         var hqh  : Integer = GetMapHeight;
+      [*] = ;         var hqhw : Integer = hqw div 2;
+      [*] = ;         var hqhh : Integer = hqh div 2;
+      [*] = ;         var hqbx : Integer = floor((hscx+hqhw)*hqn/hqw);
+      [*] = ;         var hqby : Integer = floor((hscz+hqhh)*hqn/hqh);
+      [*] = ;         var hswaway : Integer = 0;   // soldiers in the field: further than cHmHome cells
       [*] = ;         var hswnear : Integer = 0;   // and how close the NEAREST of them is
       [*] = ;         var hswsx   : Float = 0;     // sum of dx of those away - gives the side
       [*] = ;         var hswsz   : Float = 0;     // sum of dz; sign of the sum is the sign of the mean
@@ -390,7 +405,15 @@
       [*] = ;                     var hswd : Integer = Round(VectorDistance(
       [*] = ;                        GetGameObjectPositionXByHandle(hswh), 0,
       [*] = ;                        GetGameObjectPositionZByHandle(hswh), hscx, 0, hscz));
-      [*] = ;                     if (hswd > 60) then
+      [*] = ;                     var hqux : Integer = floor((GetGameObjectPositionXByHandle(hswh)+hqhw)*hqn/hqw);
+      [*] = ;                     var hquy : Integer = floor((GetGameObjectPositionZByHandle(hswh)+hqhh)*hqn/hqh);
+      [*] = ;                     var hqdc : Integer = Round(Abs(hqux - hqbx));
+      [*] = ;                     var hqdy : Integer = Round(Abs(hquy - hqby));
+      [*] = ;                     // Chebyshev distance without a Max: the larger of the two.
+      [*] = ;                     if (hqdc < hqdy) then hqdc := hqdy;
+      [*] = ;                     // mil_near and mil_far stay in UNITS on purpose: they answer 'how far', and
+      [*] = ;                     // only the yes/no of 'in the field' moved to cells.
+      [*] = ;                     if (hqdc > cHmHome) then
       [*] = ;                     begin
       [*] = ;                        hswaway := hswaway + 1;
       [*] = ;                        if (hswnear = 0) or (hswd < hswnear) then

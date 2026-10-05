@@ -221,7 +221,7 @@ def main() -> int:
                     choices=("home", "peasants", "base", "army"),
                     help="куда двигать: home — к своей ратуше (по умолчанию)")
     ap.add_argument("--retreat", type=int, default=0,
-                    help="отозвать домой до N бойцов, стоящих ДАЛЬШЕ 60 от ратуши, "
+                    help="отозвать домой до N бойцов, стоящих ДАЛЬШЕ ОДНОЙ КЛЕТКИ от ратуши, "
                          "чем бы они ни были заняты (блок с 18.09)")
     ap.add_argument("--mode", type=int, choices=(0, 1), default=None,
                     help="1 — билд-ордер ведёт модель (нативный выключен), 0 — как в оригинале")
@@ -349,7 +349,7 @@ def main() -> int:
         return 0
 
     if a.retreat:
-        # RETREAT руками (18.09): бойцы дальше 60 от ратуши идут домой без боя,
+        # RETREAT руками (18.09): бойцы дальше одной клетки от ратуши идут домой без боя,
         # чем бы они ни были заняты. Проверка блока на живой игре без модели.
         plind = a.plind if a.plind is not None else find_ai_plind(d)
         if plind is None:
