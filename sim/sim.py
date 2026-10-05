@@ -2130,9 +2130,14 @@ class Симулятор:
                             tx=None if г.get("цель") is None else int(round(г["цель"][0])), ty=None if г.get("цель") is None else int(round(г["цель"][1])))
                        for г in self.группы[1:] if г.get("id") is not None and sum(г["состав"].values()) >= 0.5]
         if self.враг is not None:
+            _цели = getattr(self.враг, "цели", {}) or {}
             s["ecells"] = [dict(x=i % СЕТКА, y=i // СЕТКА, n=round(v),
                                 **({"стрелков": round(self.враг.s[i // СЕТКА][i % СЕТКА]), "пик": round(v - self.враг.s[i // СЕТКА][i % СЕТКА])}
-                                   if self.враг.s is not None else {}))
+                                   if self.враг.s is not None else {}),
+                                # §108: намерение агента — как поле моста (идут, tx, ty), для глаз
+                                **({"идут": round(_цели[(i % СЕТКА, i // СЕТКА)][0]), "tx": _цели[(i % СЕТКА, i // СЕТКА)][1],
+                                    "ty": _цели[(i % СЕТКА, i // СЕТКА)][2]} if (i % СЕТКА, i // СЕТКА) in _цели
+                                   else {"идут": 0, "tx": -1, "ty": -1}))
                            for i, v in enumerate(x for ряд in self.враг.h for x in ряд) if v >= 0.5]
         волны = self.группы[1:]
         if волны:

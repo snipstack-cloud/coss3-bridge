@@ -30,8 +30,12 @@ import тактик as ТК        # noqa: E402
 ГАММА, ЛЯМБДА, КЛИП, ЭПОХ, МИНИПАКЕТ, LR, ЭНТРОПИЯ = 0.99, 0.95, 0.2, 4, 512, 3e-4, 0.01
 
 
+V3 = "--v3" in sys.argv or os.environ.get("COSS3_TACTIC_V3") == "1"   # §108: глаза и оборона
+ХОЗ_ФАЙЛ = os.environ.get("COSS3_TACTIC_HOZ") or ("шт_s2_угроза.json" if V3 else "сл2_s1.json")
+
+
 def _хоз():
-    return json.load(open(os.path.join(К, "поиск", "сл2_s1.json"), encoding="utf-8"))["итог"]
+    return json.load(open(os.path.join(К, "поиск", ХОЗ_ФАЙЛ), encoding="utf-8"))["итог"]
 
 
 class Сэмпл(ТК.Тактик):
@@ -46,7 +50,8 @@ class Сэмпл(ТК.Тактик):
         n0 = len(self.траектория)
         из = super().__call__(st)
         if len(self.траектория) > n0:
-            тек = (float(st.get("мы_убили_бойцов") or 0) - float(st.get("my_mil_lost") or 0)) / 40.0
+            тек = (float(st.get("мы_убили_бойцов") or 0) - float(st.get("my_mil_lost") or 0)
+                   - (float(st.get("my_pea_lost") or 0) if V3 else 0.0)) / 40.0   # §108: и наши крестьяне
             self.награды.append(тек - self._прошлая)
             self._прошлая = тек
         return из
@@ -62,6 +67,8 @@ def _задача(з):
         враг = dict(СВ.разыграть(np.random.default_rng(seed)), запись=d)
     ТК._настроить(враг)
     п = Сэмпл(theta, _хоз(), seed)
+    if V3:
+        os.environ["COSS3_PEA_W"] = os.environ.get("COSS3_PEA_W") or "2"
     сим, и = SIM.партия(d, п, seed=seed)
     м = ПС.мера(сим, и)
     наг = list(п.награды)
@@ -77,12 +84,16 @@ def _оценка(з):
 
 def наборы_оценки(тест, случ):
     p3 = ТК._p3() + sorted(os.path.dirname(x) for x in __import__("glob").glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/*/coss3_snap.jsonl")))
-    return [("p3о (p3, p5)", [("p3о", d, 100000 + i) for i, d in enumerate(p3 * 15)]),
+    налёт = [x for p in ("igrok_03_10_p3", "igrok_04_10_p5", "igrok_06_10_p6")
+             for x in sorted(os.path.dirname(y) for y in __import__("glob").glob(os.path.expanduser(f"~/coss3-res-игрок-отл/{p}/*/coss3_snap.jsonl")))]
+    доп = [("налёт (p3,p5,p6)", [("налётчик_о", d, 100000 + i) for i, d in enumerate(налёт * 10)])] if V3 else []
+    return доп + [("p3о (p3, p5)", [("p3о", d, 100000 + i) for i, d in enumerate(p3 * 15)]),
             ("p2", [("p2", d, 100000 + i) for i, d in enumerate(ТК._p2() * 30)]),
             ("случайный 100", [(q, q["запись"], 100000 + i) for i, q in enumerate(случ)])]
 
 
-def проверка(пул, theta, тест, подпись="ppo v2"):
+def проверка(пул, theta, тест, подпись=None):
+    подпись = подпись or ("ppo v3" if V3 else "ppo v2")
     import случайный_враг as СВ
     хоз = _хоз()
     случ = СВ.тест() or []
@@ -95,10 +106,12 @@ def проверка(пул, theta, тест, подпись="ppo v2"):
             р = пул.map(_оценка, [(вид, арг, хоз, враг, d, s) for враг, d, s in задания])
             строки[подп] = р
         итог[имя] = {k: dict(уничтожена=sum(x["уничтожена"] for x in v), награда=round(St.mean(x["награда"] for x in v), 2),
-                             размен=round(sum(x["убито"] for x in v) / max(sum(x["потери"] for x in v), 1), 2), n=len(v)) for k, v in строки.items()}
-        print(f"  {имя:14} " + " | ".join(f"{k} {v['уничтожена']:3d}/{v['n']} {v['награда']:+.2f} {v['размен']:.2f}" for k, v in итог[имя].items()), flush=True)
+                             размен=round(sum(x["убито"] for x in v) / max(sum(x["потери"] for x in v), 1), 2), n=len(v),
+                             крест=round(St.median(x.get("наши_крест", 0) for x in v))) for k, v in строки.items()}
+        print(f"  {имя:16} " + " | ".join(f"{k} {v['уничтожена']:3d}/{v['n']} {v['награда']:+.2f} {v['размен']:.2f} кр{v['крест']}" for k, v in итог[имя].items()), flush=True)
         сч = np.sum([x["решения"] for x in строки[подпись]], axis=0)
-        print("     решения: " + ", ".join(f"{TC.РЕШЕНИЯ2[i]} {100 * сч[i] / max(сч.sum(), 1):.0f}%" for i in range(len(сч)) if сч[i]), flush=True)
+        _сл = TC.РЕШЕНИЯ3 if V3 else TC.РЕШЕНИЯ2
+        print("     решения: " + ", ".join(f"{_сл[i]} {100 * сч[i] / max(сч.sum(), 1):.0f}%" for i in range(len(сч)) if сч[i]), flush=True)
     return итог
 
 
@@ -124,7 +137,7 @@ def main():
             return
         torch.manual_seed(seed)
         rng = np.random.default_rng(seed)
-        NX, NA = TC.N_ПРИЗНАКОВ2, len(TC.РЕШЕНИЯ2)
+        NX, NA = (TC.N_ПРИЗНАКОВ3, len(TC.РЕШЕНИЯ3)) if V3 else (TC.N_ПРИЗНАКОВ2, len(TC.РЕШЕНИЯ2))
 
         class Политика(nn.Module):
             def __init__(self):
@@ -143,14 +156,17 @@ def main():
         p3 = ТК._p3() + sorted(os.path.dirname(x) for x in __import__("glob").glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/*/coss3_snap.jsonl")))
         p2 = ТК._p2()
         os.makedirs(os.path.dirname(выход), exist_ok=True)
-        print(f"PPO ТАКТИК v2: {iters} × {eps} партий, признаков {NX}, решений {NA}; противники p3о / p2 / случайный", flush=True)
+        print(f"PPO ТАКТИК {'v3 (глаза, оборона)' if V3 else 'v2'}, хозяйство {ХОЗ_ФАЙЛ}: {iters} × {eps} партий, признаков {NX}, решений {NA}; противники p3о / p2 / случайный", flush=True)
         лучшая = -1e9
         for it in range(iters):
             theta = theta_из(политика)
             зад = []
             for j in range(eps):
-                k = j % 3
-                if k == 0:
+                k = j % (4 if V3 else 3)
+                if k == 3:
+                    # §108: налётчик на записях игрока для обучения (1.10); отложенные p3/p5/p6 — в проверке
+                    зад.append((theta, "налётчик_о", игрок[int(rng.integers(len(игрок)))], 1000 * it + j))
+                elif k == 0:
                     зад.append((theta, "p3о", p3[int(rng.integers(len(p3)))], 1000 * it + j))
                 elif k == 1:
                     зад.append((theta, "p2", p2[0], 1000 * it + j))
