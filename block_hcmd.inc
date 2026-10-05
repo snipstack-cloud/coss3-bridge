@@ -1160,7 +1160,20 @@
       [*] = ;         // farther than 60 from the centre, whatever their order - exactly the
       [*] = ;         // retreat set - and sends them into the ATTACK path instead of home.
       [*] = ;         var haengage : Boolean = (hamode = 'engage');
-      [*] = ;               if ((not gbool_peacemode) or (hamode = 'move') or (haretreat)) then
+      [*] = ;         // FACE (5.10, par.98): turn ON THE SPOT, no walking. Until now dirX,dirZ of
+      [*] = ;         // every group order was the constant 0,1, so every formation of ours looked
+      [*] = ;         // towards +Z of the map whatever it was doing - in check 5, with our base at
+      [*] = ;         // (12,13) and his at (1,2), that was towards OUR OWN base, and the player saw
+      [*] = ;         // it with his own eyes: they stood with their backs to the enemy. A player
+      [*] = ;         // does this with a right-button DRAG, which is the same dirX,dirZ of the same
+      [*] = ;         // call (lib/player.script:2292-2390: the drag angle becomes
+      [*] = ;         // VectorRotateY(0,0,-1,angle) and goes into WriteMove).
+      [*] = ;         // Not _player_StandGroupToPosition: that one TELEPORTS men with
+      [*] = ;         // SetGameObjectPositionByHandle, which is scenario placement, not an order.
+      [*] = ;         var haface : Boolean = (hamode = 'face');
+      [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
+      [*] = ;               // reasoning as for move and retreat.
+      [*] = ;               if ((not gbool_peacemode) or (hamode = 'move') or (haretreat) or (haface)) then
       [*] = ;               begin
       [*] = ;            var hawant : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'count');
       [*] = ;            var hatrg : String = ParserGetValueByKeyByHandle(hah, hapre + 'target');
@@ -1191,9 +1204,11 @@
       [*] = ;                  if (not gObjProp[TObj(hapo).cid][TObj(hapo).id].bbuilding) then
       [*] = ;                  if (hau <> gc_obj_usage_peasant) and (hau <> gc_obj_usage_none) then
       [*] = ;                  begin
-      [*] = ;                     // Idle men for ATTACK and MOVE; the FAR ones, idle or not, for RETREAT.
+      [*] = ;                     // Idle men for ATTACK and MOVE; the FAR ones, idle or not, for RETREAT,
+      [*] = ;                     // ENGAGE and FACE: a formation worth turning is one that stands in the
+      [*] = ;                     // field, and it is never idle.
       [*] = ;                     var hatake2 : Boolean = False;
-      [*] = ;                     if (haretreat) or (haengage) then
+      [*] = ;                     if (haretreat) or (haengage) or (haface) then
       [*] = ;                     begin
       [*] = ;                        var hafux : Integer = floor((GetGameObjectPositionXByHandle(hago)+hafhw)*hafn/hafw);
       [*] = ;                        var hafuy : Integer = floor((GetGameObjectPositionZByHandle(hago)+hafhh)*hafn/hafh);
@@ -1356,7 +1371,10 @@
       [*] = ;               hatz := haz;
       [*] = ;               hafound := True;
       [*] = ;            end;
-      [*] = ;            if (hafound) and (gIntegerList.GetCount > 0) then
+      [*] = ;            // FACE NEEDS NO TARGET (5.10, par.98): turning in place needs no enemy and no
+      [*] = ;            // point to walk to, so it must not be blocked by 'target found' - a bot with
+      [*] = ;            // nobody in sight would have been unable to turn at all.
+      [*] = ;            if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
       [*] = ;               // ONE GROUP PER WAVE. The name used to be the same for every wave, and
       [*] = ;               // GroupClearGameObjectsByHandle threw out of it those ALREADY MARCHING:
@@ -1404,20 +1422,173 @@
       [*] = ;                  if (hamode = 'move') then hagm := 1;
       [*] = ;                  if (haretreat) then hagm := 2;
       [*] = ;                  if (haengage) then hagm := 3;
+      [*] = ;                  // FACE leaves the mode ALONE on purpose: turning is not a mission, and the
+      [*] = ;                  // group goes on doing what it was doing. Writing a fourth code here would
+      [*] = ;                  // have told every reader the group had stopped.
+      [*] = ;                  if (not haface) then
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m', hagm);
       [*] = ;               end;
       [*] = ;               // These men are busy now: the next order of this tick skips them.
       [*] = ;               for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;               gTmpIntList.Add(gIntegerList.Get(hak));
+      [*] = ;               // WHICH WAY THE FORMATION LOOKS (5.10, par.98). The engine does TWO things
+      [*] = ;               // with dirX,dirZ (units/global.inc/writemove.inc): it builds the group grid
+      [*] = ;               // (files along dir, ranks across it, via VectorRotateY(-90)) and gives every
+      [*] = ;               // man _unit_OrderMove(..., dirx, dirz) - walk there and turn that way. Damage
+      [*] = ;               // does not read it (_misc_DoDamage never touches direction): what it changes
+      [*] = ;               // is how the formation stands and which way the ranks look.
+      [*] = ;               // It used to be the literal 0,1 in both calls below.
+      [*] = ;               //
+      [*] = ;               // The vector is from the CENTRE OF THE MEN BEING SENT, averaged over
+      [*] = ;               // gIntegerList - not from hatsx of the 'group' branch, which is the centre of
+      [*] = ;               // the RECEIVING group and only exists for target=group.
+      [*] = ;               var hadsx : Float = 0;
+      [*] = ;               var hadsz : Float = 0;
+      [*] = ;               var hadk : Integer;
+      [*] = ;               for hadk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;               begin
+      [*] = ;                  hadsx := hadsx + GetGameObjectPositionXByHandle(gIntegerList.Get(hadk));
+      [*] = ;                  hadsz := hadsz + GetGameObjectPositionZByHandle(gIntegerList.Get(hadk));
+      [*] = ;               end;
+      [*] = ;               if (gIntegerList.GetCount > 0) then
+      [*] = ;               begin
+      [*] = ;                  hadsx := hadsx / gIntegerList.GetCount;
+      [*] = ;                  hadsz := hadsz / gIntegerList.GetCount;
+      [*] = ;               end;
+      [*] = ;               var hadx : Float = 0;
+      [*] = ;               var hady : Float = 0;
+      [*] = ;               var hadz : Float = 0;
+      [*] = ;               var hadwhy : String = 'at the target';
+      [*] = ;               // A NAMED CELL BEATS EVERYTHING: keys fx,fy of this order. Presence is the
+      [*] = ;               // non-empty STRING, because the integer getter cannot tell a missing key from
+      [*] = ;               // a real cell 0,0.
+      [*] = ;               if (ParserGetValueByKeyByHandle(hah, hapre + 'fx') <> '') then
+      [*] = ;               begin
+      [*] = ;                  var hafx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'fx');
+      [*] = ;                  var hafy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'fy');
+      [*] = ;                  if (hafx < 0) then hafx := 0;
+      [*] = ;                  if (hafy < 0) then hafy := 0;
+      [*] = ;                  if (hafx > hafn-1) then hafx := hafn-1;
+      [*] = ;                  if (hafy > hafn-1) then hafy := hafn-1;
+      [*] = ;                  hadx := (hafx + 0.5) * hafw / hafn - hafw div 2 - hadsx;
+      [*] = ;                  hadz := (hafy + 0.5) * hafh / hafn - hafh div 2 - hadsz;
+      [*] = ;                  hadwhy := 'at cell ' + IntToStr(hafx) + ',' + IntToStr(hafy);
+      [*] = ;               end
+      [*] = ;               else
+      [*] = ;               if (haretreat) then
+      [*] = ;               begin
+      [*] = ;                  // RETREAT LOOKS AT THE ENEMY, not where it is going: a column that walks
+      [*] = ;                  // home with its back to him is shot in the back. His nearest FIGHTER is
+      [*] = ;                  // found here by a scan - the state block has ecells, the command block has
+      [*] = ;                  // no access to it, and asking the engine where a heap is is not possible.
+      [*] = ;                  var hadbest : Float = 1000000;
+      [*] = ;                  var hadfound : Boolean = False;
+      [*] = ;                  var hadex : Float = 0;
+      [*] = ;                  var hadez : Float = 0;
+      [*] = ;                  var hadpl : Integer;
+      [*] = ;                  for hadpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;                  if (gPlayer[hadpl].bexists) and (hadpl <> plind) then
+      [*] = ;                  if ((gPlayer[plind].enemyPlMask and gPlayer[hadpl].myPlMask) <> 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hadeph : Integer = GetPlayerHandleByIndex(hadpl);
+      [*] = ;                     var haden : Integer = GetPlayerGameObjectsCountByHandle(hadeph);
+      [*] = ;                     var hadj : Integer;
+      [*] = ;                     for hadj := 0 to haden-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hadeg : Integer = GetGameObjectHandleByIndex(hadj, hadeph);
+      [*] = ;                        var hadep : Pointer = _unit_GetTObj(hadeg);
+      [*] = ;                        if (hadep<>nil) then
+      [*] = ;                        if (not gObjProp[TObj(hadep).cid][TObj(hadep).id].bbuilding) then
+      [*] = ;                        begin
+      [*] = ;                           var hadeu : Integer = gObjProp[TObj(hadep).cid][TObj(hadep).id].usage;
+      [*] = ;                           if (hadeu <> gc_obj_usage_peasant) and (hadeu <> gc_obj_usage_none) then
+      [*] = ;                           begin
+      [*] = ;                              var hadd : Float = VectorDistance(
+      [*] = ;                                 GetGameObjectPositionXByHandle(hadeg), 0,
+      [*] = ;                                 GetGameObjectPositionZByHandle(hadeg), hadsx, 0, hadsz);
+      [*] = ;                              if (hadd < hadbest) then
+      [*] = ;                              begin
+      [*] = ;                                 hadbest := hadd;
+      [*] = ;                                 hadex := GetGameObjectPositionXByHandle(hadeg);
+      [*] = ;                                 hadez := GetGameObjectPositionZByHandle(hadeg);
+      [*] = ;                                 hadfound := True;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hadfound) then
+      [*] = ;                  begin
+      [*] = ;                     hadx := hadex - hadsx;
+      [*] = ;                     hadz := hadez - hadsz;
+      [*] = ;                     hadwhy := 'at his nearest fighter';
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     // Nobody of his in sight: stand looking back along the march, which is
+      [*] = ;                     // where he was.
+      [*] = ;                     hadx := hadsx - hatx;
+      [*] = ;                     hadz := hadsz - hatz;
+      [*] = ;                     hadwhy := 'back along the march';
+      [*] = ;                  end;
+      [*] = ;               end
+      [*] = ;               else
+      [*] = ;               begin
+      [*] = ;                  hadx := hatx - hadsx;
+      [*] = ;                  hadz := hatz - hadsz;
+      [*] = ;               end;
+      [*] = ;               // Normalised, as the engine itself does it (terrain/texturemap.inc:441): the
+      [*] = ;               // grid multiplies dir by the spacing, so a vector of any other length would
+      [*] = ;               // stretch the ranks. Degenerate - the target is where they already stand -
+      [*] = ;               // keeps the old 0,1 AND SAYS SO, otherwise it would look like a measured
+      [*] = ;               // direction.
+      [*] = ;               var hadlen : Float = VectorLength(hadx, hady, hadz);
+      [*] = ;               if (hadlen < 1) then
+      [*] = ;               begin
+      [*] = ;                  hadx := 0;
+      [*] = ;                  hadz := 1;
+      [*] = ;                  hadwhy := 'degenerate, kept 0,1';
+      [*] = ;               end
+      [*] = ;               else
+      [*] = ;               VectorNormalize(hadx, hady, hadz);
+      [*] = ;               // TWO DIGITS BY HAND: this engine has FloatToStr and no FloatToStrF, and
+      [*] = ;               // FloatToStr on a normalised vector would print whatever precision it likes -
+      [*] = ;               // the mac compares these numbers, so they are composed from hundredths. Both
+      [*] = ;               // components are between -1 and 1, so the whole part is 0 or 1.
+      [*] = ;               var hadhx : Integer = Round(hadx*100);
+      [*] = ;               var hadhz : Integer = Round(hadz*100);
+      [*] = ;               var hadsgx : String = '';
+      [*] = ;               var hadsgz : String = '';
+      [*] = ;               if (hadhx < 0) then hadsgx := '-';
+      [*] = ;               if (hadhz < 0) then hadsgz := '-';
+      [*] = ;               var hadax : Integer = Round(Abs(hadhx));
+      [*] = ;               var hadaz : Integer = Round(Abs(hadhz));
+      [*] = ;               var hadfx : String = IntToStr(hadax mod 100);
+      [*] = ;               var hadfz : String = IntToStr(hadaz mod 100);
+      [*] = ;               if ((hadax mod 100) < 10) then hadfx := '0' + hadfx;
+      [*] = ;               if ((hadaz mod 100) < 10) then hadfz := '0' + hadfz;
+      [*] = ;               var haddir : String = ' dir=' + hadsgx + IntToStr(hadax div 100) + '.' + hadfx +
+      [*] = ;                    ',' + hadsgz + IntToStr(hadaz div 100) + '.' + hadfz + ' (' + hadwhy + ')';
+      [*] = ;               if (haface) then
+      [*] = ;               begin
+      [*] = ;                  // THE SAME CALL, only the point is where they ALREADY stand: men walk a
+      [*] = ;                  // step inside their own formation and turn. rebuild True on purpose - that
+      [*] = ;                  // is what re-lays the grid along the new direction.
+      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hadsx, hadsz, hadsx, hadsz, hadx, hadz,
+      [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                  Log('bridge-human: FACE ' + IntToStr(gIntegerList.GetCount) + ' in place at ' +
+      [*] = ;                      FloatToStr(hadsx) + ',' + FloatToStr(hadsz) + haddir);
+      [*] = ;               end
+      [*] = ;               else
       [*] = ;               if (hamode = 'move') or (haretreat) then
       [*] = ;               begin
       [*] = ;                  // No _unit_ListSetSearchEnemy here on purpose: that is what turns a
       [*] = ;                  // walk into a hunt. Mode default is how the game itself moves a
       [*] = ;                  // group - player.script:2503.
-      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, 0, 1,
+      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, hadx, hadz,
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
       [*] = ;                  Log('bridge-human: MOVE ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
-      [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + haddir);
       [*] = ;                  if (haretreat) then
       [*] = ;                  Log('bridge-human: RETREAT ' + IntToStr(gIntegerList.GetCount) +
       [*] = ;                      ' far soldiers walk home [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
@@ -1425,10 +1596,10 @@
       [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then
       [*] = ;               begin
-      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, 0, 1,
+      [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, hadx, hadz,
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_attack);
       [*] = ;                  Log('bridge-human: ATTACK ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
-      [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + haddir);
       [*] = ;                  // Wave size goes into a NAMED PARSER, not into a group. 14.09 the
       [*] = ;                  // 'one group per wave' fix renamed the groups to coss3_wave_0..7,
       [*] = ;                  // and block_hstate went on counting the old coss3_bridge_wave -

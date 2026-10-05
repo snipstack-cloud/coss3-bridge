@@ -233,6 +233,12 @@ def main() -> int:
     ap.add_argument("--engage-target", default="army",
                     choices=("army", "base", "peasants", "home"),
                     help="на кого разворачивать (по умолчанию ближайшая его армия)")
+    ap.add_argument("--face", default="",
+                    help="КУДА СМОТРЕТЬ (§98): клетка сетки как cx,cy. Годится "
+                         "для --move, --attack, --engage и обязательна для --turn")
+    ap.add_argument("--turn", type=int, default=0,
+                    help="развернуть НА МЕСТЕ до N бойцов в поле (приказ FACE); "
+                         "требует --face")
     ap.add_argument("--field", action="store_true",
                     help="НИЧЕГО НЕ ПОСЫЛАТЬ: показать, кто по мерке блока в "
                          "поле — клетка ратуши, mil_away/near/far и наши кучи "
@@ -365,6 +371,36 @@ def main() -> int:
             print(f"--cell {кл[0]},{кл[1]} вне сетки 16x16")
             return 1
 
+    # Клетка «куда смотреть» разбирается рядом с целевой и теми же правилами.
+    смотреть = None
+    if (a.face or "").strip():
+        куски = (a.face or "").replace(";", ",").split(",")
+        try:
+            смотреть = (int(куски[0]), int(куски[1]))
+        except (ValueError, IndexError):
+            print("--face " + str(a.face) + " не разобрался: нужно два числа, как 1,2")
+            return 1
+        if not (0 <= смотреть[0] <= 15 and 0 <= смотреть[1] <= 15):
+            print(f"--face {смотреть[0]},{смотреть[1]} вне сетки 16x16")
+            return 1
+
+    if a.turn:
+        # FACE руками (§98): развернуться на месте, никуда не идя. До 5.10
+        # направление строя было константой 0,1 — каждый наш строй смотрел к +Z
+        # карты, и в проверке 5 это было в сторону НАШЕЙ базы.
+        if not смотреть:
+            print("--turn требует --face cx,cy: повернуться неизвестно куда нельзя")
+            return 1
+        plind = a.plind if a.plind is not None else find_ai_plind(d)
+        if plind is None:
+            print("слот не найден: " + почему_нет_слота(d))
+            return 1
+        br = Bridge(d, plind)
+        ушло = br.attack(a.turn, "home", mode="face", face=смотреть)
+        print(f"FACE {a.turn} -> на клетку {смотреть[0]},{смотреть[1]} отправлен"
+              if ушло else "предыдущий приказ ещё не забран игрой")
+        return 0
+
     if a.field:
         # Мера «в поле» ГЛАЗАМИ БЛОКА, без приказов (5.10, §99): по этим числам
         # проверяется, что порог по клетке доехал. Чебышёв считается здесь так
@@ -396,7 +432,8 @@ def main() -> int:
         br = Bridge(d, plind)
         цель = "cell" if кл else a.move_target
         ушло = br.attack(a.move, цель, mode="move", who=(a.who or "").strip(),
-                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
+                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1),
+                         face=смотреть)
         куда = f"клетку {кл[0]},{кл[1]}" if кл else a.move_target
         print(f"MOVE {a.move} -> {куда} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
@@ -417,7 +454,8 @@ def main() -> int:
             return 1
         цель = "cell" if кл else a.engage_target
         ушло = br.attack(a.engage, цель, mode="engage",
-                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
+                         cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1),
+                         face=смотреть)
         куда = f"клетку {кл[0]},{кл[1]}" if кл else a.engage_target
         print(f"ENGAGE {a.engage} -> {куда} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
@@ -431,7 +469,7 @@ def main() -> int:
             print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
-        ушло = br.attack(a.retreat, "home", mode="retreat")
+        ушло = br.attack(a.retreat, "home", mode="retreat", face=смотреть)
         print(f"RETREAT {a.retreat} отправлен" if ушло
               else "предыдущий приказ ещё не забран игрой")
         return 0
@@ -451,7 +489,8 @@ def main() -> int:
         print(("волна отправлена" + (f", только {кем}" if кем else "")
                + (f", в клетку {кл[0]},{кл[1]}" if кл else ""))
               if br.attack(a.attack, цель, who=кем,
-                           cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1))
+                           cx=(кл[0] if кл else -1), cy=(кл[1] if кл else -1),
+                           face=смотреть)
               else "предыдущий приказ атаки ещё не забран")
         return 0
 
