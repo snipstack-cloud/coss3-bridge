@@ -77,6 +77,7 @@ def построить(каталог, t, вид, seed):
     сим.эк.peasants = float(снап.get("peasants") or 0)
     for job in list(сим.крест):
         сим.крест[job] = float(снап.get("on_" + job) or 0) if job != "idle" else float(снап.get("idle_pea") or 0)
+    сим.готовых_участков = float(снап.get("food_ready") or 0)   # §99: иначе модель видит «поле выкошено» и сеет вместо боя
     for поле in ("ba17", "centers", "mills", "academi", "smiths"):
         if поле in сим.эк.здания and снап.get(поле) is not None:
             сим.эк.здания[поле] = int(снап.get(поле) or 0)
