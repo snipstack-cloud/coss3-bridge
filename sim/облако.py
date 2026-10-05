@@ -32,6 +32,10 @@ def _команды_из(ответ, st, LP):
     (cmds, attack, why, брак, цель_атаки, движение, цель_движения, клетка, контракт,
      кем_атака, кем_движение) = LP.to_commands(ответ, None, LP.взятые_апгрейды(st), st=st)
     из = [в_словарь(c) for c in cmds]
+    # STAGE и FORMATION мост держит своим состоянием, а не в `cmds`; симулятору они нужны как есть
+    for c in (ответ.get("commands") or []):
+        if isinstance(c, dict) and str(c.get("cmd", "")).upper() in ("STAGE", "FORMATION"):
+            из.append(dict(c, cmd=str(c["cmd"]).upper()))
     кл = клетка if isinstance(клетка, (list, tuple)) and len(клетка) == 2 else (None, None)
     if attack and attack > 0:
         d = {"cmd": "ATTACK", "count": int(attack), "target": str(цель_атаки or "base")}
@@ -77,6 +81,13 @@ def партия(каталог, t, модель, seed, вид="p3о", сухо=
     след = сим.t
     while сим.t < конец and not сим.исход:
         if сим.t >= след:
+            # ресурсы — как в записи на этот момент: хозяйство восстановлено из снимка приближённо
+            # и за 4 минуты съедало еду до нуля, и модель уходила в посев вместо боя (§99)
+            _сн = сим.з.снимок_до(сим.t)
+            for r in ("food", "wood", "stone", "gold", "iron", "coal"):
+                if _сн.get(r) is not None:
+                    сим.эк.res[r] = float(_сн.get(r) or 0)
+            сим.готовых_участков = float(_сн.get("food_ready") or сим.готовых_участков)
             st = сим.состояние()
             prompt = LP.situation(st, {}, history, подсказки)
             if сухо:
