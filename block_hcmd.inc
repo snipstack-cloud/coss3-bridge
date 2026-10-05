@@ -1123,6 +1123,10 @@
       [*] = ;            var hafby : Integer = floor((haz+hafhh)*hafn/hafh);
       [*] = ;            // ONE SOLDIER IS NOT SHARED BY TWO ORDERS of the same tick: whoever is
       [*] = ;            // taken goes into gTmpIntList and is skipped by the orders that follow.
+      [*] = ;            // Declared HERE, at the order level, not inside the loop: a scalar declared
+      [*] = ;            // in a nested begin does not accumulate (17.09, six army counters read zero
+      [*] = ;            // at 208 soldiers).
+      [*] = ;            var haheldn : Integer = 0;
       [*] = ;            gTmpIntList.Clear;
       [*] = ;            for haoi := 0 to haon-1 do
       [*] = ;            begin
@@ -1171,6 +1175,23 @@
       [*] = ;         // Not _player_StandGroupToPosition: that one TELEPORTS men with
       [*] = ;         // SetGameObjectPositionByHandle, which is scenario placement, not an order.
       [*] = ;         var haface : Boolean = (hamode = 'face');
+      [*] = ;         // HOLD (5.10, par.102, decision of the player). FACE alone lived one tick: it
+      [*] = ;         // leads men to the point they already stand on, they arrive at once, the order
+      [*] = ;         // empties - and the next ATTACK that takes idle men took them away the same
+      [*] = ;         // tick. Measured on the live game of par.98: the group turned, and the
+      [*] = ;         // strategy walked it north two cells later.
+      [*] = ;         // The engine has the mode a player sets with the squad button:
+      [*] = ;         // TObj.bstandground (classes.script:3639), set by
+      [*] = ;         // readsquadlistaction.inc:132-146 together with TSquad.fStandGround. A holding
+      [*] = ;         // man does not chase (unit.script:7367) and does not walk to a better firing
+      [*] = ;         // point (:8064), but DOES search for a victim within his attack radius and
+      [*] = ;         // attack it (:8416-8425) - so holding shooters shoot. Any movement order
+      [*] = ;         // clears the flag by itself (writemove.inc:120, readorder.inc:62-96), so there
+      [*] = ;         // is nothing to clear by hand.
+      [*] = ;         // Default is 1: a turn nobody holds is the case that did not work.
+      [*] = ;         var hahold : Boolean = True;
+      [*] = ;         if (ParserGetValueByKeyByHandle(hah, hapre + 'hold') <> '') then
+      [*] = ;         hahold := (ParserGetIntValueByKeyByHandle(hah, hapre + 'hold') <> 0);
       [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
       [*] = ;               // reasoning as for move and retreat.
       [*] = ;               if ((not gbool_peacemode) or (hamode = 'move') or (haretreat) or (haface)) then
@@ -1207,7 +1228,14 @@
       [*] = ;                     // Idle men for ATTACK and MOVE; the FAR ones, idle or not, for RETREAT,
       [*] = ;                     // ENGAGE and FACE: a formation worth turning is one that stands in the
       [*] = ;                     // field, and it is never idle.
+      [*] = ;                     // HOLDING MEN ARE NOT AVAILABLE (par.102): a man told to hold his ground is
+      [*] = ;                     // on duty, not idle, and the whole point of hold is that the next order by
+      [*] = ;                     // count does not dissolve the formation. They are released only by an order
+      [*] = ;                     // ADDRESSED TO THEIR GROUP (count 0, group N), which takes no selection at
+      [*] = ;                     // all and reads the remembered roll instead. Counted and said aloud below:
+      [*] = ;                     // a man refused in silence is indistinguishable from a man who was not there.
       [*] = ;                     var hatake2 : Boolean = False;
+      [*] = ;                     var hahled : Boolean = TObj(hapo).bstandground;
       [*] = ;                     if (haretreat) or (haengage) or (haface) then
       [*] = ;                     begin
       [*] = ;                        var hafux : Integer = floor((GetGameObjectPositionXByHandle(hago)+hafhw)*hafn/hafw);
@@ -1226,6 +1254,11 @@
       [*] = ;                     if (hatake2) and (hawrole >= 0) then
       [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) then
       [*] = ;                     hatake2 := False;
+      [*] = ;                     if (hatake2) and (hahled) then
+      [*] = ;                     begin
+      [*] = ;                        hatake2 := False;
+      [*] = ;                        haheldn := haheldn + 1;
+      [*] = ;                     end;
       [*] = ;                     // Already taken by an earlier order of THIS tick - skip.
       [*] = ;                     if (hatake2) and (gTmpIntList.GetCount > 0) then
       [*] = ;                     for hatk := 0 to gTmpIntList.GetCount-1 do
@@ -1374,6 +1407,11 @@
       [*] = ;            // FACE NEEDS NO TARGET (5.10, par.98): turning in place needs no enemy and no
       [*] = ;            // point to walk to, so it must not be blocked by 'target found' - a bot with
       [*] = ;            // nobody in sight would have been unable to turn at all.
+      [*] = ;            // Said BEFORE the order goes out: the number refused for holding explains a
+      [*] = ;            // short wave, and silence here would look like 'there was nobody'.
+      [*] = ;            if (haheldn > 0) then
+      [*] = ;            Log('bridge-human: ' + hamode + ' skipped ' + IntToStr(haheldn) +
+      [*] = ;                ' holding soldiers (order them by group number to release)');
       [*] = ;            if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
       [*] = ;               // ONE GROUP PER WAVE. The name used to be the same for every wave, and
@@ -1418,14 +1456,24 @@
       [*] = ;                  var hagmp : Integer = ParserSelectByKey('br_hgrp');
       [*] = ;                  if (hagmp = 0) then
       [*] = ;                  hagmp := ParserCreate('br_hgrp');
+      [*] = ;                  // MODE 4 = HOLDS (par.102). Read the OLD mode first: a group that was holding
+      [*] = ;                  // and gets any other order is RELEASED, and that has to be said aloud -
+      [*] = ;                  // otherwise the reader cannot tell a formation on duty from one that walked.
+      [*] = ;                  var hagmwas : Integer = ParserGetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m');
       [*] = ;                  var hagm : Integer = 0;
       [*] = ;                  if (hamode = 'move') then hagm := 1;
       [*] = ;                  if (haretreat) then hagm := 2;
       [*] = ;                  if (haengage) then hagm := 3;
-      [*] = ;                  // FACE leaves the mode ALONE on purpose: turning is not a mission, and the
-      [*] = ;                  // group goes on doing what it was doing. Writing a fourth code here would
-      [*] = ;                  // have told every reader the group had stopped.
-      [*] = ;                  if (not haface) then
+      [*] = ;                  if (haface) and (hahold) then hagm := 4;
+      [*] = ;                  if (hagmwas = 4) and (hagm <> 4) then
+      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' hold released by ' +
+      [*] = ;                      hamode + ' (mode ' + IntToStr(hagmwas) + ' -> ' + IntToStr(hagm) + ')');
+      [*] = ;                  // A FACE that does NOT hold writes the mode only to clear a stale 4: the
+      [*] = ;                  // engine has already dropped bstandground (writemove.inc:120), so leaving 4
+      [*] = ;                  // in the state would claim men are on duty when they are not. Any other mode
+      [*] = ;                  // is written as before; a non-holding FACE of a non-holding group changes
+      [*] = ;                  // nothing, because turning is not a mission.
+      [*] = ;                  if (not haface) or (hahold) or (hagmwas = 4) then
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m', hagm);
       [*] = ;               end;
       [*] = ;               // These men are busy now: the next order of this tick skips them.
@@ -1576,8 +1624,20 @@
       [*] = ;                  // is what re-lays the grid along the new direction.
       [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hadsx, hadsz, hadsx, hadsz, hadx, hadz,
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                  // HOLD AFTER THE TURN, and in that order: SetGroupPosition goes through
+      [*] = ;                  // WriteMove, which clears bstandground (writemove.inc:120) - setting the
+      [*] = ;                  // flag first would lose it. The engine procedure is the one the player's
+      [*] = ;                  // own button uses (lib/misc.script:2208): it sets BOTH TSquad.fStandGround
+      [*] = ;                  // and TObj.bstandground, and a squad half-held would behave by the squad
+      [*] = ;                  // flag (unit.script:8152).
+      [*] = ;                  var hahw : String = '';
+      [*] = ;                  if (hahold) then
+      [*] = ;                  begin
+      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
+      [*] = ;                     hahw := ' hold';
+      [*] = ;                  end;
       [*] = ;                  Log('bridge-human: FACE ' + IntToStr(gIntegerList.GetCount) + ' in place at ' +
-      [*] = ;                      FloatToStr(hadsx) + ',' + FloatToStr(hadsz) + haddir);
+      [*] = ;                      FloatToStr(hadsx) + ',' + FloatToStr(hadsz) + haddir + hahw);
       [*] = ;               end
       [*] = ;               else
       [*] = ;               if (hamode = 'move') or (haretreat) then

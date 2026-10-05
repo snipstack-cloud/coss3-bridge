@@ -87,14 +87,21 @@ print("4. отход смотрит на врага")
 проверить("if (hadeu <> gc_obj_usage_peasant) and (hadeu <> gc_obj_usage_none) then" in КМД,
           "крестьяне и неживое за бойцов не считаются")
 
-print("5. FACE: на месте, без цели, миссию не меняет")
+print("5. FACE: на месте, без цели, миссия — только при удержании")
 проверить("var haface : Boolean = (hamode = 'face');" in КМД, "режим face объявлен")
 проверить("if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then" in КМД,
           "FACE не требует найденной цели")
 проверить("(haretreat) or (haengage) or (haface) then" in КМД,
           "FACE берёт тех же, кого отход и ENGAGE — стоящих в поле")
-проверить("if (not haface) then" in КМД and "'_m', hagm);" in КМД,
-          "FACE не переписывает режим группы")
+# §98 требовал «FACE режим группы НЕ переписывает»: поворот не миссия. §102
+# (решение игрока) это нарочно изменил — у удержания есть свой режим 4, и он
+# обязан быть виден, иначе читатель не отличит строй на посту от ушедшего.
+# Правило осталось только для FACE БЕЗ удержания, и то с оговоркой: протухшую
+# четвёрку он чистит, потому что движок уже снял bstandground.
+проверить("if (haface) and (hahold) then hagm := 4;" in КМД,
+          "FACE с удержанием ставит режим 4")
+проверить("if (not haface) or (hahold) or (hagmwas = 4) then" in КМД,
+          "FACE без удержания режим не трогает, кроме протухшей четвёрки")
 проверить("(hamode = 'move') or (haretreat) or (haface)) then" in КМД,
           "перемирие повороту на месте не мешает")
 # Имя названо в комментарии НАРОЧНО (почему её не берём), поэтому ищем ВЫЗОВ,
@@ -117,6 +124,41 @@ for приказ in ("MOVE ", "ATTACK ", "FACE "):
     проверить(f"bridge-human: {приказ}" in КМД and "haddir" in КМД,
               f"{приказ.strip()} пишет направление в лог")
 
+print("6b. УДЕРЖАНИЕ СТРОЯ (§102): блок")
+проверить("var hahold : Boolean = True;" in КМД,
+          "ключ hold читается, умолчание — держать")
+проверить("hahold := (ParserGetIntValueByKeyByHandle(hah, hapre + 'hold') <> 0);" in КМД,
+          "hold:0 выключает удержание")
+проверить("_misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);" in КМД,
+          "удержание ставится ТОЙ ЖЕ процедурой, что кнопка игрока")
+# Порядок важен: SetGroupPosition идёт через WriteMove, который сбрасывает
+# bstandground (writemove.inc:120). Поставить флаг ДО приказа — потерять его.
+_где_приказ = КМД.find("hadsx, hadsz, hadx, hadz,")
+_где_флаг = КМД.find("_misc_SetUnitsListUnitState")
+проверить(0 < _где_приказ < _где_флаг,
+          f"удержание ставится ПОСЛЕ приказа, а не до ({_где_приказ} < {_где_флаг})")
+проверить("var hahled : Boolean = TObj(hapo).bstandground;" in КМД,
+          "отбор смотрит на флаг удержания у бойца")
+проверить("haheldn := haheldn + 1;" in КМД and "holding soldiers" in КМД,
+          "отказ по удержанию считается и называется вслух")
+проверить("var haheldn : Integer = 0;" in КМД,
+          "счётчик объявлен на уровне приказа (скаляр во вложенном begin не копит)")
+проверить("hold released by" in КМД, "снятие удержания названо вслух")
+
+СОСТ_БЛОК = io.open(os.path.join(ЗДЕСЬ, "block_hstate.inc"), encoding="latin-1").read()
+проверить("if (not TObj(hspo).bstandground) then" in СОСТ_БЛОК,
+          "my_freewar НЕ считает держащих свободными")
+
+print("6c. УДЕРЖАНИЕ: python, мок и слова")
+import coss3_map as _M102
+проверить(_M102.РЕЖИМ_ГРУППЫ.get(4) == "держит", "режим 4 читается словом")
+МОК = io.open(os.path.join(ЗДЕСЬ, "mock_human.py"), encoding="utf-8").read()
+проверить('режим = 4 if _держ else None' in МОК,
+          "мок ставит режим 4 и не трогает его без удержания")
+проверить('if г.get("режим") == 4' in МОК,
+          "мок вычитает держащих из my_freewar")
+проверить("hold released by" in МОК, "мок тоже говорит о снятии удержания")
+
 print("7. python: поле face и приказ FACE")
 import coss3_bridge as B
 import llm_policy as L
@@ -136,7 +178,7 @@ def приказ(**kw):
     return B.Bridge._приказ(мост, kw.pop("count", 200), kw.pop("target", "base"),
                             kw.pop("mode", ""), kw.pop("cx", -1), kw.pop("cy", -1),
                             kw.pop("who", ""), kw.pop("group", 0), kw.pop("gid", 0),
-                            kw.pop("face", None))
+                            kw.pop("face", None), kw.pop("hold", None))
 
 
 п = приказ(target="cell", mode="move", cx=9, cy=7, face=[1, 2])
@@ -148,6 +190,13 @@ def приказ(**kw):
           f"FACE собирается, цель домашняя и честная: {п}")
 проверить(приказ(count=0, group=3, mode="face") is None,
           "FACE без клетки не уезжает")
+п = приказ(count=0, group=3, mode="face", face=[1, 2])
+проверить(п.get("hold") == 1, f"FACE по умолчанию ДЕРЖИТ: {п}")
+for _нет in (False, 0, "0"):
+    п = приказ(count=0, group=3, mode="face", face=[1, 2], hold=_нет)
+    проверить(п.get("hold") == 0, f"hold={_нет!r} выключает удержание: {п}")
+проверить("hold" not in приказ(target="base", hold=True),
+          "у удара поля hold нет вовсе — оно только у поворота")
 проверить(приказ(target="base", face=[16, 2]) is None, "face вне сетки гасится")
 проверить(приказ(target="base", face="юг") is None, "face мусором гасится")
 проверить("fx" not in (приказ(target="base") or {}),

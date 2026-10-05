@@ -567,11 +567,20 @@ class Мир:
         # адресность приказа, а не убыль.
         гр = int(пары.get("group", 0) or 0)
         if гр > 0:
-            режим = {"": 0, "move": 1, "retreat": 2, "engage": 3}.get(пары.get("mode", ""), 0)
+            # РЕЖИМ 4 — УДЕРЖАНИЕ (5.10, §102). FACE с `hold` ставит его, FACE
+            # без `hold` режим не трогает (поворот — не миссия), а любой другой
+            # приказ группе снимает удержание: так же, как в блоке, где
+            # bstandground сбрасывает сам движок любым приказом движения.
+            _реж = пары.get("mode", "")
+            _держ = str(пары.get("hold", "1")).strip() not in ("0", "false", "no")
+            режим = {"": 0, "move": 1, "retreat": 2, "engage": 3}.get(_реж, 0)
+            if _реж == "face":
+                режим = 4 if _держ else None
             if хотят > 0:
                 свободных = self.армия - self.волна
                 дали = min(хотят, max(0, свободных))
-                self.группы[гр] = {"n": дали, "режим": режим, "cx": -1, "cy": -1}
+                self.группы[гр] = {"n": дали, "режим": режим if режим is not None else 0,
+                                   "cx": -1, "cy": -1}
                 print(f"mock-human: GROUP {гр} made of {дали} soldiers", flush=True)
             else:
                 есть = self.группы.get(гр)
@@ -579,7 +588,14 @@ class Мир:
                     self.отказ = f"GROUP {гр}: no such group"
                     print("mock-human: " + self.отказ, flush=True)
                     return
-                есть["режим"] = режим
+                # None значит «не трогать»: FACE без удержания миссию не меняет.
+                # А группа, которая ДЕРЖАЛА и получила другой приказ, с удержания
+                # снимается — и мок говорит об этом так же, как блок.
+                if режим is not None:
+                    if есть.get("режим") == 4 and режим != 4:
+                        print(f"mock-human: GROUP {гр} hold released by "
+                              f"{_реж or 'attack'}", flush=True)
+                    есть["режим"] = режим
                 print(f"mock-human: GROUP {гр} order to "
                       f"{есть['n']} remembered soldiers", flush=True)
             if цель == "cell":
@@ -753,7 +769,13 @@ class Мир:
              "mil_far": 210 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
              "mil_near": 150 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
              "mil_side": "NE" if (self.волна or getattr(self, "ушли_без_боя", 0)) else "",
-             "my_freewar": max(0, self.армия - self.волна),
+             # ДЕРЖАЩИЕ НЕ СВОБОДНЫ (§102): в блоке это `not bstandground` в
+             # счёте `hsfree`, здесь — вычет состава групп с режимом 4. Без этого
+             # мок обещал бы свободных, которых приказ по числу взять не может, и
+             # петля «ATTACK не разобрал строй» проверялась бы вслепую.
+             "my_freewar": max(0, self.армия - self.волна - sum(
+                 int(г.get("n") or 0) for г in self.группы.values()
+                 if г.get("режим") == 4)),
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],
              "cost_ok": "true",
@@ -835,7 +857,23 @@ class Мир:
         # мок не имеет права убить прогон из-за буквы.
         with open(врем, "wb") as f:
             f.write(текст.encode("latin-1", "replace"))
-        _подменить(врем, os.path.join(self.d, f"coss3_eco_P{self.plind}.dat"))
+        путь = os.path.join(self.d, f"coss3_eco_P{self.plind}.dat")
+        _подменить(врем, путь)
+        # ВРЕМЯ ИЗМЕНЕНИЯ ОБЯЗАНО РАСТИ (5.10). `Bridge.read_state` отдаёт None,
+        # когда файл не изменился с прошлого чтения, — защита от снимка-отката.
+        # Игра пишет состояние раз в игровую секунду, и у неё mtime растёт сам;
+        # мок пишет по требованию и успевает дважды в один тик файловой системы,
+        # а тогда второе чтение возвращает None, тест пишет `or {}` и видит
+        # ПУСТОЕ состояние. Так `selftest_groups` падал примерно в одном прогоне
+        # из трёх — флаки, которое старше этой правки и однажды заставит
+        # поверить, будто сломана совсем другая вещь. `selftest_stale_snap`
+        # лечит это у себя тем же `os.utime`, просто своими руками.
+        self._mtime_шаг = getattr(self, "_mtime_шаг", 0) + 1
+        _t = time.time() + self._mtime_шаг
+        try:
+            os.utime(путь, (_t, _t))
+        except OSError:
+            pass
 
 
 def пульс_интерфейса(d: str, gt: int, исход: str) -> None:

@@ -238,7 +238,10 @@ def main() -> int:
                          "для --move, --attack, --engage и обязательна для --turn")
     ap.add_argument("--turn", type=int, default=0,
                     help="развернуть НА МЕСТЕ до N бойцов в поле (приказ FACE); "
-                         "требует --face")
+                         "требует --face. По умолчанию они ДЕРЖАТ позицию")
+    ap.add_argument("--no-hold", action="store_true",
+                    help="с --turn: развернуть, но НЕ удерживать позицию "
+                         "(§102; по умолчанию удерживают)")
     ap.add_argument("--field", action="store_true",
                     help="НИЧЕГО НЕ ПОСЫЛАТЬ: показать, кто по мерке блока в "
                          "поле — клетка ратуши, mil_away/near/far и наши кучи "
@@ -396,9 +399,12 @@ def main() -> int:
             print("слот не найден: " + почему_нет_слота(d))
             return 1
         br = Bridge(d, plind)
-        ушло = br.attack(a.turn, "home", mode="face", face=смотреть)
-        print(f"FACE {a.turn} -> на клетку {смотреть[0]},{смотреть[1]} отправлен"
-              if ушло else "предыдущий приказ ещё не забран игрой")
+        ушло = br.attack(a.turn, "home", mode="face", face=смотреть,
+                         hold=(not a.no_hold))
+        print(f"FACE {a.turn} -> на клетку {смотреть[0]},{смотреть[1]}"
+              + (", с удержанием" if not a.no_hold else ", без удержания")
+              + " отправлен" if ушло
+              else "предыдущий приказ ещё не забран игрой")
         return 0
 
     if a.field:

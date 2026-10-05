@@ -346,7 +346,13 @@
       [*] = ;                     hsoffn := hsoffn + 1;
       [*] = ;                     if (hsrole = gc_ai_unit_drummer17) then
       [*] = ;                     hsdrumn := hsdrumn + 1;
+      [*] = ;                     // FREE MEANS AVAILABLE, AND A MAN HOLDING HIS GROUND IS NOT (5.10, par.102).
+      [*] = ;                     // He has no order - he stands - so until now he counted as free, and ATTACK
+      [*] = ;                     // count=all would have dissolved the very formation that was told to hold.
+      [*] = ;                     // bstandground is the engine's own flag, cleared by any movement order
+      [*] = ;                     // (writemove.inc:120), so this needs no bookkeeping of ours.
       [*] = ;                     if (hsusage <> gc_obj_usage_none) and (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                     if (not TObj(hspo).bstandground) then
       [*] = ;                     hsfree := hsfree + 1;
       [*] = ;                  end;
       [*] = ;               end;

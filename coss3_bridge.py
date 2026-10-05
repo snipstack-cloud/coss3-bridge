@@ -601,7 +601,7 @@ class Bridge:
 
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-               gid: int = 0, face=None) -> bool:
+               gid: int = 0, face=None, hold=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -620,14 +620,15 @@ class Bridge:
         False, если предыдущий приказ ещё не забран."""
         if os.path.exists(self.atk_path):
             return False
-        приказ = self._приказ(count, target, mode, cx, cy, who, group, gid, face)
+        приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
+                              face, hold)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
 
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-                gid: int = 0, face=None):
+                gid: int = 0, face=None, hold=None):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
@@ -701,6 +702,25 @@ class Bridge:
         # `(hafound) or (haface)`), поэтому ставим домашнюю, самую безобидную.
         if _режим == "face":
             приказ["target"] = "home"
+            # УДЕРЖАНИЕ (5.10, §102, решение игрока). FACE без удержания живёт
+            # один такт: он ведёт бойцов в точку, где они уже стоят, они приходят
+            # мгновенно, приказ пустеет — и следующий ATTACK по свободным уводит
+            # их тем же тактом. Это замерено живой игрой §98.
+            #
+            # Умолчание — ДЕРЖАТЬ, и ключ уезжает ВСЕГДА, а не только когда
+            # просили: пусть в файле приказа и в трассе стоит число, а не
+            # молчание, которое читателю придётся угадывать.
+            #
+            # СТРОКУ «0» ТОЖЕ ПОНИМАЕМ: в python любая непустая строка истинна,
+            # и `hold="0"` без этого разбора значило бы «держать» — ровно
+            # наоборот написанному. Ответ модели и файлы настроек приходят
+            # строками, и молча понять их наизнанку хуже, чем отказать.
+            _выкл = ("0", "false", "no", "off", "нет")
+            if isinstance(hold, str):
+                _держать = hold.strip().lower() not in _выкл
+            else:
+                _держать = hold is None or bool(hold)
+            приказ["hold"] = 1 if _держать else 0
         # Клетка едет ОТДЕЛЬНЫМИ ключами, а не внутри строки цели: старый блок
         # лишних ключей не читает, и мост остаётся совместим с мостом в игре,
         # который про cell ещё не знает. Ровно так же 16.09 приехал "mode".
@@ -758,7 +778,8 @@ class Bridge:
                 str(п.get("who", "") or ""),
                 int(п.get("group", 0) or 0),
                 int(п.get("gid", 0) or 0),
-                п.get("face"))
+                п.get("face"),
+                п.get("hold"))
             if собран is None:
                 return False
             готовые.append(собран)
