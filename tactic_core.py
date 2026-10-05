@@ -17,6 +17,11 @@ import math
            "удар_база", "собраться", "на_меньшую", "отряд_на_меньшую")
 N_ПРИЗНАКОВ = 37
 N_ВЕСОВ = N_ПРИЗНАКОВ * СКРЫТЫЙ + СКРЫТЫЙ + СКРЫТЫЙ * len(РЕШЕНИЯ) + len(РЕШЕНИЯ)
+# СЛОВАРЬ v2 (5.10, §98): только то, что мост исполняет СЕГОДНЯ (`who`, ENGAGE в клетку, STAGE, два удара
+# за такт). Сеть v1 (37 × 11, п1 и тень) читается тем же `Ядро` — версия по длине весов.
+РЕШЕНИЯ2 = РЕШЕНИЯ + ("на_ближайшую", "пики_вперёд", "накопить")
+N_ПРИЗНАКОВ2 = N_ПРИЗНАКОВ + 8
+N_ВЕСОВ2 = N_ПРИЗНАКОВ2 * СКРЫТЫЙ + СКРЫТЫЙ + СКРЫТЫЙ * len(РЕШЕНИЯ2) + len(РЕШЕНИЯ2)
 # Какие приказы есть в живом мосте как есть (§44). Остальные — внутренние команды симулятора;
 # для них нужна просьба к Windows.
 В_МОСТЕ = {"ничего": True, "подмога": True, "удар_армия": True, "удар_крестьяне": True, "удар_база": True,
@@ -33,13 +38,25 @@ N_ВЕСОВ = N_ПРИЗНАКОВ * СКРЫТЫЙ + СКРЫТЫЙ + СКРЫ
            # блок (`_squad_holdmode` либо обнуление приказа). «Собраться» опирается на то
            # же «держать», поэтому и оно приближение.
            "держать": "приближение",
-           "собраться": "приближение"}
+           "собраться": "приближение",
+           # v2 (§98): всё — приказы, которые мост уже исполняет
+           "на_ближайшую": True,         # ENGAGE в клетку ближайшей его кучи + ATTACK свободных туда
+           "пики_вперёд": True,          # ATTACK who=infantry17 в клетку + MOVE who=musk17 в клетку позади (два удара за такт, 42b5432)
+           "накопить": True}             # STAGE в клетке сбора (стоячий), следующий удар снимает
 
 
 def _клетки(поле):
     if not isinstance(поле, list):
         return {}
     return {(c["x"], c["y"]): c.get("n", 0) for c in поле if isinstance(c, dict) and c.get("n", 0) >= 1}
+
+
+def _состав(поле):
+    """{(x, y): (пик, стрелков)} — состав клеток, где он есть (симулятор с §95, мост с 29.09)."""
+    if not isinstance(поле, list):
+        return {}
+    return {(c["x"], c["y"]): (float(c.get("пик") or 0), float(c.get("стрелков") or 0)) for c in поле
+            if isinstance(c, dict) and c.get("n", 0) >= 1 and (c.get("пик") is not None or c.get("стрелков") is not None)}
 
 
 def кучи(кл):
@@ -68,13 +85,20 @@ class Ядро:
 
     def __init__(self, theta):
         th = [float(v) for v in theta]
-        assert len(th) == N_ВЕСОВ, (len(th), N_ВЕСОВ)
+        assert len(th) in (N_ВЕСОВ, N_ВЕСОВ2), (len(th), N_ВЕСОВ, N_ВЕСОВ2)
+        self.v2 = len(th) == N_ВЕСОВ2
+        self.n_x = N_ПРИЗНАКОВ2 if self.v2 else N_ПРИЗНАКОВ
+        self.решения = РЕШЕНИЯ2 if self.v2 else РЕШЕНИЯ
         i = 0
-        self.W1 = [th[i + r * СКРЫТЫЙ: i + (r + 1) * СКРЫТЫЙ] for r in range(N_ПРИЗНАКОВ)]; i += N_ПРИЗНАКОВ * СКРЫТЫЙ
+        self.W1 = [th[i + r * СКРЫТЫЙ: i + (r + 1) * СКРЫТЫЙ] for r in range(self.n_x)]; i += self.n_x * СКРЫТЫЙ
         self.b1 = th[i:i + СКРЫТЫЙ]; i += СКРЫТЫЙ
-        K = len(РЕШЕНИЯ)
+        K = len(self.решения)
         self.W2 = [th[i + r * K: i + (r + 1) * K] for r in range(СКРЫТЫЙ)]; i += СКРЫТЫЙ * K
         self.b2 = th[i:i + K]
+        self.ближ_клетка = None     # клетка ближайшей его кучи (для «на_ближайшую» и «пики_вперёд»)
+        self.накоп = False          # стоячий STAGE отдан
+        self.сэмпл = None           # PPO: random.Random — выбор из softmax; иначе argmax
+        self.траектория = []        # при сэмпле: (x, действие, logp)
         self.след, self.приказ, self.с_приказа = 300.0, 0, 0.0
         self.прошлое = None
         self.меньшая = None
@@ -131,6 +155,18 @@ class Ядро:
              min(self.с_приказа / 120, 2.0), пр.get("лн1", 0.0), пр.get("лн5", 0.0)]
         x += [1.0 if self.приказ == i else 0.0 for i in range(1, 8)]
         x += [1.0 if self.приказ == i else 0.0 for i in (9, 10)] + [1.0 if self.меньшая else 0.0]
+        # v2 (§98): состав рядом с волной и его подкрепление — то, чего не хватало в 11:03 p5 (§94)
+        ес, ос = _состав(st.get("ecells")), _состав(st.get("ocells"))
+        его2_пик = sum(p for (a, b), (p, _) in ес.items() if max(abs(a - wx), abs(b - wy)) <= 2)
+        его2_стр = sum(q for (a, b), (_, q) in ес.items() if max(abs(a - wx), abs(b - wy)) <= 2)
+        его_стр_всего = sum(q for _, q in ес.values())
+        наш_стр_волна = sum(q for (a, b), (_, q) in ос.items() if max(abs(a - wx), abs(b - wy)) <= 1)
+        наш_стр_дом = sum(q for (a, b), (_, q) in ос.items() if max(abs(a - int(round(мх))), abs(b - int(round(му)))) <= 1)
+        self.ближ_клетка = (int(round(ближ[1])), int(round(ближ[2]))) if ек else None
+        x += [его2_стр / max(его2_пик + его2_стр, 1.0), его2_пик / 50.0, его2_стр / 50.0,
+              наш_стр_волна / max(волна[0], 1.0), наш_стр_дом / max(дом[0], 1.0),
+              math.hypot(втор[1] - волна[1], втор[2] - волна[2]) * 16 / 1.15 / 60,   # минут до его второй кучи
+              его_стр_всего / max(его_всего, 1.0), 1.0 if self.накоп else 0.0]
         self.прошлое = dict(ближ=(ближ[1], ближ[2]), d_ближ=d_ближ, наш=наш_всего, его=его_всего,
                             лн1=ln(волна[0], его1), лн5=ln(наших5, его5))
         # сводка для журнала тени — то, что сеть «видит», словами
@@ -141,12 +177,12 @@ class Ядро:
                            до_ближ=round(d_ближ, 1), сближение=round(x[8] * 2, 2), к_волне=round(cos_в, 2), к_дому=round(cos_д, 2),
                            наших5=round(наших5), его5=round(его5), его_в_клетке_волны=round(его1),
                            наш_всего=round(наш_всего), его_всего=round(его_всего), куч_его=len(ек), куч_наших=len(нк))
-        assert len(x) == N_ПРИЗНАКОВ, len(x)
-        return x
+        assert len(x) == N_ПРИЗНАКОВ2, len(x)
+        return x[:self.n_x]
 
     def оценки(self, x):
-        скр = [math.tanh(self.b1[j] + sum(x[r] * self.W1[r][j] for r in range(N_ПРИЗНАКОВ))) for j in range(СКРЫТЫЙ)]
-        return [self.b2[k] + sum(скр[j] * self.W2[j][k] for j in range(СКРЫТЫЙ)) for k in range(len(РЕШЕНИЯ))]
+        скр = [math.tanh(self.b1[j] + sum(x[r] * self.W1[r][j] for r in range(self.n_x))) for j in range(СКРЫТЫЙ)]
+        return [self.b2[k] + sum(скр[j] * self.W2[j][k] for j in range(СКРЫТЫЙ)) for k in range(len(self.решения))]
 
     def решить(self, st):
         """Шаг раз в 15 с: (номер решения, признаки, оценки) или None между шагами."""
@@ -156,7 +192,20 @@ class Ядро:
         self.след = t + ШАГ
         x = self.признаки(st, t)
         л = self.оценки(x)
-        i = max(range(len(л)), key=lambda k: л[k])
+        if self.сэмпл is not None:
+            # PPO (§98): выбор из softmax, запись (x, действие, logp)
+            m = max(л)
+            e = [math.exp(v - m) for v in л]
+            z = sum(e)
+            u = self.сэмпл.random() * z
+            i, acc = 0, 0.0
+            for i, v in enumerate(e):
+                acc += v
+                if acc >= u:
+                    break
+            self.траектория.append((x, i, math.log(e[i] / z)))
+        else:
+            i = max(range(len(л)), key=lambda k: л[k])
         self.с_приказа = 0.0 if i != self.приказ else self.с_приказа + ШАГ
         if i:
             self.приказ = i
@@ -176,8 +225,41 @@ class Ядро:
         уходит как `_К_СВОИМ`, а `strategy_live._в_мостовые` переводит его в отход в
         клетку ближайшей своей кучи. Подмена оставила бы приказ хуже, чем игра может.
         Без волны в поле «к своим» — ничего (16 из тех 28 были такими)."""
-        имя, своб, из = РЕШЕНИЯ[i], float(st.get("my_freewar") or 0), []
+        имя, своб, из = getattr(self, "решения", РЕШЕНИЯ)[i], float(st.get("my_freewar") or 0), []
         if имя == "к_своим" and not self.волна_в_поле():
+            return из
+        # v2 (§98): удар снимает стоячее накопление — иначе STAGE каждый такт уводил бы свободных в сбор
+        if getattr(self, "накоп", False) and имя in ("подмога", "удар_армия", "удар_крестьяне", "удар_база", "на_ближайшую", "пики_вперёд", "на_меньшую"):
+            из.append({"cmd": "STAGE", "off": 1})
+            self.накоп = False
+        if имя == "на_ближайшую" and getattr(self, "ближ_клетка", None):
+            aim = list(self.ближ_клетка)
+            из.append({"cmd": "ENGAGE", "target": "cell", "cx": aim[0], "cy": aim[1]})
+            if своб >= 1:
+                из.append({"cmd": "ATTACK", "count": "all", "target": "cell", "cx": aim[0], "cy": aim[1]})
+            return из
+        if имя == "пики_вперёд" and getattr(self, "ближ_клетка", None):
+            # пики в клетку его ближайшей кучи, стрелки — в клетку позади неё (к дому): два приказа за такт
+            cx, cy = self.ближ_клетка
+            мх, му = float(st.get("my_cx") or 2), float(st.get("my_cy") or 2)
+            dx, dy = мх - cx, му - cy
+            L = math.hypot(dx, dy) or 1.0
+            px, py = int(round(cx + dx / L)), int(round(cy + dy / L))
+            if (px, py) == (cx, cy):
+                px += 1 if мх >= cx else -1
+            из.append({"cmd": "ATTACK", "count": "all", "who": "infantry17", "target": "cell", "cx": cx, "cy": cy})
+            из.append({"cmd": "MOVE", "count": "all", "who": "musk17", "target": "cell", "cx": max(0, min(15, px)), "cy": max(0, min(15, py))})
+            return из
+        if имя == "накопить":
+            # стоячий сбор: в клетке волны, если она в поле, иначе на полпути к его базе
+            if self.волна_в_поле():
+                cx, cy = int(round(self.сводка["волна"][1])), int(round(self.сводка["волна"][2]))
+            else:
+                eb = st.get("en_base") or [13, 13]
+                cx = int(round((float(st.get("my_cx") or 2) + eb[0]) / 2)); cy = int(round((float(st.get("my_cy") or 2) + eb[1]) / 2))
+            if not self.накоп:
+                из.append({"cmd": "STAGE", "cx": cx, "cy": cy})
+                self.накоп = True
             return из
         if имя == "держать":
             из.append({"cmd": "_СТОЙ"})

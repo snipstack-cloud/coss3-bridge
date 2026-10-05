@@ -153,7 +153,7 @@ def _партия(з):
     м = ПС.мера(сим, и)
     м["враг"] = враг if isinstance(враг, str) else "случайный"
     if вид in ("сеть", "слепая"):
-        м["решения"] = [п.история.count(i) for i in range(len(РЕШЕНИЯ))]
+        м["решения"] = [п.история.count(i) for i in range(len(п.решения))]
     return м
 
 
@@ -217,7 +217,8 @@ def проверка(пул, вид, арг, хоз, тест, игрок):
         уб, пот = sum(x["убито"] for x in р), sum(x["потери"] for x in р)
         if вид in ("сеть", "слепая"):
             сч = np.sum([x["решения"] for x in р], axis=0)
-            print(f"  решения против «{имя}»: " + ", ".join(f"{РЕШЕНИЯ[i]} {100 * сч[i] / сч.sum():.0f}%" for i in range(len(сч)) if сч[i]), flush=True)
+            from tactic_core import РЕШЕНИЯ2
+            print(f"  решения против «{имя}»: " + ", ".join(f"{РЕШЕНИЯ2[i]} {100 * сч[i] / сч.sum():.0f}%" for i in range(len(сч)) if сч[i]), flush=True)
         итог[имя] = (St.mean(x["награда"] for x in р), sum(x["уничтожена"] for x in р), len(р),
                       St.median(x["его15"] for x in р), уб / max(пот, 1), St.median(x["наша15"] for x in р))
     return итог
