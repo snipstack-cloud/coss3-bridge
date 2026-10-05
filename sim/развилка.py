@@ -144,7 +144,7 @@ class _БезКоманд:
         return []
 
 
-def _контракт(куча_id, клетка, рядом_при=None, окно=0):
+def _контракт(куча_id, клетка, рядом_при=None, окно=0, ключи=None):
     import json
     import strategy_live as SL
     п = dict(json.load(open(os.path.join(К, "поиск", "шт_s2.json"), encoding="utf-8"))["итог"])
@@ -152,6 +152,7 @@ def _контракт(куча_id, клетка, рядом_при=None, окн�
         п["рядом_при"] = рядом_при
     if окно:
         п["рядом_окно"] = окно
+    п.update(ключи or {})
     ж = SL.ЖиваяСтратегия.__new__(SL.ЖиваяСтратегия)
     ж.п, ж.сеть, ж.имя, ж.n, ж.номера, ж.сводим = п, None, "развилка", 1, 0, {}
     import collections
@@ -171,7 +172,11 @@ class Ветка:
         self.этап, self.цель = 0, None
         self.ж = None
         self.удары = []
-        if имя.startswith("контракт") and куча_id is not None:
+        if имя.startswith("контракт:") and куча_id is not None:
+            # «контракт:ключ=значение,…» — любые ключи файла стратегии поверх шт_s2 (§100: вес_стрелка, рядом_окно, рядом_при)
+            кл = {k: float(v) for k, v in (x.split("=") for x in имя.split(":", 1)[1].split(",") if x)}
+            self.ж = _контракт(куча_id, клетка_кучи, ключи=кл)
+        elif имя.startswith("контракт") and куча_id is not None:
             self.ж = _контракт(куча_id, клетка_кучи,
                                2.0 if имя == "контракт 2,0" else (1.5 if имя.endswith("при 1,5") else None),
                                2 if "окно 2" in имя else 0)
@@ -278,6 +283,9 @@ def main():
         факт[в] = (ч(s.get("my_mil_lost")) - ч(с0.get("my_mil_lost")), ч(s.get("p1_mil_lost")) - ч(с0.get("p1_mil_lost")),
                    sum(c["n"] for c in s.get("ocells") or []), ч(s.get("p1_inf")) + ч(s.get("p1_shoot")) + ч(s.get("p1_cav")))
     print("  ЗАПИСЬ:     " + " | ".join(f"{int(в // 60)}:{int(в % 60):02d} наши {факт[в][0]:3.0f} его {факт[в][1]:3.0f} (армии {факт[в][2]:.0f}/{факт[в][3]:.0f})" for в in ВЕХИ))
+    global ВЕТКИ
+    if "--ветки" in sys.argv:
+        ВЕТКИ = tuple(x for x in sys.argv[sys.argv.index("--ветки") + 1].split(";") if x)
     задания = [(каталог, t, вид, имя, 100 + s) for вид in ВИДЫ_АГЕНТА for имя in ВЕТКИ for s in range(зёрен)]
     with Pool(12) as пул:
         р = пул.map(_прогон, задания)
