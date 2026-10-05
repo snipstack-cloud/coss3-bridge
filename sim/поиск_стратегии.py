@@ -216,7 +216,36 @@ class Стратегия:
         if после_дебюта:
             взято = set(str(st.get("upg_done") or "").split(","))
             # `mil_с` — не раньше стольких секунд (2.10: вживую mil.1 не раньше 3:12, медиана 9:42)
-            след = next((u for u in self.заказ if u not in взято and t >= self.срок.get(u, 0)
+            # ПРОКАЧКИ ПО УГРОЗЕ (5.10, §101). [код] защита пик `bar.pikeman.2.x` даёт только dpike/dsword
+            # (ЭФФЕКТЫ в sim.py), dbullet пикинёра 4 всю партию (запись p5: dpike 3→8, dbullet 4) — против его
+            # мушкетёров она пуста; атака пик бьёт его мушкетёра с защитой от пики 0-1. При его доле стрелков
+            # ≥ `угроза_стр` защита пик откладывается, атака пик берётся до `угроза_раньше` с раньше срока; при
+            # его доле пик ≥ `угроза_стр` — наоборот, защита пик раньше. Доля — по `ecells` (у моста с открытой
+            # информацией и у агента симулятора одно поле), без них — `p1_shoot`/`p1_inf`. 0 — выкл., как было.
+            _угр, _рань = float(п.get("угроза_стр", 0) or 0), float(п.get("угроза_раньше", 0) or 0)
+            _пропуск, _раньше = "", ""
+            if _угр > 0:
+                _ек = st.get("ecells")
+                if isinstance(_ек, str) and _ек.strip() not in ("", "none"):
+                    try:                       # живой мост: строка `x,y,n,пик,стрелков,…`
+                        import coss3_map as _CM
+                        _ек = _CM.его_клетки(st)
+                    except Exception:
+                        _ек = None
+                if isinstance(_ек, list) and _ек:
+                    _n = sum(float(c.get("n") or 0) for c in _ек)
+                    _с = sum(float(c.get("стрелков") or 0) for c in _ек)
+                else:
+                    _с = float(st.get("p1_shoot") or 0)
+                    _n = _с + float(st.get("p1_inf") or 0) + float(st.get("p1_cav") or 0)
+                if _n >= 10:
+                    if _с / _n >= _угр:
+                        _пропуск, _раньше = "bar.pikeman.2.", "bar.pikeman.1."
+                    elif (_n - _с) / _n >= _угр:
+                        _раньше = "bar.pikeman.2."
+            след = next((u for u in self.заказ if u not in взято
+                         and not (_пропуск and u.startswith(_пропуск))
+                         and t >= self.срок.get(u, 0) - (_рань if _раньше and u.startswith(_раньше) else 0)
                          and not (u == "mil.1" and t < п.get("mil_с", 0))), None)
             if self.академия and t >= getattr(self, "академия_с", 0) and float(st.get("ba17") or 0) > 0 and float(st.get("academies") or st.get("academi") or 0) < 1:
                 из.append({"cmd": "BUILD", "role": "academi", "total": 1})
