@@ -542,7 +542,7 @@ def main():
                 партии = []
                 for вид in ВИДЫ_СМЕСИ:
                     набор = НАБОР_ВИДА(вид)
-                    партии += [(набор[i % len(набор)], "смесь:" + вид) for i in rng.choice(len(набор) * 4, size=треть, replace=False)]
+                    партии += [(набор[i % len(набор)], "смесь:" + вид) for i in rng.choice(len(набор) * 4, size=треть, replace=len(набор) * 4 < треть)]
                 задания = [(из_вектора(x), d, 1000 * g + j, вр, False) for x in X for j, (d, вр) in enumerate(партии)]
             else:
                 партии = [обуч[i] for i in rng.choice(len(обуч), size=k, replace=False)] * (4 if ИГРОК else 1)
