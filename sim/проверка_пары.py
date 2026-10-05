@@ -51,6 +51,11 @@ def проверить(стратегия, сеть=None, пул=None):
         import glob as _g
         _p5 = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/*/coss3_snap.jsonl")))
         наборы.append(("p5", [(вид, арг, хоз, "p3о", d, 100000 + i) for i, d in enumerate(_p5 * 30)]))
+    if os.environ.get("COSS3_P6", "0") == "1":
+        # 6.10: p6 — набег на нашу базу в 7:00 (запись восстановлена: враг слота 0 переложен в p1_*, §104)
+        import glob as _g
+        _p6 = sorted(os.path.dirname(x) for x in _g.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_06_10_p6/*/coss3_snap.jsonl")))
+        наборы.append(("p6", [(вид, арг, хоз, "p3о", d, 100000 + i) for i, d in enumerate(_p6 * 30)]))
     итог = {}
     for имя, задания in наборы:
         if not задания:
