@@ -1175,6 +1175,12 @@
       [*] = ;         // Not _player_StandGroupToPosition: that one TELEPORTS men with
       [*] = ;         // SetGameObjectPositionByHandle, which is scenario placement, not an order.
       [*] = ;         var haface : Boolean = (hamode = 'face');
+      [*] = ;         // NAME OF THE ORDER FOR THE LOG: hamode is EMPTY for an attack (an older
+      [*] = ;         // client sends no such key), and pasting it raw gave 'hold released by'
+      [*] = ;         // with a double space and no order named at all - seen in the live game
+      [*] = ;         // of par.102, in the very lines that proved the measure.
+      [*] = ;         var hamw : String = hamode;
+      [*] = ;         if (hamw = '') then hamw := 'attack';
       [*] = ;         // HOLD (5.10, par.102, decision of the player). FACE alone lived one tick: it
       [*] = ;         // leads men to the point they already stand on, they arrive at once, the order
       [*] = ;         // empties - and the next ATTACK that takes idle men took them away the same
@@ -1410,7 +1416,7 @@
       [*] = ;            // Said BEFORE the order goes out: the number refused for holding explains a
       [*] = ;            // short wave, and silence here would look like 'there was nobody'.
       [*] = ;            if (haheldn > 0) then
-      [*] = ;            Log('bridge-human: ' + hamode + ' skipped ' + IntToStr(haheldn) +
+      [*] = ;            Log('bridge-human: ' + hamw + ' skipped ' + IntToStr(haheldn) +
       [*] = ;                ' holding soldiers (order them by group number to release)');
       [*] = ;            if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
@@ -1467,7 +1473,7 @@
       [*] = ;                  if (haface) and (hahold) then hagm := 4;
       [*] = ;                  if (hagmwas = 4) and (hagm <> 4) then
       [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' hold released by ' +
-      [*] = ;                      hamode + ' (mode ' + IntToStr(hagmwas) + ' -> ' + IntToStr(hagm) + ')');
+      [*] = ;                      hamw + ' (mode ' + IntToStr(hagmwas) + ' -> ' + IntToStr(hagm) + ')');
       [*] = ;                  // A FACE that does NOT hold writes the mode only to clear a stale 4: the
       [*] = ;                  // engine has already dropped bstandground (writemove.inc:120), so leaving 4
       [*] = ;                  // in the state would claim men are on duty when they are not. Any other mode
