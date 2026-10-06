@@ -2130,7 +2130,28 @@ class Симулятор:
                             tx=None if г.get("цель") is None else int(round(г["цель"][0])), ty=None if г.get("цель") is None else int(round(г["цель"][1])))
                        for г in self.группы[1:] if г.get("id") is not None and sum(г["состав"].values()) >= 0.5]
         if self.враг is not None:
-            _цели = getattr(self.враг, "цели", {}) or {}
+            _цели = dict(getattr(self.враг, "цели", {}) or {})
+            # §109: ЕГО НАСТОЯЩИЕ ПРИКАЗЫ ИЗ ЗАПИСИ. Агент, следующий форме записи, тянется в соседнюю клетку — дальней
+            # цели у него нет, а у записи есть: живой мост с 29.09 пишет `ecells` (идут, tx, ty) — куда игрок вёл
+            # бойцов. Клетке агента берётся цель ближайшей (±1) идущей клетки записи, если дальняя цель агента
+            # (налёт, перевозка ≥ 3 клеток) её не перекрывает.
+            try:
+                _зс = self.з.снимок_до(self.t)
+                _зап = [c for c in (_зс.get("ecells") or []) if isinstance(c, dict) and (c.get("идут") or 0) > 0
+                        and (c.get("tx") if c.get("tx") is not None else -1) >= 0]
+            except Exception:
+                _зап = []
+            if _зап:
+                for _y in range(СЕТКА):
+                    for _x in range(СЕТКА):
+                        if self.враг.h[_y][_x] < 0.5:
+                            continue
+                        _т = _цели.get((_x, _y))
+                        if _т and max(abs(_т[1] - _x), abs(_т[2] - _y)) >= 3:
+                            continue
+                        _бл = min(_зап, key=lambda c: max(abs(c["x"] - _x), abs(c["y"] - _y)))
+                        if max(abs(_бл["x"] - _x), abs(_бл["y"] - _y)) <= 1:
+                            _цели[(_x, _y)] = (min(self.враг.h[_y][_x], float(_бл["идут"])), int(_бл["tx"]), int(_бл["ty"]))
             s["ecells"] = [dict(x=i % СЕТКА, y=i // СЕТКА, n=round(v),
                                 **({"стрелков": round(self.враг.s[i // СЕТКА][i % СЕТКА]), "пик": round(v - self.враг.s[i // СЕТКА][i % СЕТКА])}
                                    if self.враг.s is not None else {}),
