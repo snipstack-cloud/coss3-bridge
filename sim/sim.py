@@ -603,7 +603,9 @@ class Симулятор:
             if _вид is None:
                 _вид = 3 if (w.get("radiusmax_tiles") or 0) > 5 else 1
             х = {"hp": з.get("maxhp") or 90, "atk": w.get("damage") or 1, "wkind": _вид,
-                 "pause": w.get("pause_frames") or 0, "rmax": round((w.get("radiusmax_tiles") or 1.875) * 100),
+                 # §114а: пауза В СОТЫХ СЕКУНДЫ, как в `p1_fighters` записи (его musk17 pause375 = 3,75 с); до 8.10 здесь стояли
+                 # КАДРЫ (120) — наш мушкетёр стрелял втрое чаще его при одинаковом оружии (`залпы_форы` делит на 100)
+                 "pause": round((w.get("pause_s") or 0) * 100), "rmax": round((w.get("radiusmax_tiles") or 1.875) * 100),
                  "dpike": pr.get("pike") or 0, "dsword": pr.get("sword") or 0, "dbullet": pr.get("bullet") or 0}
             for u in self.апгрейды:
                 if u in ЭФФЕКТЫ and ЭФФЕКТЫ[u][0] == вид:
