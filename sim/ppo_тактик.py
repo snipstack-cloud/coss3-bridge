@@ -77,7 +77,8 @@ def _задача(з):
     наг = list(п.награды)
     if наг:
         наг[-1] += м["награда"]
-    return [(x, a, lp, r) for (x, a, lp), r in zip(п.траектория, наг)], м
+    # §111: в траектории и маска исполнимости — та же маска на обучении, что при сборе
+    return [(x, a, lp, m, r) for (x, a, lp, m), r in zip(п.траектория, наг)], м
 
 
 def _оценка(з):
@@ -176,21 +177,22 @@ def main():
                 else:
                     зад.append((theta, "случайный", обуч[int(rng.integers(len(обуч)))], 1000 * it + j))
             р = пул.map(_задача, зад)
-            X, A, LP, ADV, RET = [], [], [], [], []
+            X, A, LP, ADV, RET, MK = [], [], [], [], [], []
             for тр, _ in р:
                 if not тр:
                     continue
                 xs = torch.tensor([t[0] for t in тр], dtype=torch.float32)
                 with torch.no_grad():
                     v = критик(xs).view(-1).numpy()
-                rs = np.array([t[3] for t in тр])
+                rs = np.array([t[4] for t in тр])
                 adv = np.zeros(len(тр)); last = 0.0
                 for i in reversed(range(len(тр))):
                     nv = v[i + 1] if i + 1 < len(тр) else 0.0
                     last = rs[i] + ГАММА * nv - v[i] + ГАММА * ЛЯМБДА * last
                     adv[i] = last
-                X += [t[0] for t in тр]; A += [t[1] for t in тр]; LP += [t[2] for t in тр]; ADV += list(adv); RET += list(adv + v)
+                X += [t[0] for t in тр]; A += [t[1] for t in тр]; LP += [t[2] for t in тр]; MK += [t[3] for t in тр]; ADV += list(adv); RET += list(adv + v)
             X = torch.tensor(X, dtype=torch.float32); A = torch.tensor(A); LP = torch.tensor(LP, dtype=torch.float32)
+            MK = torch.tensor(MK, dtype=torch.bool)
             ADV = torch.tensor(ADV, dtype=torch.float32); RET = torch.tensor(RET, dtype=torch.float32)
             ADV = (ADV - ADV.mean()) / (ADV.std() + 1e-8)
             n = len(X)
@@ -198,11 +200,11 @@ def main():
                 перм = torch.randperm(n)
                 for b in range(0, n, МИНИПАКЕТ):
                     idx = перм[b:b + МИНИПАКЕТ]
-                    лог = F.log_softmax(политика(X[idx]), dim=-1)
+                    лог = F.log_softmax(политика(X[idx]).masked_fill(~MK[idx], -1e9), dim=-1)   # §111: маска как при сборе
                     lp = лог.gather(1, A[idx].unsqueeze(-1)).squeeze(-1)
                     ratio = torch.exp(lp - LP[idx])
                     потеря_п = -torch.min(ratio * ADV[idx], torch.clamp(ratio, 1 - КЛИП, 1 + КЛИП) * ADV[idx]).mean()
-                    энтропия = -(torch.exp(лог) * лог).sum(-1).mean()
+                    энтропия = -(torch.exp(лог) * лог).masked_fill(~MK[idx], 0.0).sum(-1).mean()
                     потеря_v = F.mse_loss(критик(X[idx]).view(-1), RET[idx])
                     опт.zero_grad()
                     (потеря_п + 0.5 * потеря_v - ЭНТРОПИЯ * энтропия).backward()
@@ -215,6 +217,8 @@ def main():
                 лучшая = награда
                 np.save(выход, theta_из(политика))
             print(f"итерация {it + 1:3d}/{iters}: награда {награда:+5.2f} уничтожена {уничт:2d}/{eps} шагов {n} энтропия {float(энтропия.detach()):.2f}", flush=True)
+        if "--без-проверки" in sys.argv:
+            return
         print("\nПРОВЕРКА на отложенных (без сети / тень п1 / ppo v2 / без глаз — уничтожена, награда, размен):", flush=True)
         проверка(пул, theta_из(политика), тест)
 
