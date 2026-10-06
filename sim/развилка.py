@@ -61,6 +61,33 @@ def _кучи_с_составом(ячейки):
     return sorted(из, reverse=True)
 
 
+def клетки_записи(зап, t, снап=None):
+    """Наши и его клетки на момент t: из `ocells`/`ecells` снимка (записи с 29.09, с составом и намерением), иначе из сеток
+    `arow`/`frow` тактового состояния (корпус до 29.09; состав — по долям всей армии, намерения нет). Общая для
+    развилок и фабрики кейсов (§112)."""
+    import sim as SIM
+    снап = снап if снап is not None else зап.снимок_до(t)
+    oc, ec = снап.get("ocells") or [], снап.get("ecells") or []
+    if oc or ec:
+        return [dict(c) for c in oc if c.get("n", 0) >= 1], [dict(c) for c in ec if c.get("n", 0) >= 1]
+    _, st, _ = зап.такт_до(t)
+    def ч(k): return float(st.get(k) or снап.get(k) or 0)
+    наши, его = [], []
+    a, f = SIM.сетка(st.get("arow")), SIM.сетка(st.get("frow"))
+    д_стр = ч("mil_shooters") / max(ч("mil_inf") + ч("mil_shooters") + ч("mil_cav"), 1.0)
+    д_кон = ч("mil_cav") / max(ч("mil_inf") + ч("mil_shooters") + ч("mil_cav"), 1.0)
+    е_стр = ч("p1_shoot") / max(ч("p1_inf") + ч("p1_shoot") + ч("p1_cav"), 1.0)
+    for y, ряд in enumerate(a):
+        for x, n in enumerate(ряд):
+            if n >= 1:
+                наши.append(dict(x=x, y=y, n=n, пик=round(n * (1 - д_стр - д_кон)), стрелков=round(n * д_стр), конных=round(n * д_кон)))
+    for y, ряд in enumerate(f):
+        for x, n in enumerate(ряд):
+            if n >= 1:
+                его.append(dict(x=x, y=y, n=n, пик=round(n * (1 - е_стр)), стрелков=round(n * е_стр), конных=0, идут=0, tx=-1, ty=-1))
+    return наши, его
+
+
 def построить(каталог, t, вид, seed):
     """Симулятор на момент `t` записи с настоящими армиями и хозяйством; враг — агент вида `вид`."""
     import sim as SIM
@@ -81,8 +108,11 @@ def построить(каталог, t, вид, seed):
     for поле in ("ba17", "centers", "mills", "academi", "smiths"):
         if поле in сим.эк.здания and снап.get(поле) is not None:
             сим.эк.здания[поле] = int(снап.get(поле) or 0)
-    # наши группы — из ocells; кучи у ратуши (≤ 1,5 клетки) — дом, остальные — именные группы в поле
-    ячейки = {(c["x"], c["y"]): (c["n"], c.get("пик", 0), c.get("стрелков", 0), c.get("конных", 0)) for c in (снап.get("ocells") or []) if c.get("n", 0) >= 1}
+    # наши группы — из ocells; кучи у ратуши (≤ 1,5 клетки) — дом, остальные — именные группы в поле.
+    # §112: записи корпуса (до 29.09) клеток с составом не несут — берём сетки `arow`/`frow` тактового состояния, состав —
+    # по долям всей армии (`mil_inf/mil_shooters`, `p1_inf/p1_shoot`), намерения нет
+    наши_кл, его_кл = клетки_записи(зап, t, снап)
+    ячейки = {(c["x"], c["y"]): (c["n"], c.get("пик", 0), c.get("стрелков", 0), c.get("конных", 0)) for c in наши_кл if c.get("n", 0) >= 1}
     дом = (float(зап.my_cx), float(зап.my_cy))
     сим.группы[0]["состав"] = {"infantry17": 0.0, "musk17": 0.0, "dragoon17": 0.0}
     сим.след_id = 1
@@ -103,14 +133,14 @@ def построить(каталог, t, вид, seed):
     # его — из ecells; желаемая форма и найм дальше идут по записи (`frow` и снимки), реакции — по стилю
     N = len(сим.враг.h)
     сим.враг.h = [[0.0] * N for _ in range(N)]
-    for c in (снап.get("ecells") or []):
+    for c in его_кл:
         if 0 <= c["y"] < N and 0 <= c["x"] < N:
             сим.враг.h[c["y"]][c["x"]] += float(c.get("n", 0))
     сим.враг.нанято = 0.0
     if сим.враг.s is not None:
         # §96: сетка типов — стрелки по клеткам из того же снимка
         сим.враг.s = [[0.0] * N for _ in range(N)]
-        for c in (снап.get("ecells") or []):
+        for c in его_кл:
             if 0 <= c["y"] < N and 0 <= c["x"] < N:
                 сим.враг.s[c["y"]][c["x"]] += min(float(c.get("стрелков", 0)), сим.враг.h[c["y"]][c["x"]])
     SIM.ФОРМА_ВРАГА = None
