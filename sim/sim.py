@@ -1859,17 +1859,21 @@ class Симулятор:
             # одно — доля времени огня `ОГОНЬ_СОСЕДЕЙ` (0 — выключено), подбор по живой партии.
             if ОГОНЬ_СОСЕДЕЙ > 0 and rec_army > 0 and его_состав.get("musk17", 0) > 0 and "musk17" in его_х:
                 доля_стр = его_состав["musk17"] / max(sum(его_состав.values()), 1e-9)
+                # §114б: клетка кучи, которую группа преследует, — отходящие стрелки, на ходу не стреляют (запись p5: за 30 с
+                # погони наших −1 при его −31); из счёта соседей исключается
+                молчат = {tuple(int(round(v)) for v in г["цель"]) for г in группы
+                          if combat.ОТХОДЯЩИЙ_МОЛЧИТ and г.get("погоня_от") and г.get("цель")}
                 соседи = 0.0
                 for yy in range(max(0, cy - 1), min(len(frow), cy + 2)):
                     for xx in range(max(0, cx - 1), min(len(frow[yy]), cx + 2)):
-                        if (xx, yy) == (cx, cy) or (xx, yy) in клетки:
+                        if (xx, yy) == (cx, cy) or (xx, yy) in клетки or (xx, yy) in молчат:
                             continue
                         соседи += self.враг.h[yy][xx] if self.враг is not None else его_в(yy, xx) * масштаб
                 стрелков_рядом = соседи * доля_стр
                 if self.враг is not None and self.враг.s is not None:
                     # §95: его стрелки в соседних клетках — по сетке типов
                     стрелков_рядом = sum(self.враг.s[yy][xx] for yy in range(max(0, cy - 1), min(СЕТКА, cy + 2))
-                                         for xx in range(max(0, cx - 1), min(СЕТКА, cx + 2)) if (xx, yy) != (cx, cy) and (xx, yy) not in клетки)
+                                         for xx in range(max(0, cx - 1), min(СЕТКА, cx + 2)) if (xx, yy) != (cx, cy) and (xx, yy) not in клетки and (xx, yy) not in молчат)
                 elif self.враг is not None and СТРОЙ_СТР_В_КЛЕТКЕ is not None and 0 < доля_стр <= 1 - ЗАСЛОН_ДОЛЯ_ПИК:
                     # §72: у агента при заслоне его стрелки окна вне клетки боя (строй), как живьём
                     _h = self.враг.h
@@ -1890,6 +1894,7 @@ class Симулятор:
                         огонь = min(n_всего, ОГОНЬ_СОСЕДЕЙ * стрелков_рядом * dt / пауза
                                     * combat.урон_эфф(мх, образец) / max(combat.hp_на_голову(цели), 1.0))
                         combat.СЧЁТ_ЗАЛПОВ["соседи"] = combat.СЧЁТ_ЗАЛПОВ.get("соседи", 0.0) + огонь
+                        self.журнал_боя.append((self.t, cx, cy, "огонь соседей", n_всего, стрелков_рядом, огонь, 0.0, n_всего))   # §114б: раньше мимо журнала
                         for г in группы:
                             n = sum(г["состав"].values())
                             if n <= 0:
