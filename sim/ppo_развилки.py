@@ -40,9 +40,18 @@ import tactic_core as TC   # noqa: E402
 H = 240.0                  # горизонт эпизода, с
 ХОЗ_ФАЙЛ = os.environ.get("COSS3_TACTIC_HOZ") or "шт_s2_оборона.json"
 ГАММА, ЛЯМБДА, КЛИП, ЭПОХ, МИНИПАКЕТ, LR, БЕТА0 = 0.99, 0.95, 0.2, 4, 512, 3e-4, 0.5
-# энтропийный бонус: клон после DAgger почти детерминирован (энтропия 0,2 из ~2), без бонуса PPO не исследует;
-# 0,03 по умолчанию, рычаг COSS3_PPO_ENT
-ЭНТРОПИЯ = float(os.environ.get("COSS3_PPO_ENT", "0.03"))
+# ЭНТРОПИЙНЫЙ БОНУС ПО РАСПИСАНИЮ (§111г): клон после DAgger почти детерминирован (энтропия 0,2 из ~2), и с бонусом 0,03
+# PPO от него не отходил (KL ≤ 0,03, §111б–в). Первая половина обучения — `ЭНТРОПИЯ0` (0,08; рычаг COSS3_PPO_ENT), вторая —
+# линейно к `ЭНТРОПИЯ1` (0,01): сначала исследовать, потом дать политике сойтись. Имитация к клону затухает параллельно.
+ЭНТРОПИЯ0 = float(os.environ.get("COSS3_PPO_ENT", "0.08"))
+ЭНТРОПИЯ1 = float(os.environ.get("COSS3_PPO_ENT1", "0.01"))
+
+
+def бонус_энтропии(it, iters):
+    половина = max(iters // 2, 1)
+    if it < половина:
+        return ЭНТРОПИЯ0
+    return ЭНТРОПИЯ0 + (ЭНТРОПИЯ1 - ЭНТРОПИЯ0) * (it - половина) / max(iters - половина - 1, 1)
 
 # РАЗВИЛКИ ИЗ ЗАПИСЕЙ (сканер в докстринге §111б: наша куча ≥ 10 в поле и его клетка ≥ 8 в 2 клетках — «контакт»;
 # его ≥ 10 идут к клетке в 2 от ратуши из дальше 3 — «набег»; соседние моменты ближе 90 с слиты). Агент — по записи.
@@ -226,7 +235,7 @@ def обучить(старт, iters, eps, seed, выход):
     assert np.allclose(theta_из(политика), th0, atol=1e-5), "перекладка весов туда-обратно разошлась"
     os.makedirs(os.path.dirname(выход), exist_ok=True)
     print(f"PPO НА РАЗВИЛКАХ от {os.path.basename(старт)}: {iters} × {eps} эпизодов по {ГОРИЗОНТ['контакт']:.0f}/{ГОРИЗОНТ['набег']:.0f} с, семейства {ОБУЧЕНИЕ}, "
-          f"имитация β {БЕТА0} → 0, хозяйство {ХОЗ_ФАЙЛ}", flush=True)
+          f"имитация β {БЕТА0} → 0, энтропия {ЭНТРОПИЯ0} → {ЭНТРОПИЯ1} со второй половины, хозяйство {ХОЗ_ФАЙЛ}", flush=True)
     лучшая = -1e9
     with Pool(12) as пул:
         for it in range(iters):
@@ -256,6 +265,7 @@ def обучить(старт, iters, eps, seed, выход):
             MK = torch.tensor(MK, dtype=torch.bool); ADV = torch.tensor(ADV, dtype=torch.float32); RET = torch.tensor(RET, dtype=torch.float32)
             ADV = (ADV - ADV.mean()) / (ADV.std() + 1e-8)
             beta = БЕТА0 * (1.0 - it / max(iters - 1, 1))
+            энт = бонус_энтропии(it, iters)
             n = len(X)
             for _ in range(ЭПОХ):
                 перм = torch.randperm(n)
@@ -272,7 +282,7 @@ def обучить(старт, iters, eps, seed, выход):
                         лог0 = F.log_softmax(опора(X[idx]).masked_fill(~MK[idx], -1e9), dim=-1)
                     имитация = (torch.exp(лог0) * (лог0 - лог)).masked_fill(~MK[idx], 0.0).sum(-1).mean()   # KL(клон ‖ политика)
                     опт.zero_grad()
-                    (потеря_п + 0.5 * потеря_v - ЭНТРОПИЯ * энтропия + beta * имитация).backward()
+                    (потеря_п + 0.5 * потеря_v - энт * энтропия + beta * имитация).backward()
                     nn.utils.clip_grad_norm_(list(политика.parameters()) + list(критик.parameters()), 0.5)
                     опт.step()
             наг = St.mean(sum(t[4] for t in э.get("траектория") or []) for э in р)
@@ -285,7 +295,7 @@ def обучить(старт, iters, eps, seed, выход):
             hn = [э["диагностика"].get("набег", {}).get("Hn") for э in р if э.get("диагностика")]
             hn = [h for h in hn if h is not None]
             print(f"итерация {it + 1:3d}/{iters}: награда {наг:+6.3f} размен {размен:.2f} крестьян {крест:4.1f} шагов {n} "
-                  f"энтропия {float(энтропия.detach()):.2f} имитация {float(имитация.detach()):.3f} β {beta:.2f}"
+                  f"энтропия {float(энтропия.detach()):.2f} имитация {float(имитация.detach()):.3f} β {beta:.2f} бонус {энт:.3f}"
                   + (f" H/lnK набег {St.mean(hn):.2f}" if hn else ""), flush=True)
     return theta_из(политика)
 
