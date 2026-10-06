@@ -116,6 +116,63 @@ def метка(команды, ядро, st) -> str:
     return "ничего"
 
 
+class ТеньУчителя:
+    """УЧИТЕЛЬ, ЗАПРАШИВАЕМЫЙ ПО СОСТОЯНИЮ (§111а). Та же `Стратегия` под контрактом волны, но она НЕ управляет партией:
+    её спрашивают «что бы ты сделала здесь», а играет другой (клон или смесь). Чтобы контракт видел чужие волны,
+    перед каждым вопросом реестр УСЫНОВЛЯЕТ группы из снимка (`groups`): стоящая группа в поле — волна ГОТОВА,
+    идущая — В_БОЮ с клеткой цели; своя же волна, которой в игре не оказалось (приказ не исполнялся), — КОНЧЕНА.
+    Память стратегии (первая волна, срок следующей, отход) живёт между вопросами, как у настоящего учителя.
+    Проверка честности — `собрать`: тень рядом с настоящим учителем на его же партиях даёт те же метки."""
+
+    def __init__(self, хоз):
+        import collections
+        import поиск_стратегии as ПС
+        import strategy_live as SL
+        os.environ["COSS3_WAVE_CONTRACT"] = "1"
+        self.стр = ПС.Стратегия(хоз)
+        ж = SL.ЖиваяСтратегия.__new__(SL.ЖиваяСтратегия)
+        ж.п, ж.сеть, ж.имя = self.стр.п, None, "тень"
+        ж.n, ж.номера, ж.сводим = 1, 0, {}
+        self.стр.пропущено, self.стр.отдано = collections.Counter(), collections.Counter()
+        ж.пропущено, ж.отдано = self.стр.пропущено, self.стр.отдано
+        ж.реестр = SL.РеестрВолн()
+        self.стр._живая = ж
+        self.ж = ж
+        self.усыновлено = 0
+
+    def усыновить(self, st):
+        import strategy_live as SL
+        р = self.ж.реестр
+        группы = {int(г.get("id") or 0): г for г in SL._группы(st) if int(г.get("n") or 0) > 0}
+        # дом — из `my_cx/my_cy` (симулятор), иначе из `obuild` (живой мост): `_дом` без зданий отвечает (8,8)
+        дом = ((int(float(st["my_cx"])), int(float(st["my_cy"]))) if st.get("my_cx") is not None and st.get("my_cy") is not None
+               else SL._дом(st))
+        for в in р.живые():
+            if в.номер not in группы and not в.подтверждена:
+                в.состояние = "КОНЧЕНА"             # своя волна, которой в игре нет: приказ исполнял не учитель
+        if р.активная() is None:
+            # чужая группа в поле — усыновить самую большую вне дома
+            чужие = [г for г in группы.values()
+                     if max(abs(int(г.get("cx") or 0) - дом[0]), abs(int(г.get("cy") or 0) - дом[1])) > 1]
+            if чужие:
+                г = max(чужие, key=lambda q: int(q.get("n") or 0))
+                р.счёт += 1
+                в = SL.Волна(f"A{р.счёт}", int(г["id"]), float(st.get("gametime") or 0), (int(г["cx"]), int(г["cy"])), "cell")
+                в.подтверждена, в.размер = True, int(г.get("n") or 0)
+                if г.get("стоит") or г.get("tx") is None:
+                    в.состояние = "ГОТОВА"
+                else:
+                    в.состояние, в.цель_клетка = "В_БОЮ", (int(г["tx"]), int(г["ty"]))
+                р.волны.append(в)
+                self.усыновлено += 1
+
+    def __call__(self, st):
+        """Приказы учителя для этого состояния (боевые и хозяйственные; хозяйственные спрашивающий отбрасывает)."""
+        if self.стр.я.готов_gt is not None:
+            self.усыновить(st)
+        return self.стр(st) or []
+
+
 class Учитель:
     """Стратегия под контрактом волны + наблюдатель `Ядро` (нулевые веса): пишет (x, маска, метка, тип) на каждом шаге решения."""
 
@@ -126,6 +183,8 @@ class Учитель:
         self.ядро = TC.Ядро([0.0] * TC.N_ВЕСОВ3)
         self.записи = []
         self.метки = []
+        self.тень = ТеньУчителя(хоз)
+        self.метки_тени = []
 
     def __call__(self, st):
         из = self.стр(st) or []
@@ -134,6 +193,7 @@ class Учитель:
             м = метка([c for c in из if isinstance(c, dict)], self.ядро, st)
             self.записи.append((р[1], list(self.ядро.маска_), self.ядро.решения.index(м), self.ядро.тип, float(st.get("gametime") or 0)))
             self.метки.append(м)
+            self.метки_тени.append(метка([c for c in self.тень(st) if isinstance(c, dict)], self.ядро, st))
             if м != "ничего":
                 self.ядро.текущее = self.ядро.решения.index(м)   # идущая миссия учителя — для CONTINUE
         return из
@@ -154,6 +214,40 @@ class Случайная(TC.Ядро):
         р = self.решить(st)
         if р is not None:
             из += [c for c in self.команды(р[0], st, живой=True) if not str(c.get("cmd", "")).startswith("_")]
+        return из
+
+
+class Смесь(TC.Ядро):
+    """DAgger: с вероятностью β исполняется решение теневого учителя, иначе клона (argmax); метка каждого шага — учитель
+    (`ТеньУчителя` → `метка`). Хозяйство — то же, война стратегии выключена (как у `Тактик`)."""
+
+    def __init__(self, theta, хоз, beta, seed):
+        import поиск_стратегии as ПС
+        super().__init__(theta)
+        self.тень = ТеньУчителя(хоз)
+        os.environ["COSS3_WAVE_CONTRACT"] = "0"
+        хоз2 = {k: v for k, v in хоз.items() if k not in ("отход", "подмога", "слабая", "возврат")}
+        self.хоз = ПС.Стратегия(dict(хоз2, T1=1e9, T2=1e9, P1=0.0))
+        self.beta, self.rng = beta, random.Random(seed)
+        self.записи, self.совпало, self.шагов = [], 0, 0
+
+    def __call__(self, st):
+        os.environ["COSS3_WAVE_CONTRACT"] = "0"
+        из = self.хоз(st)
+        р = self.решить(st)
+        if р is not None:
+            os.environ["COSS3_WAVE_CONTRACT"] = "1"
+            у = метка([c for c in self.тень(st) if isinstance(c, dict)], self, st)
+            os.environ["COSS3_WAVE_CONTRACT"] = "0"
+            j = self.решения.index(у)
+            self.записи.append((р[1], list(self.маска_), j, self.тип, float(st.get("gametime") or 0)))
+            self.шагов += 1
+            self.совпало += int(р[0] == j)
+            i = j if self.rng.random() < self.beta else р[0]
+            self.история[-1] = i
+            if i:
+                self.текущее = i
+            из += [c for c in self.команды(i, st, живой=True) if not str(c.get("cmd", "")).startswith("_")]
         return из
 
 
@@ -188,7 +282,7 @@ def _собрать_партию(з):
     у = Учитель(_хоз(), seed)
     сим, и = SIM.партия(d, у, seed=seed)
     м = ПС.мера(сим, и)
-    return dict(записи=у.записи, метки=у.метки, враг=враг if isinstance(враг, str) else "случайный", запись=os.path.basename(os.path.dirname(d)) + "/" + os.path.basename(d),
+    return dict(записи=у.записи, метки=у.метки, метки_тени=у.метки_тени, враг=враг if isinstance(враг, str) else "случайный", запись=os.path.basename(os.path.dirname(d)) + "/" + os.path.basename(d),
                 мера={k: м[k] for k in ("уничтожена", "награда", "убито", "потери", "наша15") if k in м}, крест=м.get("наши_крест", 0))
 
 
@@ -207,6 +301,11 @@ def собрать(n, seed, выход):
     json.dump([{k: v for k, v in п.items() if k != "записи"} for п in р], open(выход.replace(".npz", ".json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     Y, T = np.array(Y), np.array(T)
+    пары = [(a, b) for п in р for a, b in zip(п["метки"], п["метки_тени"])]
+    бой = [(a, b) for a, b in пары if a != "ничего"]
+    print(f"ТЕНЬ УЧИТЕЛЯ на его партиях: совпадение {sum(a == b for a, b in пары) / max(len(пары), 1):.3f} по всем шагам, "
+          f"{sum(a == b for a, b in бой) / max(len(бой), 1):.3f} по боевым ({len(бой)}); тень бьёт, где учитель молчит: "
+          f"{sum(1 for a, b in пары if a == 'ничего' and b != 'ничего')}")
     print(f"НАБОР УЧИТЕЛЯ: {len(р)} партий, {len(Y)} шагов решения; метки: " +
           ", ".join(f"{TC.РЕШЕНИЯ3[i]} {np.sum(Y == i)}" for i in range(len(TC.РЕШЕНИЯ3)) if np.sum(Y == i)))
     for ti, тип in enumerate(TC.ТИПЫ_СОСТОЯНИЙ):
@@ -346,10 +445,15 @@ def _оценка(з):
     return м
 
 
-def ворота(сеть, зёрен=10):
+def ворота(сети, зёрен=10):
     import тактик as ТК
     import случайный_враг as СВ
-    th = np.array(json.load(open(сеть, encoding="utf-8"))["theta"]) if сеть.endswith(".json") else np.load(сеть)
+    thetas = {}
+    for сеть in str(сети).split(","):
+        сеть = сеть.strip()
+        if сеть:
+            thetas[os.path.basename(сеть).replace('.json', '').replace('tactic_v3_', '')] = (
+                np.array(json.load(open(сеть, encoding="utf-8"))["theta"]) if сеть.endswith(".json") else np.load(сеть))
     p3 = ТК._p3()
     p5 = sorted(os.path.dirname(x) for x in glob.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/*/coss3_snap.jsonl")))
     p6 = sorted(os.path.dirname(x) for x in glob.glob(os.path.expanduser("~/coss3-res-игрок-отл/igrok_06_10_p6/*/coss3_snap.jsonl")))
@@ -363,7 +467,8 @@ def ворота(сеть, зёрен=10):
     with Pool(12) as пул:
         for имя, задания in наборы:
             итог[имя] = {}
-            for вид in ("учитель", "клон", "случайный"):
+            for вид in ("учитель",) + tuple(thetas) + ("случайный",):
+                th = thetas.get(вид)
                 р = пул.map(_оценка, [(вид, th, враг, d, s) for враг, d, s in задания])
                 v = dict(уничтожена=sum(x["уничтожена"] for x in р), n=len(р), награда=round(St.mean(x["награда"] for x in р), 2),
                          размен=round(sum(x["убито"] for x in р) / max(sum(x["потери"] for x in р), 1), 2),
@@ -378,9 +483,56 @@ def ворота(сеть, зёрен=10):
                 итог[имя][вид] = v
             print(f"  {имя:16} " + " | ".join(f"{вид} {v['уничтожена']:3d}/{v['n']} {v['награда']:+.2f} {v['размен']:.2f} а{v['наша15']} кр{v['крест']}"
                                             + (f" смен/мин {v['смен_в_минуту']}" if "смен_в_минуту" in v else "") for вид, v in итог[имя].items()), flush=True)
-            for вид in ("клон", "случайный"):
+            for вид in tuple(thetas) + ("случайный",):
                 print(f"     {вид}: {итог[имя][вид]['решения']}" + (f"; H/lnK на набеге {итог[имя][вид]['Hn_набег']}" if "Hn_набег" in итог[имя][вид] else ""), flush=True)
     return итог
+
+
+def _dagger_партия(з):
+    theta, beta, враг, d, seed = з
+    import sim as SIM, тактик as ТК, поиск_стратегии as ПС, случайный_враг as СВ, combat
+    if not hasattr(combat, "_залпы_исх"):
+        combat._залпы_исх = combat.залпы
+    if враг == "случайный":
+        враг = dict(СВ.разыграть(np.random.default_rng(seed)), запись=d)
+    ТК._настроить(враг)
+    п = Смесь(theta, _хоз(), beta, seed)
+    сим, и = SIM.партия(d, п, seed=seed)
+    м = ПС.мера(сим, и)
+    return dict(записи=п.записи, совпало=п.совпало, шагов=п.шагов, усыновлено=п.тень.усыновлено,
+                мера={k: м[k] for k in ("уничтожена", "награда", "убито", "потери") if k in м})
+
+
+def dagger(набор, сеть, кругов, партий, seed, выход):
+    """DAgger поверх клона: круг r — прогон смеси (β = 1/(r+1)), метки ТЕНЕВОГО УЧИТЕЛЯ на всех посещённых состояниях,
+    объединение с набором, переобучение. Печатает совпадение клона с учителем на ЕГО (клона) состояниях — честная мера
+    имитации в замкнутом цикле. Пишет `<набор>_dagger.npz` и сеть `выход`."""
+    d = np.load(набор)
+    X, M, Y, T, G = [d["X"]], [d["M"]], [d["Y"]], [d["T"]], [d["G"]]
+    th = np.array(json.load(open(сеть, encoding="utf-8"))["theta"]) if сеть.endswith(".json") else np.load(сеть)
+    rng = np.random.default_rng(seed + 100)
+    g0 = int(d["G"].max()) + 1
+    with Pool(12) as пул:
+        for r in range(кругов):
+            beta = 1.0 / (r + 1) if кругов > 1 else 0.5
+            зад = [(th, beta, враг, dd, 9000 + 1000 * r + i) for i, (враг, dd, _) in enumerate(_задания(партий, rng))]
+            рр = пул.map(_dagger_партия, зад)
+            xs, ms, ys, ts, gs = [], [], [], [], []
+            for g, п in enumerate(рр):
+                for x, м, y, тип, t in п["записи"]:
+                    xs.append(x); ms.append(м); ys.append(y); ts.append(TC.ТИПЫ_СОСТОЯНИЙ.index(тип)); gs.append(g0 + g)
+            g0 += len(рр)
+            X.append(np.array(xs, dtype=np.float32)); M.append(np.array(ms, dtype=np.int8)); Y.append(np.array(ys)); T.append(np.array(ts)); G.append(np.array(gs))
+            ys_a = np.array(ys)
+            print(f"DAgger круг {r + 1}/{кругов}: β {beta:.2f}, {len(рр)} партий, {len(ys)} шагов; клон совпал с учителем на своих состояниях "
+                  f"{sum(п['совпало'] for п in рр) / max(sum(п['шагов'] for п in рр), 1):.3f}; боевых меток учителя {int((ys_a != 0).sum())} "
+                  f"(" + ", ".join(f"{TC.РЕШЕНИЯ3[i]} {int((ys_a == i).sum())}" for i in range(1, len(TC.РЕШЕНИЯ3)) if (ys_a == i).sum()) + "); "
+                  f"усыновлено волн {sum(п['усыновлено'] for п in рр)}; смесь: уничтожена {sum(п['мера']['уничтожена'] for п in рр)}/{len(рр)}, "
+                  f"размен {sum(п['мера']['убито'] for п in рр) / max(sum(п['мера']['потери'] for п in рр), 1):.2f}", flush=True)
+            путь = набор.replace(".npz", "_dagger.npz")
+            np.savez(путь, X=np.concatenate(X), M=np.concatenate(M), Y=np.concatenate(Y), T=np.concatenate(T), G=np.concatenate(G), t=np.zeros(1))
+            th = обучить(путь, выход, эпох=200, seed=seed)
+    return th
 
 
 def main():
@@ -392,6 +544,10 @@ def main():
     if "--обучить" in sys.argv:
         обучить(опц("--обучить", "", str), опц("--out", os.path.join(os.path.dirname(К), "nets", "tactic_v3_bc.json"), str),
                 опц("--эпох", 300), seed)
+    if "--dagger" in sys.argv:
+        dagger(опц("--набор", os.path.join(К, "учитель", f"набор_s{seed}.npz"), str),
+               опц("--сеть", os.path.join(os.path.dirname(К), "nets", "tactic_v3_bc.json"), str),
+               опц("--dagger", 3), опц("--партий", 64), seed, опц("--out", os.path.join(os.path.dirname(К), "nets", "tactic_v3_dagger.json"), str))
     if "--ворота" in sys.argv:
         итог = ворота(опц("--ворота", "", str), опц("--зёрен", 10))
         if "--json" in sys.argv:
