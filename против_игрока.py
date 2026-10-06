@@ -689,6 +689,9 @@ def main() -> int:
                       f, ensure_ascii=False, indent=1)
         print(f"доказательства прогона: bridge.sha {_sha[:12]}, match.dat, опыт.json")
     среда = dict(os.environ)
+    # §114: противник — человек, а человек кайтит чистыми стрелками (игрок 8.10, p2); прогноз боя моста (`прогноз.py` →
+    # `sim/combat.py`) считает нашу пику против его мушкетёров без пик вполсилы. Снять: COSS3_KITE=0 в среде.
+    среда.setdefault("COSS3_KITE", "0.5")
     if бот["адрес"]:
         # Имя переменной то же, которое читает llm_policy (BASE_URL, строка 74).
         среда["OPENROUTER_BASE_URL"] = бот["адрес"]
