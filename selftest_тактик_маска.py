@@ -110,7 +110,21 @@ import strategy_live as SL
 import numpy as _np
 import ppo_развилки as ПР
 th = _np.random.default_rng(3).normal(size=TC.N_ВЕСОВ3)
-проверка("12а. веса → torch-политика → веса без потерь", _np.allclose(ПР.theta_из(ПР._политика(th)), th, atol=1e-5))
+# ПРОВЕРКА 12а ТРЕБУЕТ torch, а на Windows его нет: обучение живёт на маке.
+# Пропускаем ВСЛУХ, тем же способом, каким ниже пропускаются проверки без
+# записей p5. Иначе батарея падает на каждой машине, где нет обучения, и
+# «проверки проходят» перестаёт что-либо значить — а это главный довод
+# «правка ничего не сломала» (поймано 6.10 на Windows).
+try:
+    import torch as _torch           # noqa: F401
+    _есть_torch = True
+except ImportError:
+    _есть_torch = False
+if _есть_torch:
+    проверка("12а. веса → torch-политика → веса без потерь",
+             _np.allclose(ПР.theta_из(ПР._политика(th)), th, atol=1e-5))
+else:
+    print("  (torch не установлен — проверка 12а пропущена)")
 P5 = os.path.expanduser("~/coss3-res-игрок-отл/igrok_04_10_p5/1")
 if os.path.isdir(P5):
     в0 = dict(сем="p5", тип="контакт", t=663.0, dx=0, dy=0, k=1.0)
