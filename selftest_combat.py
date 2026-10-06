@@ -197,8 +197,9 @@ st4 = dict(st); st4["p1_squads"] = 5; st4["p1_squads_form"] = 0
      "upg_avail": "cen.1,bar.pikeman.1.1=f900g150i0,bar.pikeman.2.1=f250g150i0",
      "fighters": "infantry17=pikeman,hp90,atk8,wkind1,pause0,dpike3,dsword2,dbullet4",
      "p1_fighters": "infantry17=hp90,atk13,wkind1,pause0,dpike7,dsword6,dbullet4"}, {})
+# §110: блок казарменных ступеней — «ПРОКАЧКИ КАЗАРМЫ ПРОТИВ ЕГО СОСТАВА» (`прокачки.показать`), мера «на тысячу ресурсов»
 проверка("модель видит цену и отдачу ступени",
-         any("на тысячу еды" in с for с in стр_roi)
+         any("на тысячу ресурсов" in с for с in стр_roi)
          and any("bar.pikeman.1.1" in с for с in стр_roi), str(стр_roi))
 
 
