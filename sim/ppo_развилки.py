@@ -45,6 +45,13 @@ H = 240.0                  # горизонт эпизода, с
 # линейно к `ЭНТРОПИЯ1` (0,01): сначала исследовать, потом дать политике сойтись. Имитация к клону затухает параллельно.
 ЭНТРОПИЯ0 = float(os.environ.get("COSS3_PPO_ENT", "0.08"))
 ЭНТРОПИЯ1 = float(os.environ.get("COSS3_PPO_ENT1", "0.01"))
+# ИССЛЕДОВАНИЕ ПОД ОГРАНИЧЕНИЕМ (§111д): бонус 1,0 без ограничения увёл политику от клона (KL 0,6–0,8) и сломал прирост.
+# `KL_ЦЕЛЬ` > 0 — имитация к клону не затухает, а держит KL у цели: β удваивается, когда KL > 1,5 цели, и делится пополам,
+# когда KL < цели/2 (как PPO-penalty). `ЭНТ_НАБЕГ` — бонус энтропии ТОЛЬКО в состояниях с угрозой базе (признак 52 = 1:
+# клон там уверенно молчит, крестьян теряется 26–43), в остальных — обычный `ЭНТРОПИЯ0`.
+KL_ЦЕЛЬ = float(os.environ.get("COSS3_PPO_KL", "0") or 0)
+ЭНТ_НАБЕГ = float(os.environ["COSS3_PPO_ENT_RAID"]) if os.environ.get("COSS3_PPO_ENT_RAID") else None
+ПРИЗНАК_УГРОЗЫ = 52
 
 
 def бонус_энтропии(it, iters):
@@ -235,8 +242,10 @@ def обучить(старт, iters, eps, seed, выход):
     assert np.allclose(theta_из(политика), th0, atol=1e-5), "перекладка весов туда-обратно разошлась"
     os.makedirs(os.path.dirname(выход), exist_ok=True)
     print(f"PPO НА РАЗВИЛКАХ от {os.path.basename(старт)}: {iters} × {eps} эпизодов по {ГОРИЗОНТ['контакт']:.0f}/{ГОРИЗОНТ['набег']:.0f} с, семейства {ОБУЧЕНИЕ}, "
-          f"имитация β {БЕТА0} → 0, энтропия {ЭНТРОПИЯ0} → {ЭНТРОПИЯ1} со второй половины, хозяйство {ХОЗ_ФАЙЛ}", flush=True)
+          f"имитация {'β адаптивная, цель KL ' + str(KL_ЦЕЛЬ) if KL_ЦЕЛЬ > 0 else 'β ' + str(БЕТА0) + ' → 0'}, энтропия {ЭНТРОПИЯ0} → {ЭНТРОПИЯ1} со второй половины"
+          + (f", в набеге {ЭНТ_НАБЕГ}" if ЭНТ_НАБЕГ is not None else "") + f", хозяйство {ХОЗ_ФАЙЛ}", flush=True)
     лучшая = -1e9
+    beta_адапт = БЕТА0
     with Pool(12) as пул:
         for it in range(iters):
             theta = theta_из(политика)
@@ -264,7 +273,7 @@ def обучить(старт, iters, eps, seed, выход):
             X = torch.tensor(X, dtype=torch.float32); A = torch.tensor(A); LP = torch.tensor(LP, dtype=torch.float32)
             MK = torch.tensor(MK, dtype=torch.bool); ADV = torch.tensor(ADV, dtype=torch.float32); RET = torch.tensor(RET, dtype=torch.float32)
             ADV = (ADV - ADV.mean()) / (ADV.std() + 1e-8)
-            beta = БЕТА0 * (1.0 - it / max(iters - 1, 1))
+            beta = beta_адапт if KL_ЦЕЛЬ > 0 else БЕТА0 * (1.0 - it / max(iters - 1, 1))
             энт = бонус_энтропии(it, iters)
             n = len(X)
             for _ in range(ЭПОХ):
@@ -276,15 +285,30 @@ def обучить(старт, iters, eps, seed, выход):
                     ratio = torch.exp(lp - LP[idx])
                     потеря_п = -torch.min(ratio * ADV[idx], torch.clamp(ratio, 1 - КЛИП, 1 + КЛИП) * ADV[idx]).mean()
                     p = torch.exp(лог)
-                    энтропия = -(p * лог).masked_fill(~MK[idx], 0.0).sum(-1).mean()
+                    энтропия_в = -(p * лог).masked_fill(~MK[idx], 0.0).sum(-1)
+                    энтропия = энтропия_в.mean()
+                    if ЭНТ_НАБЕГ is not None:      # бонус по состоянию: угроза базе — свой, иначе обычный
+                        веса = torch.where(X[idx][:, ПРИЗНАК_УГРОЗЫ] > 0.5, torch.tensor(ЭНТ_НАБЕГ), torch.tensor(энт))
+                        энтропия_взв = (веса * энтропия_в).mean()
+                    else:
+                        энтропия_взв = энт * энтропия
                     потеря_v = F.mse_loss(критик(X[idx]).view(-1), RET[idx])
                     with torch.no_grad():
                         лог0 = F.log_softmax(опора(X[idx]).masked_fill(~MK[idx], -1e9), dim=-1)
                     имитация = (torch.exp(лог0) * (лог0 - лог)).masked_fill(~MK[idx], 0.0).sum(-1).mean()   # KL(клон ‖ политика)
                     опт.zero_grad()
-                    (потеря_п + 0.5 * потеря_v - энт * энтропия + beta * имитация).backward()
+                    (потеря_п + 0.5 * потеря_v - энтропия_взв + beta * имитация).backward()
                     nn.utils.clip_grad_norm_(list(политика.parameters()) + list(критик.parameters()), 0.5)
                     опт.step()
+            if KL_ЦЕЛЬ > 0:
+                with torch.no_grad():     # KL к клону по всему пакету после обновления — им правится β
+                    лог_ = F.log_softmax(политика(X).masked_fill(~MK, -1e9), dim=-1)
+                    лог0_ = F.log_softmax(опора(X).masked_fill(~MK, -1e9), dim=-1)
+                    kl = float((torch.exp(лог0_) * (лог0_ - лог_)).masked_fill(~MK, 0.0).sum(-1).mean())
+                if kl > 1.5 * KL_ЦЕЛЬ:
+                    beta_адапт = min(beta_адапт * 2.0, 10.0)
+                elif kl < KL_ЦЕЛЬ / 2.0:
+                    beta_адапт = max(beta_адапт / 2.0, 0.05)
             наг = St.mean(sum(t[4] for t in э.get("траектория") or []) for э in р)
             размен = sum(э["его"] for э in р) / max(sum(э["наши"] for э in р), 1.0)
             крест = St.mean(э["крест"] for э in р)
