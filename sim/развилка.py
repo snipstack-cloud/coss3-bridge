@@ -95,7 +95,7 @@ def построить(каталог, t, вид, seed):
     ТК._настроить(вид)                      # стиль агента; состав его армии — по записи (СОСТАВ None)
     import combat
     # §114: кайт чистых стрелков — умение человека; агент «p2» играет запись игрока с одними мушкетёрами (две группы перекатом)
-    combat.КАЙТ_ДОЛЯ = 0.5 if вид == "p2" else (float(os.environ["COSS3_KITE"]) if "COSS3_KITE" in os.environ else None)
+    combat.КАЙТ_ДОЛЯ = 0.35 if вид == "p2" else (float(os.environ["COSS3_KITE"]) if "COSS3_KITE" in os.environ else None)
     зап = SIM.Запись(каталог)
     сим = SIM.Симулятор(зап, seed)
     сим.t = сим.t0 = float(t)
