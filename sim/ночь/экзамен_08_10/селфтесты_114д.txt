@@ -1,0 +1,307 @@
+== selftest_academy.py
+
+всё чисто
+== selftest_assess.py
+
+ПРОВАЛОВ: 0
+== selftest_auto.py
+
+всё чисто
+== selftest_auto_upgrade.py
+selftest_auto_upgrade: ОК, 19 проверок (8 про запас еды: нашли порознь, оставили одну реализацию)
+== selftest_balance.py
+
+ПРОВАЛОВ: 0
+== selftest_balance_empty.py
+
+ошибок: 0
+== selftest_balance_verdict.py
+
+ошибок: 0
+== selftest_barracks2.py
+
+ПРОВАЛОВ: 0
+== selftest_barracks_first.py
+КЛЮЧ barracks-first: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ
+== selftest_basehit.py
+
+всё чисто
+== selftest_bottleneck.py
+
+всё чисто
+== selftest_builders.py
+
+ПРОВАЛОВ: 0
+== selftest_buy.py
+
+всё чисто
+== selftest_buy_wip.py
+
+ошибок: 0
+== selftest_combat.py
+
+ПРОВАЛОВ: 0
+== selftest_combat_cells.py
+
+всё чисто
+== selftest_critic_trace.py
+
+всё чисто
+== selftest_damage_parts.py
+
+все проверки прошли
+== selftest_decision_features.py
+ВСЕ ПРОВЕРКИ ПРИЗНАКОВ РЕШЕНИЯ ПРОЙДЕНЫ
+== selftest_defence.py
+ошибок: 0
+== selftest_defense.py
+
+всё чисто
+== selftest_encoding.py
+ХОРОШО: 248 файлов, текстовый ввод-вывод везде с encoding
+== selftest_enemy_base.py
+
+СБОЕВ: 0
+== selftest_enemy_march.py
+
+СБОЕВ: 0
+== selftest_enemy_slot.py
+ошибок: 0
+== selftest_entrypoint.py
+
+все проверки прошли
+== selftest_event_native.py
+
+ошибок: 0
+== selftest_event_reasoning.py
+
+ошибок: 0
+== selftest_event_schema.py
+
+ошибок: 0
+== selftest_event_spare.py
+
+ошибок: 0
+== selftest_experiments.py
+предупреждений: 3
+ошибок: 0
+== selftest_eyes.py
+ошибок: 0
+== selftest_face.py
+
+ошибок: 0
+== selftest_facethreat.py
+
+всё чисто
+== selftest_feasibility.py
+
+ПРОВАЛОВ: 0
+== selftest_field.py
+
+ПРОВАЛОВ: 0
+== selftest_field_cells.py
+
+ошибок: 0
+== selftest_field_mostovye.py
+ошибок: 0
+== selftest_fighters.py
+
+ПРОВАЛОВ: 0
+== selftest_fire_ratio.py
+ошибок: 0
+== selftest_flags_under_strategy.py
+ключи базы (10) включаются до ветки ключа модели (строка 13119) — действуют и под --strategy
+== selftest_food_floor.py
+selftest_food_floor: ОК, 10 проверок
+== selftest_food_upgrade.py
+ХОРОШО: mil.1 за 750 еды отвергается, пока в амбаре меньше 1550, и только до 300 с; прочие с ценой едой — всю партию, если амбар упал бы ниже порога
+== selftest_formation_ready.py
+
+всё чисто
+== selftest_free_hands.py
+
+всё чисто
+== selftest_gather_resets.py
+
+ВСЁ ОК
+== selftest_gather_share.py
+
+ошибок: 0
+== selftest_grid_ceiling.py
+
+ошибок: 0
+== selftest_groups.py
+mock-human: GROUP 4: no group 9 to join
+ХОРОШО: группы разбираются, адресный приказ трогает только свою, поле доезжает до промпта, критика и снимка, формы в блоках на месте
+== selftest_hire_event.py
+
+всё чисто
+== selftest_hire_only.py
+
+всё чисто
+== selftest_hold_report.py
+
+ошибок: 0
+== selftest_hunt_peasants.py
+
+всё чисто
+== selftest_hunt_return.py
+selftest_hunt_return: ОК, 9 проверок
+== selftest_kills.py
+
+все проверки прошли
+== selftest_loss_cells.py
+
+всё чисто
+== selftest_losses_tick.py
+
+ошибок: 0
+== selftest_mapsize.py
+
+всё чисто
+== selftest_march.py
+
+ПРОВАЛОВ: 0
+== selftest_march_honest.py
+
+ошибок: 0
+== selftest_march_id.py
+
+ошибок: 0
+== selftest_mine.py
+
+всё чисто
+== selftest_musk_guard.py
+selftest_musk_guard: ОК, 14 проверок (8 правило, 6 академия)
+== selftest_need.py
+
+всё чисто
+== selftest_no_deposit.py
+
+ошибок: 0
+== selftest_no_gather.py
+
+ошибок: 0
+== selftest_no_stable.py
+selftest_no_stable: ОК, 7 проверок
+== selftest_officer_needs_academy.py
+
+всё чисто
+== selftest_openinfo.py
+
+ПРОВАЛОВ: 0
+== selftest_order_list.py
+ХОРОШО: файл приказа несёт список, плоские ключи первого на месте, проверки общие, и в блоке есть цикл с префиксом и своим именем группы
+== selftest_payback.py
+
+всё чисто
+== selftest_policy.py
+
+ПРОВАЛОВ: 0
+== selftest_prompt.py
+
+ПРОВАЛОВ: 0
+== selftest_raid.py
+
+ПРОВАЛОВ: 0
+== selftest_rear_shooters.py
+
+всё чисто
+== selftest_rebuy.py
+
+всё чисто
+== selftest_reinforce.py
+
+всё чисто
+== selftest_restock.py
+
+всё чисто
+== selftest_seed_many.py
+
+всё чисто
+== selftest_series_report.py
+
+все проверки прошли
+== selftest_slots.py
+
+всё чисто
+== selftest_snap.py
+
+всё чисто
+== selftest_split_builders.py
+
+ошибок: 0
+== selftest_stage.py
+
+всё чисто
+== selftest_stale_snap.py
+
+ошибок: 0
+== selftest_starve.py
+
+ошибок: 0
+== selftest_strike.py
+
+ПРОВАЛОВ: 0
+== selftest_strike_stage.py
+
+всё чисто
+== selftest_switch.py
+
+всё чисто
+== selftest_synonyms.py
+СИНОНИМЫ И BUILDERS 0: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ
+== selftest_torn_state.py
+
+всё чисто
+== selftest_upg_repeat.py
+
+всё чисто
+== selftest_upg_threat.py
+ошибок: 0
+== selftest_upgrades.py
+
+ПРОВАЛОВ: 0
+== selftest_verdicts.py
+
+ошибок: 0
+== selftest_vs_ai.py
+  контроль пройден
+ХОРОШО: --против-ии сажает бота на слот 0, botslot не посылает, а квитанцию судит по ai1 (ждём 3 для «невозможного»)
+== selftest_vs_player_strategy.py
+  - модель не готова: мёртво
+ХОРОШО: ключ стратегии находится в настройке, ворота модели при нём сняты, а без него держат
+== selftest_wave_age.py
+
+всё чисто
+== selftest_wave_contract.py
+ХОРОШО: волна живёт одним номером, подмога в свою клетку отвергается с причиной, домашние бойцы считаются по mil_away
+== selftest_wave_march.py
+
+ошибок: 0
+== selftest_wave_orders.py
+ХОРОШО: четыре приказа волне переводятся, разбираются и ложатся в файл приказа; в симуляторе перевод не включается
+== selftest_wave_verdict.py
+
+ПРОВАЛОВ: 0
+== selftest_обход.py
+ОБХОД: ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ
+== selftest_очки_потери.py
+  ОК    его ратуша в счёте: True (ждём True)
+все проверки прошли
+== selftest_прокачки.py
+
+selftest_прокачки: ОК
+== selftest_ручеёк.py
+
+selftest_ручеёк: ОК
+== selftest_сбор.py
+
+ПРОВАЛОВ: 0
+== selftest_снимок_врага.py
+
+все проверки прошли
+== selftest_тактик_маска.py
+
+selftest_тактик_маска: ОК
+done
