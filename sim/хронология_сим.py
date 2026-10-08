@@ -57,7 +57,9 @@ def _партия(з):
         if s:
             пм[м] = dict(армия=ХР._ч(s.get("mil_inf")) + ХР._ч(s.get("mil_shooters")), кр=ХР._ч(s.get("peasants")),
                          ступ=ХР._ступени(s.get("upg_done")), лежит=ХР._ч(s.get("food")) + ХР._ч(s.get("gold")))
-    return путь, dict(шаги=шаги, пм=пм, наши=сим.my_mil_lost, его=сим.убито_бойцов, кр=сим.my_pea_lost, его_кр=сим.убито_крестьян)
+    ж = getattr(п.п, "_живая", None)
+    мера = dict(ж.реестр.мера) if ж is not None else {}
+    return путь, dict(шаги=шаги, пм=пм, наши=сим.my_mil_lost, его=сим.убито_бойцов, кр=сим.my_pea_lost, его_кр=сим.убито_крестьян, мера=мера)
 
 
 if __name__ == "__main__":
@@ -93,3 +95,10 @@ if __name__ == "__main__":
         рр = [x for пп, x in р if пп == п]
         print(f"   {os.path.basename(п)[:34]:34} итог: наши {St.mean(x['наши'] for x in рр):.0f}, его {St.mean(x['его'] for x in рр):.0f}, "
               f"наших крестьян {St.mean(x['кр'] for x in рр):.0f}, его крестьян {St.mean(x['его_кр'] for x in рр):.0f}")
+        из_мер = {}
+        for x in рр:
+            for k, v in x["мера"].items():
+                if k.startswith(("тактика", "подток", "оборона", "ручеёк")):
+                    из_мер[k] = из_мер.get(k, 0) + v
+        if из_мер:
+            print("      сработало (сумма по зёрнам):", {k: v for k, v in sorted(из_мер.items())})
