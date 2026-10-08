@@ -60,8 +60,12 @@ def спросить_fable(текст, таймаут=300):
     if _ПУСТАЯ is None:
         _ПУСТАЯ = tempfile.mkdtemp(prefix="coss3_экзамен_")
     t0 = time.time()
+    # `encoding` ОБЯЗАТЕЛЕН: без него `text=True` берёт кодировку системы, и на
+    # Windows (cp1251/cp866) ответ про клетки и пикинёров падает на кириллице.
+    # Сторож `selftest_encoding.py` ловит это во всём репозитории — он и поймал.
     р = subprocess.run(["claude", "-p", "--model", FABLE, "--setting-sources", "", "--tools", ""], input=текст,
-                       capture_output=True, text=True, cwd=_ПУСТАЯ, timeout=таймаут)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       cwd=_ПУСТАЯ, timeout=таймаут)
     return (р.stdout or р.stderr).strip(), time.time() - t0
 
 
