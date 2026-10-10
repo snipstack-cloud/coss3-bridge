@@ -260,6 +260,35 @@ class Ветка:
         if self.имя == "к своим" and self.этап == 1:
             self.этап = 9
             return из + [{"cmd": "RETREAT", "group": self.id}, {"cmd": "STAGE", "off": 1}]
+        # §140 ВЕТКА ИГРОКА (10.10, экзамен Д2: 7:10 — «остановиться на полпути и копить», 8:25 — «отойти на две клетки и
+        # копить»): «отойти N» — куча отходит на N клеток к дому и стоит там, подток из дома (STAGE) идёт в новую клетку;
+        # «отойти N бить» — то же, а затем из новой клетки правило «по правилу» (ближняя его куча в 2,5 кл. без
+        # подкрепления в ПРАВИЛО_РАДИУС, перевес ПРАВИЛО_ПЕРЕВЕС) — удар, когда накопили.
+        if self.имя.startswith("отойти") and self.этап == 1:
+            части = self.имя.split()
+            n = int(части[1]) if len(части) > 1 and части[1].isdigit() else 2
+            дом = (float(сим.з.my_cx), float(сим.з.my_cy))
+            dx, dy = дом[0] - self.клетка[0], дом[1] - self.клетка[1]
+            д = max(1e-6, math.hypot(dx, dy))
+            цель = (int(round(self.клетка[0] + n * dx / д)), int(round(self.клетка[1] + n * dy / д)))
+            self.клетка = цель
+            self.этап = 5 if "бить" in self.имя else 9
+            return из + [{"cmd": "MOVE", "group": self.id, "target": "cell", "cx": цель[0], "cy": цель[1]},
+                         {"cmd": "STAGE", "cx": цель[0], "cy": цель[1]}]
+        if self.имя.startswith("отойти") and self.этап == 5:
+            from tactic_core import кучи
+            его = {(c["x"], c["y"]): c.get("n", 0) for c in (st.get("ecells") or []) if c.get("n", 0) >= 1}
+            к = [q for q in кучи(его) if q[0] >= 5]
+            наша = next((g for g in (st.get("groups") or []) if g["id"] == self.id), None)
+            if к and наша:
+                n, cx, cy = min(к, key=lambda q: math.hypot(q[1] - наша["cx"], q[2] - наша["cy"]))
+                далеко = math.hypot(cx - наша["cx"], cy - наша["cy"]) > 2.5
+                подкрепление = any(q is not None and (q[1], q[2]) != (cx, cy) and math.hypot(q[1] - cx, q[2] - cy) <= ПРАВИЛО_РАДИУС for q in к)
+                if not далеко and not подкрепление and наша["n"] >= ПРАВИЛО_ПЕРЕВЕС * n:
+                    self.цель, self.этап = (int(round(cx)), int(round(cy))), 2
+                    self.t_удара = t
+                    return из + [{"cmd": "ATTACK", "group": self.id, "target": "cell", "cx": int(round(cx)), "cy": int(round(cy))}]
+            return из
         if self.имя == "только стрелков" and self.этап == 1:
             # §96 (типы у агента): цель — его клетка с наибольшим числом стрелков в 4 клетках от кучи
             ec = [c for c in (st.get("ecells") or []) if c.get("стрелков", 0) >= 3 and max(abs(c["x"] - self.клетка[0]), abs(c["y"] - self.клетка[1])) <= 4]
