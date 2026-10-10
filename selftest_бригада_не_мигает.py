@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+"""БРИГАДА ПОД ЗАКЛАДКУ НЕ МИГАЕТ (10.10, §135а): состояния второй живой партии Д 2:15-3:25
+(`sim/кейсы/партия_д2_10_10_2_15-3_25.jsonl`). Вживую правило §135 срабатывало только при нуле людей на ресурсе: такт А —
+трое на камень и дерево, еда −6; такт Б — люди есть, правило молчит, еда просит прежнее, блок забирает их обратно.
+Дерево 402 и камень 60 стояли 2:20-6:00, на еде 7-10 вместо 13-15.
+
+Теперь на КАЖДОМ такте окна (и при 0, и при 3 на ресурсе) еда просится не больше, чем базовая стратегия минус шестеро,
+а команда на ресурс есть, когда людей там меньше трёх; с ключом 0 — как было.
+
+    python3 selftest_бригада_не_мигает.py
+"""
+import copy, json, os, sys, tempfile
+К = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, К); sys.path.insert(0, os.path.join(К, "sim"))
+import strategy_live as SL
+import анализ_врага as АВ
+
+состояния = [json.loads(l) for l in open(os.path.join(К, "sim/кейсы/партия_д2_10_10_2_15-3_25.jsonl"), encoding="utf-8")]
+ошибок = 0
+def проверить(усл, что):
+    global ошибок
+    print(("ОК   " if усл else "ОШИБКА ") + что); ошибок += not усл
+
+def стратегия(доп):
+    д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+    д["итог"].update(доп)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(д, f, ensure_ascii=False)
+    return SL.ЖиваяСтратегия(f.name)
+
+def ответ(С, st):
+    АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None})
+    return С.ответ(copy.deepcopy(st))
+
+def бал(о, роль):
+    v = [int(c.get("total") or 0) for c in о["commands"] if c["cmd"] == "BALANCE" and c.get("role") == роль]
+    return max(v) if v else None
+
+новая, старая = стратегия({}), стратегия({"людей_под_закладку": 0})
+с_людьми = без = 0
+for st in состояния:
+    о, о0 = ответ(новая, st), ответ(старая, st)
+    еда, еда0 = бал(о, "food"), бал(о0, "food")
+    на_к = int(st["on_stone"] or 0)
+    if на_к >= 3: с_людьми += 1
+    else: без += 1
+    ок_еда = еда0 is None or (еда is not None and еда <= еда0 - 6) or еда is None
+    ок_кам = (бал(о, "stone") == 3) if на_к < 3 else True
+    ок_дер = (бал(о, "wood") == 3) if int(st["on_wood"] or 0) < 3 else True
+    проверить(ок_еда and ок_кам and ок_дер,
+              f"{st['gametime']} с: на камне {на_к}, на дереве {st['on_wood']} → еда {еда} (база {еда0}), камень {бал(о, 'stone')}, дерево {бал(о, 'wood')}")
+проверить(с_людьми >= 2 and без >= 3, f"в окне есть такты и с людьми на камне ({с_людьми}), и без ({без})")
+st = состояния[0]
+о0 = ответ(старая, st)
+проверить(бал(о0, "stone") is None, f"с ключом 0 на камень никого, как было: {бал(о0, 'stone')}")
+print(f"ошибок: {ошибок}")
+sys.exit(1 if ошибок else 0)
