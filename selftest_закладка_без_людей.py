@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""ЗАКЛАДКА ЖДЁТ РЕСУРСА, НА КОТОРОМ НИКОГО (10.10, §135): состояния живой партии Д 2:00-9:30
+(`sim/кейсы/партия_д_10_10_2_00-9_30.jsonl`). Вживую после созревания поля (2:09) на камне ноль, камень 40,
+первая шахта золота ждала 100 камня до 5:00 (в В и Г — 2:50-3:00).
+
+С ключом `людей_под_закладку` 3: (а) в 2:30-4:00 (камень 40, на камне 0, шахт золота 0, на золоте 0) — BALANCE stone 3,
+еда урезана на троих; (б) в 5:35 (камень 40, на камне 6) — камню ничего не добавлено; (в) в 8:03 (камень 260, на
+камне 6, казарма ждёт) — тоже ничего; (г) с ключом 0 — в 2:30 команды на камень нет, как было.
+
+    python3 selftest_закладка_без_людей.py
+"""
+import copy, json, os, sys, tempfile
+К = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, К); sys.path.insert(0, os.path.join(К, "sim"))
+import strategy_live as SL
+import анализ_врага as АВ
+
+состояния = [json.loads(l) for l in open(os.path.join(К, "sim/кейсы/партия_д_10_10_2_00-9_30.jsonl"), encoding="utf-8")]
+ошибок = 0
+def проверить(усл, что):
+    global ошибок
+    print(("ОК   " if усл else "ОШИБКА ") + что); ошибок += not усл
+
+def стратегия(доп):
+    д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+    д["итог"].update(доп)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(д, f, ensure_ascii=False)
+    return SL.ЖиваяСтратегия(f.name)
+
+def ответ(С, st):
+    АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None})
+    return С.ответ(copy.deepcopy(st))
+
+def баланс(о, роль):
+    return [int(c.get("total") or 0) for c in о["commands"] if c["cmd"] == "BALANCE" and c.get("role") == роль]
+
+def сост(t):
+    return next(s for s in состояния if s["gametime"] >= t)
+
+новая, старая = стратегия({}), стратегия({"людей_под_закладку": 0})
+for t in (150, 200, 240):
+    st = сост(t)
+    print(f"— {st['gametime']} с: камень {st['stone']}, на камне {st['on_stone']}, шахт золота {st['mines_gold']}, еда {st['food']}")
+    о = ответ(новая, st)
+    проверить(баланс(о, "stone") == [3], f"(а) на камень трое: {баланс(о, 'stone')}")
+    о0 = ответ(старая, st)
+    проверить(not баланс(о0, "stone") or max(баланс(о0, "stone")) == 0, f"(г) с ключом 0 на камень никого, как было: {баланс(о0, 'stone')}")
+    еда, еда0 = баланс(о, "food"), баланс(о0, "food")
+    проверить(not еда0 or not еда or еда[0] <= еда0[0] - 3, f"еда уступила троих: {еда} против {еда0}")
+st = сост(335)
+о = ответ(новая, st)
+проверить(not баланс(о, "stone") or баланс(о, "stone") == баланс(ответ(старая, st), "stone"),
+          f"(б) {st['gametime']} с, на камне {st['on_stone']}: камню ничего не добавлено: {баланс(о, 'stone')}")
+st = сост(483)
+о = ответ(новая, st)
+проверить(баланс(о, "stone") == баланс(ответ(старая, st), "stone"),
+          f"(в) {st['gametime']} с, камень {st['stone']}, на камне {st['on_stone']}: без изменений: {баланс(о, 'stone')}")
+print(f"ошибок: {ошибок}")
+sys.exit(1 if ошибок else 0)
