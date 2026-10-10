@@ -123,6 +123,14 @@ def построить(каталог, t, вид, seed):
     # по долям всей армии (`mil_inf/mil_shooters`, `p1_inf/p1_shoot`), намерения нет
     наши_кл, его_кл = клетки_записи(зап, t, снап)
     ячейки = {(c["x"], c["y"]): (c["n"], c.get("пик", 0), c.get("стрелков", 0), c.get("конных", 0)) for c in наши_кл if c.get("n", 0) >= 1}
+    # §143: РАТУША — ИЗ `obuild` СНИМКА. Трасса партии Д2 (10.10) поля `my_cx/my_cy` не несёт, и запись ставила дом в
+    # (3,3) при ратуше в (2,14): наши 48 у ратуши считались кучей в поле, а дом (и его цель) — пустой угол.
+    ш = float(снап.get("map_w") or 256) / 16.0
+    for b in снап.get("obuild") or []:
+        if str(b.get("тип") or "") == "center":
+            зап.my_cx, зап.my_cy = float(b.get("x") or 0) // ш, float(b.get("z") or 0) // ш
+            сим.группы[0]["x"], сим.группы[0]["y"] = float(зап.my_cx), float(зап.my_cy)
+            break
     дом = (float(зап.my_cx), float(зап.my_cy))
     сим.группы[0]["состав"] = {"infantry17": 0.0, "musk17": 0.0, "dragoon17": 0.0}
     сим.след_id = 1
@@ -230,6 +238,74 @@ class Ветка:
                                2.0 if имя == "контракт 2,0" else (1.5 if имя.endswith("при 1,5") else None),
                                2 if "окно 2" in имя else 0)
 
+    # §143 ВЕТКИ ОБОРОНЫ ДОМА (10.10, партия Д2 10:33-12:00: его 83 пики шли на нашу ратушу, наши 55 стояли в (1,13) без приказа,
+    # бой 11:19-12:00 — наши 33 за его 6, его 38 вошли в клетку мельницы и за 15 с убили 41 крестьянина). Кучи в поле нет
+    # (id None) — ветки от дома, числом из дома (под COSS3_WAVE_CONTRACT=1 приказ с числом и номером делает группу):
+    #   «дома»            — как бот: без приказа, бой ведёт движок (= «ждать»);
+    #   «заслон N»        — N пик из дома в клетку навстречу его ближней куче (на 1 клетку от ратуши), стоят; остальные дома;
+    #   «на голову»       — все из дома бьют его ближнюю кучу, как только она в 3 клетках (удар по лагерю §124 без порога);
+    #   «две группы»      — заслон 2/3 пик навстречу; отряд (стрелки + треть пик) бьёт его клетку СТРЕЛКОВ, когда она в 3
+    #                       клетках от ратуши и его пик в ней ≤ половины отряда; иначе отряд стоит в клетке ратуши;
+    #   «у ратуши»        — все из дома стоят В клетке ратуши (крестьяне и мельница под ногами), не выходят.
+    ДОМА_ЗАСЛОН, ДОМА_ОТРЯД = 11, 12
+
+    def _его_кучи(self, st):
+        from tactic_core import кучи
+        его = {(c["x"], c["y"]): c.get("n", 0) for c in (st.get("ecells") or []) if c.get("n", 0) >= 1}
+        return [q for q in кучи(его) if q[0] >= 5]
+
+    def _дома(self, сим, st, t):
+        имя = self.имя
+        дом = (int(round(сим.з.my_cx)), int(round(сим.з.my_cy)))
+        к = self._его_кучи(st)
+        ближ = min(k, key=lambda q: math.hypot(q[1] - дом[0], q[2] - дом[1])) if (k := к) else None
+        дома = sum(сим.группы[0]["состав"].values())
+        пик_дома = сим.группы[0]["состав"].get("infantry17", 0.0)
+        стр_дома = сим.группы[0]["состав"].get("musk17", 0.0)
+        def навстречу():
+            if ближ is None:
+                return дом
+            dx, dy = ближ[1] - дом[0], ближ[2] - дом[1]
+            d = max(1e-6, math.hypot(dx, dy))
+            return (int(round(дом[0] + dx / d)), int(round(дом[1] + dy / d)))
+        if имя == "у ратуши" and self.этап == 1:
+            self.этап = 9
+            return [{"cmd": "MOVE", "count": "all", "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": дом[0], "cy": дом[1]}, {"cmd": "STAGE", "off": 1}]
+        if имя.startswith("заслон") and self.этап == 1 and ближ is not None:
+            части = имя.split()
+            n = int(части[1]) if len(части) > 1 and части[1].isdigit() else int(пик_дома * 2 // 3)
+            ц = навстречу()
+            self.этап = 9
+            return [{"cmd": "MOVE", "count": int(min(n, пик_дома)), "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": ц[0], "cy": ц[1]}, {"cmd": "STAGE", "off": 1}]
+        if имя == "на голову" and self.этап == 1 and ближ is not None and math.hypot(ближ[1] - дом[0], ближ[2] - дом[1]) <= 3:
+            self.этап, self.t_удара = 2, t
+            self.цель = (int(round(ближ[1])), int(round(ближ[2])))
+            return [{"cmd": "ATTACK", "count": "all", "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": self.цель[0], "cy": self.цель[1]}]
+        if имя == "две группы":
+            из = []
+            if self.этап == 1 and ближ is not None:
+                ц = навстречу()
+                n = int(пик_дома * 2 // 3)
+                из += [{"cmd": "MOVE", "count": max(1, n), "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": ц[0], "cy": ц[1]},
+                       {"cmd": "MOVE", "count": max(1, int(дома - n)), "group": self.ДОМА_ОТРЯД, "target": "cell", "cx": дом[0], "cy": дом[1]},
+                       {"cmd": "STAGE", "off": 1}]
+                self.этап = 5
+                return из
+            if self.этап == 5:
+                отряд = next((g for g in (st.get("groups") or []) if g.get("id") == self.ДОМА_ОТРЯД), None)
+                ec = [c for c in (st.get("ecells") or []) if c.get("стрелков", 0) >= 3 and max(abs(c["x"] - дом[0]), abs(c["y"] - дом[1])) <= 3]
+                if отряд and ec:
+                    c = max(ec, key=lambda q: q["стрелков"])
+                    if c.get("пик", 0) <= отряд["n"] / 2:
+                        self.этап, self.t_удара, self.цель = 6, t, (c["x"], c["y"])
+                        return [{"cmd": "ATTACK", "group": self.ДОМА_ОТРЯД, "target": "cell", "cx": c["x"], "cy": c["y"]}]
+            if self.этап == 6:
+                его = {(c["x"], c["y"]): c.get("n", 0) for c in (st.get("ecells") or []) if c.get("n", 0) >= 1}
+                if sum(n for (x, y), n in его.items() if max(abs(x - self.цель[0]), abs(y - self.цель[1])) <= 1) < 3:
+                    self.этап = 5
+                    return [{"cmd": "MOVE", "group": self.ДОМА_ОТРЯД, "target": "cell", "cx": дом[0], "cy": дом[1]}]
+        return []
+
     def __call__(self, сим, st):
         t = сим.t - сим.t0
         из = []
@@ -240,7 +316,7 @@ class Ветка:
                 из.append({"cmd": "UPGRADE", "upg": self.прокачка})
             self.этап = 1
         if self.id is None:
-            return из
+            return из + (self._дома(сим, st, t) or [])
         if self.ж is not None:
             ш = float(st.get("map_w") or 256) / 16.0
             st2 = dict(st)
