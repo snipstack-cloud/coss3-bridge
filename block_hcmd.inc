@@ -137,10 +137,28 @@
       [*] = ;                  // fell to 1 at 5:05 and stayed there, no upgrades, no mercenaries. The
       [*] = ;                  // engine crews a project ONCE, at laying - _ai_CallPeasantsToBuildProject
       [*] = ;                  // runs for its own slots only - and when that call comes up empty nobody
-      [*] = ;                  // ever returns. So re-crew it here, and ONLY when nobody is on it: the
-      [*] = ;                  // target carries the engine's own stolist, the very list _unit_OrderBuild
-      [*] = ;                  // reads to decide whether a build point is taken. Parallel building stays
-      [*] = ;                  // allowed; this branch adds no second crew to a site that has one.
+      [*] = ;                  // ever returns. So re-crew it here: the target carries the engine's own
+      [*] = ;                  // stolist, the very list _unit_OrderBuild reads to decide whether a build
+      [*] = ;                  // point is taken.
+      [*] = ;                  //
+      [*] = ;                  // 10.10: THE CREW IS CAPPED BY BUILD POINTS, NOT BY OUR WISH. Until now this
+      [*] = ;                  // branch fired only when NOBODY was on the site (hcbz <= 0). Live game 10.10
+      [*] = ;                  // against the player: barracks 2 was paid at 8:45 and finished at 11:15 - two
+      [*] = ;                  // and a half minutes built by ONE man, while 9-10 peasants stood idle next to
+      [*] = ;                  // it and this branch logged 'sent 5 workers back' four ticks in a row with
+      [*] = ;                  // nobody arriving. The engine explains both. A site has a fixed number of
+      [*] = ;                  // builder points PER BUILDING TYPE (gCustomObjPoints[cid][id].builderCount),
+      [*] = ;                  // and _unit_OrderBuild gives a man a point only when that point is IN HIS
+      [*] = ;                  // REGION (unit.script:9313) and not already occupied by someone acting
+      [*] = ;                  // 'build' (:9318-9333). When no point fits, player.script:1206 keeps the man
+      [*] = ;                  // ONLY for a wall (the trailing 'and gObjProp[cid][id].bwall') - for a
+      [*] = ;                  // barracks he is dropped with no order at all, silently. That is why five
+      [*] = ;                  // were sent and one arrived. So the crew is topped up to the FREE POINTS of
+      [*] = ;                  // the site and never beyond: asking for more than the engine can seat only
+      [*] = ;                  // pulls peasants off food every tick and drops them again. builderCount is
+      [*] = ;                  // computed lazily by _unit_CalcBuilderPoints on the first OrderUnitsToBuild
+      [*] = ;                  // for that type, so zero means 'not known yet' - then fall back to the old
+      [*] = ;                  // cap and say so in the log.
       [*] = ;                  if (hchave >= hca2) and (hcunf <> 0) then
       [*] = ;                  begin
       [*] = ;                     var hcsto : Pointer = _misc_GetObjectArgData(hcunf, gc_argunit_stolist);
@@ -153,15 +171,26 @@
       [*] = ;                        if (TObj(hczp).orders[0].itype = gc_obj_order_type_build) then
       [*] = ;                        hcbz := hcbz + 1;
       [*] = ;                     end;
-      [*] = ;                     if (hcbz <= 0) then
+      [*] = ;                     var hcup : Pointer = _unit_GetTObj(hcunf);
+      [*] = ;                     var hcpts : Integer;
+      [*] = ;                     if (hcup <> nil) then
+      [*] = ;                     hcpts := gCustomObjPoints[TObj(hcup).cid][TObj(hcup).id].builderCount;
+      [*] = ;                     var hzneed : Integer;
+      [*] = ;                     if (hcpts > 0) then
+      [*] = ;                     hzneed := hcpts - hcbz
+      [*] = ;                     else
+      [*] = ;                     hzneed := hccap - hcbz;
+      [*] = ;                     if (hzneed > hccap) then
+      [*] = ;                     hzneed := hccap;
+      [*] = ;                     if (hzneed > 0) then
       [*] = ;                     begin
       [*] = ;                        // Same two passes as laying: idle men first, then men on the ground.
       [*] = ;                        gIntegerList.Clear;
       [*] = ;                        var hzpass : Integer;
       [*] = ;                        for hzpass := 0 to 1 do
-      [*] = ;                        if (hzpass = 0) or (gIntegerList.GetCount < hccap) then
+      [*] = ;                        if (hzpass = 0) or (gIntegerList.GetCount < hzneed) then
       [*] = ;                        for hck := 0 to hcobjn-1 do
-      [*] = ;                        if (gIntegerList.GetCount < hccap) then
+      [*] = ;                        if (gIntegerList.GetCount < hzneed) then
       [*] = ;                        begin
       [*] = ;                           var hzgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
       [*] = ;                           var hzpo : Pointer = _unit_GetTObj(hzgo);
@@ -179,8 +208,10 @@
       [*] = ;                        begin
       [*] = ;                           _player_OrderUnitsToBuild(gIntegerList, hcunf, True, False, True);
       [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BUILD ' + hcsid +
-      [*] = ;                                ': the site stood unmanned, sent ' + IntToStr(gIntegerList.GetCount) + ' workers back to it');
-      [*] = ;                           Log('bridge-human: BUILD ' + hcsid + ' re-crewed an unmanned site with ' + IntToStr(gIntegerList.GetCount) + ' workers');
+      [*] = ;                                ': site points ' + IntToStr(hcpts) + ', building ' + IntToStr(hcbz) +
+      [*] = ;                                ', sent ' + IntToStr(gIntegerList.GetCount) + ' more');
+      [*] = ;                           Log('bridge-human: BUILD ' + hcsid + ' crew: points ' + IntToStr(hcpts) +
+      [*] = ;                                ', on it ' + IntToStr(hcbz) + ', sent ' + IntToStr(gIntegerList.GetCount));
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
