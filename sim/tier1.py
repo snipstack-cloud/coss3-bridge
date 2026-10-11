@@ -105,8 +105,17 @@ class Ярус1:
         очередь = str(st.get("train_now") or "")
         if float(st.get("centers") or 0) > 0 and еда >= 500 and "pea" not in очередь:
             из.append({"cmd": "TRAIN", "role": "peasant", "total": -1})
-        if float(st.get("ba17") or 0) > 0 and "pikeman" not in очередь:
+        # §147 (11.10, партии Д2 и Д4 живьём): вторая казарма СТОЯЛА ПУСТОЙ до конца партии (`ba_queues`
+        # `1:pikeman:inf,2:none` с 9:01 в Д2 и с 9:32 в Д4) — бесконечный заказ пик давался один раз, когда казарма была
+        # одна, а «pikeman в train_now» уже стоял, и повтор не шёл. Блок кладёт заказ во ВСЕ построенные казармы и
+        # пропускает его, только если бесконечный заказ стоит в каждой (`block_hcmd.inc`, hcalreadyn). Повтор — когда у
+        # какой-то казармы (`N:…`, не конюшни `sN:`) в очереди нет `pikeman:inf`; не чаще раза в 30 с.
+        _каз = float(st.get("ba17") or 0)
+        _очереди = [ч for ч in str(st.get("ba_queues") or "").split(",") if ч.strip() and ":" in ч and not ч.strip()[0].isalpha()]
+        _без_пик = [ч for ч in _очереди if not ("pikeman" in ч and "inf" in ч)]
+        if _каз > 0 and ("pikeman" not in очередь or (_без_пик and gt - getattr(self, "найм_пик_gt", -1000) >= 30)):
             из.append({"cmd": "TRAIN", "role": "infantry17", "total": -1})
+            self.найм_пик_gt = gt
         if float(st.get("mills") or 0) > 0 and int(float(st.get("food_ready") or 0)) <= self.посев_при and gt - self.посев_gt >= 60:
             из.append({"cmd": "SEED", "total": 2})
             self.посев_gt = gt
