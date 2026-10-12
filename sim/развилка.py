@@ -262,12 +262,28 @@ class Ветка:
         дома = sum(сим.группы[0]["состав"].values())
         пик_дома = сим.группы[0]["состав"].get("infantry17", 0.0)
         стр_дома = сим.группы[0]["состав"].get("musk17", 0.0)
-        def навстречу():
+        def навстречу(k=1.0):
             if ближ is None:
                 return дом
             dx, dy = ближ[1] - дом[0], ближ[2] - дом[1]
             d = max(1e-6, math.hypot(dx, dy))
-            return (int(round(дом[0] + dx / d)), int(round(дом[1] + dy / d)))
+            k = min(k, max(1.0, d - 1.0))
+            return (int(round(дом[0] + k * dx / d)), int(round(дом[1] + k * dy / d)))
+        # §151 ВЕТКИ ПЕРВОГО БОЯ Д4 (12.10, 3:49: его 10 шли из (8,8) на ратушу (2,2), наши 17 дома; бот послал 13 навстречу,
+        # они встали в (5,5) без приказа, и его стоячий строй принял их по частям — 12 за 4):
+        #   «навстречу N»  — N из дома в клетку на 3 от ратуши к его ближней куче, стоят там (как бот Д4);
+        #   «удар дома N»  — N из дома сразу бьют его ближнюю кучу (экзамен 3:49 А);
+        #   «у ратуши» / «заслон N» — экзамен Б (стоять у ратуши лицом к подходу) — ветки §143.
+        части = имя.split()
+        n_ветки = int(части[-1]) if части and части[-1].isdigit() else None
+        if имя.startswith("навстречу") and self.этап == 1 and ближ is not None:
+            ц = навстречу(3.0)
+            self.этап = 9
+            return [{"cmd": "MOVE", "count": int(min(n_ветки or дома, дома)), "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": ц[0], "cy": ц[1]}, {"cmd": "STAGE", "off": 1}]
+        if имя.startswith("удар дома") and self.этап == 1 and ближ is not None:
+            self.этап, self.t_удара = 2, t
+            self.цель = (int(round(ближ[1])), int(round(ближ[2])))
+            return [{"cmd": "ATTACK", "count": int(min(n_ветки or дома, дома)), "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": self.цель[0], "cy": self.цель[1]}, {"cmd": "STAGE", "off": 1}]
         if имя == "у ратуши" and self.этап == 1:
             self.этап = 9
             return [{"cmd": "MOVE", "count": "all", "group": self.ДОМА_ЗАСЛОН, "target": "cell", "cx": дом[0], "cy": дом[1]}, {"cmd": "STAGE", "off": 1}]
@@ -402,13 +418,20 @@ class Ветка:
 
 
 def _прогон(з):
-    каталог, t, вид, имя, seed = з
+    # §151: вехи и предел времени идут в задании — Pool на маке порождает процессы заново, и модульные ВЕХИ в них
+    # были бы умолчанием (развилка Д4 3:49 печатала пустые вехи)
+    каталог, t, вид, имя, seed, вехи_, до = (з + (None, None))[:7]
+    global ВЕХИ
+    if вехи_:
+        ВЕХИ = tuple(вехи_)
     import sim as SIM
     сим, куча = построить(каталог, t, вид, seed)
     клетка = (int(round(куча["x"])), int(round(куча["y"]))) if куча else (int(round(сим.з.my_cx)), int(round(сим.з.my_cy)))
     п = Ветка(имя, куча["id"] if куча else None, клетка)
     вехи = {}
     конец = float(сим.з.снапы[-1]["gametime"])
+    if до:
+        конец = min(конец, float(до))
     while сим.t < конец and not сим.исход:
         st = сим.состояние()
         сим.команды(п(сим, st) or [])
@@ -423,6 +446,7 @@ def _прогон(з):
 
 
 def main():
+    global ВЕХИ
     каталог = os.path.expanduser(next(a for a in sys.argv[1:] if not a.startswith("--")))
     t = float(sys.argv[sys.argv.index("--t") + 1]) if "--t" in sys.argv else 663.0
     зёрен = int(sys.argv[sys.argv.index("--зёрен") + 1]) if "--зёрен" in sys.argv else 10
@@ -434,6 +458,8 @@ def main():
           f"наши {sum(c['n'] for c in с0.get('ocells') or [])}, его {sum(c['n'] for c in с0.get('ecells') or [])}; "
           f"потери на момент: наши {ч(с0.get('my_mil_lost')):.0f}, его {ч(с0.get('p1_mil_lost')):.0f}")
     факт = {}
+    if "--вехи" in sys.argv:
+        ВЕХИ = tuple(float(x) for x in sys.argv[sys.argv.index("--вехи") + 1].split(";") if x)
     for в in ВЕХИ:
         s = зап.снимок_до(в)
         факт[в] = (ч(s.get("my_mil_lost")) - ч(с0.get("my_mil_lost")), ч(s.get("p1_mil_lost")) - ч(с0.get("p1_mil_lost")),
@@ -442,7 +468,8 @@ def main():
     global ВЕТКИ
     if "--ветки" in sys.argv:
         ВЕТКИ = tuple(x for x in sys.argv[sys.argv.index("--ветки") + 1].split(";") if x)
-    задания = [(каталог, t, вид, имя, 100 + s) for вид in ВИДЫ_АГЕНТА for имя in ВЕТКИ for s in range(зёрен)]
+    до = float(sys.argv[sys.argv.index("--до") + 1]) if "--до" in sys.argv else None
+    задания = [(каталог, t, вид, имя, 100 + s, ВЕХИ, до) for вид in ВИДЫ_АГЕНТА for имя in ВЕТКИ for s in range(зёрен)]
     with Pool(12) as пул:
         р = пул.map(_прогон, задания)
     for вид in ВИДЫ_АГЕНТА:

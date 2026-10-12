@@ -419,6 +419,11 @@ class Запись:
                     continue
                 if "gametime" in x:
                     self.снапы.append(x)
+        # §151 (12.10): снимок Windows КОПИТСЯ между партиями (Д4: 43 отрезка, 4166 строк) — берём последний отрезок
+        # до сортировки, иначе `снимок_до(t)` отдаёт состояние чужой партии (такты так режутся ниже с 11.10)
+        гр = [i for i in range(1, len(self.снапы)) if ч(self.снапы[i]["gametime"]) < ч(self.снапы[i - 1]["gametime"]) - 60]
+        if гр:
+            self.снапы = self.снапы[гр[-1]:]
         self.снапы.sort(key=lambda x: ч(x["gametime"]))
         self.такты = []
         for s in open(os.path.join(каталог, "coss3_bot.jsonl"), encoding="utf-8"):
