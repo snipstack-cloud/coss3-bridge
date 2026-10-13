@@ -394,6 +394,10 @@
       [*] = ;                  var hcsid2 : String = gCountry[hccid].members[hcid];
       [*] = ;                  var hcbid : Integer = -1;
       [*] = ;                  var hci, hcjj : Integer;
+      [*] = ;                  // Declared HERE, at the branch level, on purpose: a scalar declared
+      [*] = ;                  // inside a nested begin does not keep its value across the enclosing
+      [*] = ;                  // loop (six army counters were read as zero on 19.09 for exactly this).
+      [*] = ;                  var hcfree : Boolean;
       [*] = ;                  for hci := 0 to gc_country_maxfixedproduce-1 do
       [*] = ;                  for hcjj := 0 to gc_country_fixedproduce_maxcount-1 do
       [*] = ;                  if (hcbid < 0) and (SameText(gCountry[hccid].fixedproduce[hci].build[hcjj].id, hcsid2)) then
@@ -452,6 +456,64 @@
       [*] = ;                        end;
       [*] = ;                        if (hcalreadyn >= gIntegerList.GetCount) then
       [*] = ;                        hcalready := True;
+      [*] = ;                        // 13.10, par.147a: GIVE THE INFINITE ORDER ONLY TO BUILDINGS THAT
+      [*] = ;                        // LACK IT. The second barracks hired in neither live match D2 nor
+      [*] = ;                        // D4: ba_queues stayed '1:pikeman:inf,2:none' to the end. Python
+      [*] = ;                        // does repeat TRAIN infantry17 -1 when some barracks has no queue,
+      [*] = ;                        // but this branch handed the order to the WHOLE list, and the
+      [*] = ;                        // engine will not take a second infinite order for the same unit in
+      [*] = ;                        // a building that already carries one (live game 17.09: all sixteen
+      [*] = ;                        // refusals were of that kind). Whether it accepts a mixed list was
+      [*] = ;                        // never known - so do not rely on it: rebuild the list from the
+      [*] = ;                        // buildings that have no such order. Finite orders (musketeers by
+      [*] = ;                        // three) are untouched - they go to any barracks as before.
+      [*] = ;                        if (hca2 <= gc_obj_order_produce_infinite) and (hcalreadyn > 0) then
+      [*] = ;                        if (hcalreadyn < gIntegerList.GetCount) then
+      [*] = ;                        begin
+      [*] = ;                           gIntegerList.Clear;
+      [*] = ;                           for hck := 0 to hcobjn-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hngo : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                              var hnpo : Pointer = _unit_GetTObj(hngo);
+      [*] = ;                              if (hnpo<>nil) and (TObj(hnpo).id = hcbid) and (TObj(hnpo).cid = hccid) then
+      [*] = ;                              if (TObj(hnpo).bbuilt) then
+      [*] = ;                              begin
+      [*] = ;                                 hcfree := True;
+      [*] = ;                                 for hcjj := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                                 begin
+      [*] = ;                                    var hnord : Pointer = TObj(hnpo).orders[hcjj];
+      [*] = ;                                    if (hnord<>nil) then
+      [*] = ;                                    if (TOrder(hnord).itype = gc_obj_order_type_produce) then
+      [*] = ;                                    if (TOrder(hnord).info.produceid = hcid) then
+      [*] = ;                                    if (TOrder(hnord).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                                    hcfree := False;
+      [*] = ;                                 end;
+      [*] = ;                                 if (hcfree) then
+      [*] = ;                                 gIntegerList.Add(hngo);
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        // 13.10, par.147b: TRAIN <unit> 0 CANCELS the infinite order.
+      [*] = ;                        // Needed to buy mil.1 (750 food) in time: the peasant conveyor
+      [*] = ;                        // takes 100 food every 12 s, and in live match D4 food circled
+      [*] = ;                        // 450-650 from 3:24 to 6:42 and never reached 750, so mil.1 came
+      [*] = ;                        // at 6:48 instead of the player's 3:00-5:30. The engine does this
+      [*] = ;                        // with the SAME call and the sixth argument False -
+      [*] = ;                        // lib/scenario.script:2570 (GroupCancelProduceUnit trigger).
+      [*] = ;                        // Until now a2 = 0 fell through to ProduceUnit with amount 0,
+      [*] = ;                        // whose meaning nobody knew.
+      [*] = ;                        if (hca2 = 0) then
+      [*] = ;                        begin
+      [*] = ;                           var hccan : Boolean = _unit_ProduceUnit(hcph, gIntegerList,
+      [*] = ;                                hccid, hcid, gc_obj_order_produce_infinite, False, True, True);
+      [*] = ;                           if (hccan) then
+      [*] = ;                           Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] +
+      [*] = ;                                ' x0 - infinite order cancelled in ' + IntToStr(gIntegerList.GetCount) + ' buildings')
+      [*] = ;                           else
+      [*] = ;                           Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] +
+      [*] = ;                                ' x0 - the game did not cancel the order');
+      [*] = ;                        end
+      [*] = ;                        else
       [*] = ;                        if (hcalready) and (hca2 <= gc_obj_order_produce_infinite) then
       [*] = ;                        begin
       [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'TRAIN ' +
@@ -467,7 +529,8 @@
       [*] = ;                             hccid, hcid, hca2, True, True, True);
       [*] = ;                        if (hctok) then
       [*] = ;                        Log('bridge-human: TRAIN ' + gCountry[hccid].members[hcid] + ' x' +
-      [*] = ;                            IntToStr(hca2) + ' in ' + IntToStr(gIntegerList.GetCount) + ' buildings')
+      [*] = ;                            IntToStr(hca2) + ' in ' + IntToStr(gIntegerList.GetCount) +
+      [*] = ;                            ' buildings (already in ' + IntToStr(hcalreadyn) + ')')
       [*] = ;                        else
       [*] = ;                        begin
       [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'TRAIN ' +
