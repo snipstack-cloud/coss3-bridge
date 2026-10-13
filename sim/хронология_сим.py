@@ -51,6 +51,8 @@ def _партия(з):
                 шаги[f"ступеней {n}"] = t
         if "казарма 2" not in шаги and ХР._ч(s.get("ba17")) >= 2:
             шаги["казарма 2"] = t
+        if "mil.1" not in шаги and "mil.1" in str(s.get("upg_done") or "").split(","):
+            шаги["mil.1"] = t
     пм = {}
     for м in МИНУТЫ:
         s = next((x for x in S if ХР._ч(x.get("gametime")) >= м * 60), None)
@@ -72,7 +74,7 @@ if __name__ == "__main__":
     with Pool(12) as P:
         р = P.map(_партия, [(п, запись, агент, 300 + z) for п in пути for z in range(зёрен)])
     живьём = ХР.хронология(запись)["игрок"]
-    ключи = ["золото 2", "золото 3", "ступеней 1", "ступеней 3", "ступеней 6", "казарма 2"]
+    ключи = ["mil.1", "золото 2", "золото 3", "ступеней 1", "ступеней 3", "ступеней 6", "казарма 2"]
     def мед(v):
         v = [x for x in v if x is not None]
         return St.median(v) if v else None

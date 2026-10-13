@@ -8733,8 +8733,11 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                     брак.append(f"TRAIN {role or '?'}: неизвестный юнит"
                                 f" (поля: {поля})")
                 elif total == 0:
-                    брак.append(f"TRAIN {role}: число 0 — это ничего не значит;"
-                                f" отрицательное = бесконечный заказ (поля: {поля})")
+                    # §147б (14.10): ноль СНИМАЕТ бесконечный заказ этого юнита во всех его производителях —
+                    # блок `block_hcmd.inc` (a2 = 0 → `_unit_ProduceUnit(…, False, …)`, в game.log
+                    # `TRAIN <юнит> x0 - infinite order cancelled in N buildings`). Стратегия так снимает
+                    # крестьян до покупки mil.1 (`strategy_live.привести`, ключ `пауза_крестьян`).
+                    cmds.append(train(role, 0))
                 else:
                     # Отрицательное = бесконечное производство, см. train().
                     cmds.append(train(role, max(total, INFINITE)))
@@ -10724,7 +10727,9 @@ def одна_партия(a, client, br: Bridge, plind: int,
             # не растёт (33->33 в прежних замерах). Самопроверка этого не
             # видела: в ней поля centers не было вовсе.
             _ратуша = _чис(st.get("centers"))
-            if _ратуша > 0 and _еда >= 500 and "pea" not in _оч and not _сам:
+            # §147б: пока стратегия держит заказ крестьян снятым под mil.1, мост его не возвращает
+            _пауза = СТРАТЕГИЯ is not None and getattr(getattr(СТРАТЕГИЯ, "стр", None), "_крестьяне_пауза", None) is not None
+            if _ратуша > 0 and _еда >= 500 and "pea" not in _оч and not _сам and not _пауза:
                 cmds.append(train("peasant", INFINITE))
                 сказать(
                     f"TRAIN peasant бесконечно ПОСТАВЛЕН МОСТОМ: еды {_еда:.0f} "
@@ -13109,6 +13114,9 @@ def main() -> int:
         global СТРАТЕГИЯ
         import strategy_live
         СТРАТЕГИЯ = strategy_live.ЖиваяСтратегия(a.strategy, getattr(a, "tactic_net", "") or "")
+        # §147б: стратегия знает пол еды моста (`--food-floor`, 0 — выкл.) — пауза крестьян под mil.1 ставится лишь
+        # тогда, когда покупку пропустят (до 5:00 при бойцах < 20 мост берёт mil.1 только при еде ≥ пол + 750)
+        strategy_live.ПОЛ_ЕДЫ = float(getattr(a, "food_floor", 0) or 0)
         if getattr(a, "tactic_net", ""):
             print(f"СЕТЬ ТАКТИКА: {a.tactic_net} — воюет сеть, волны стратегии выключены (§61)", flush=True)
         a.debut = СТРАТЕГИЯ.n

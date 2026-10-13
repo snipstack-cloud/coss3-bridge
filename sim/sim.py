@@ -849,6 +849,11 @@ class Симулятор:
             # отдельный заказ в той же очереди); бесконечный поверх любого — остаётся
             if total is None or int(total) < 0:
                 self.очереди[имя] = True
+            elif int(total) == 0:
+                # §147б (14.10): `TRAIN <роль> 0` СНИМАЕТ бесконечный заказ — как блок `block_hcmd.inc` (a2 = 0 →
+                # `_unit_ProduceUnit(…, False, …)`, лог `infinite order cancelled`). Нужно, чтобы купить mil.1 раньше
+                # конвейера крестьян (Д4: 6:32 вместо ~4:00). Конечный остаток тоже снимается — в игре отменяется заказ.
+                self.очереди[имя] = 0
             elif self.очереди.get(имя) is not True:
                 self.очереди[имя] = int(self.очереди.get(имя) or 0) + int(total)
         elif cmd == "SEED":
