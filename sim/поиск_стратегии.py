@@ -294,7 +294,10 @@ class Стратегия:
                     and "bla.1" not in str(st.get("upg_doing") or "").split(",")
                     and (float(st.get("food_ready") or 0) > 0 or float(st.get("on_food") or 0) > 0)
                     and float(st.get("smiths") if st.get("smiths") is not None else 1) >= 1
-                    and float(st.get("wood") or 0) >= 400 + _цз_д and float(st.get("gold") or 0) >= 90):
+                    and float(st.get("wood") or 0) >= 400 + _цз_д
+                    # §158: золота — на кузницу И на mil.1 (250), пока та не куплена: развилка хозяйства Д5 с 4:00/4:28
+                    # (sim/решения/развилки/д5_хозяйство.txt) — bla.1 первой брала 90 из 259, mil.1 ждала шахту до 5:32-6:03
+                    and float(st.get("gold") or 0) >= 90 + (0 if ("mil.1" in взято or "mil.1" in str(st.get("upg_doing") or "").split(",")) else 250)):
                 из.append({"cmd": "UPGRADE", "upg": "bla.1"})
             if след:
                 из.append({"cmd": "UPGRADE", "upg": след})
