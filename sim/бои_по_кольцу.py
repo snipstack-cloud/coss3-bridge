@@ -15,12 +15,13 @@
 import json, sys, os, re, collections
 RES = os.path.expanduser(os.environ.get("COSS3_RES", "~/coss3-res")) + "/"
 PARTIES = {"Д": "2026-10-10/igrok_10_10_партияД/1/", "Д2": "2026-10-10/igrok_10_10_партияД2/1/",
-           "Д4": "2026-10-11/igrok_11_10_партияД4/1/", "Д5": "2026-10-13/igrok_13_10_партияД5/1/"}
+           "Д4": "2026-10-11/igrok_11_10_партияД4/1/", "Д5": "2026-10-13/igrok_13_10_партияД5/1/",
+           "Д6": "2026-10-16/igrok_16_10_партияД6/1/"}
 US, HIM = 1, 0   # pl в кольце гибели: наши жертвы = Δmy_mil_lost во всех четырёх партиях
 
 def load(p):
     rows = []
-    with open(RES + p + "coss3_bot.jsonl") as fh:
+    with open(RES + p + "coss3_bot.jsonl", encoding="utf-8") as fh:
         for l in fh:
             try: rows.append(json.loads(l))
             except Exception: pass
