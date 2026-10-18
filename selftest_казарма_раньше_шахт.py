@@ -29,6 +29,7 @@ def проверить(усл, что):
 
 def стратегия(доп):
     д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+    д["итог"]["переброс"] = 0          # §167 (18.10) переносит всю бригаду на ресурс с большей недостачей; здесь судится деление §133
     д["итог"].update(доп)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(д, f, ensure_ascii=False)
