@@ -64,6 +64,10 @@ class _Обёртка:
             держать = True
         if держать:
             из = [c for c in из if not (c.get("cmd") == "UPGRADE" and (c.get("upg") or c.get("role")) == "mil.1")]
+        # 20.10: `крестьяне_с:N` — найм крестьян не раньше секунды N (ветка «как бот»: в Д7 дебют отдал TRAIN peasant -1 в 1:21,
+        # игрок нанял десятерых в 0:53)
+        if t < float(self.к.get("крестьяне_с", 0) or 0):
+            из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") == "peasant")]
         порог = float(self.к.get("крестьяне_до_золота", 0) or 0)
         if порог > 0 and self.mil1_куплена_t is not None and float(st.get("gold") or 0) < порог:
             из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") == "peasant")]
@@ -93,7 +97,7 @@ def _прогон(з):
     if SIM.МОДЕЛЬ_ПОЛЯ:
         сим.пул_поля = float(снап.get("food_ready") or 0)
     п = dict(json.load(open(путь, encoding="utf-8"))["итог"])
-    п.update({k: v for k, v in ключи.items() if k not in ("mil1_после_шахты", "mil1_с", "крестьяне_до_золота")})
+    п.update({k: v for k, v in ключи.items() if k not in ("mil1_после_шахты", "mil1_с", "крестьяне_до_золота", "крестьяне_с")})
     стр = ПС.Стратегия(п)
     стр.я.готов_gt = float(t)            # дебют пройден
     об = _Обёртка(стр, ключи, снап, зап)
