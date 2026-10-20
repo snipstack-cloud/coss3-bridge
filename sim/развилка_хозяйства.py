@@ -68,6 +68,15 @@ class _Обёртка:
         # игрок нанял десятерых в 0:53)
         if t < float(self.к.get("крестьяне_с", 0) or 0):
             из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") == "peasant")]
+        # 20.10, экзамен Fable 2:00: `bla1_сразу:1` — bla.1 без ворот §158, как только 400 дерева и 90 золота (как игрок, в такт
+        # созревания); `пики_пауза_до_mil1:1` — бесконечный заказ пик снят, пока mil.1 не куплена (еда копится на 750)
+        if self.к.get("bla1_сразу") and "bla.1" not in взято and float(st.get("wood") or 0) >= 400 and float(st.get("gold") or 0) >= 90 \
+                and not any(c.get("cmd") == "UPGRADE" and (c.get("upg") or c.get("role")) == "bla.1" for c in из):
+            из.append({"cmd": "UPGRADE", "upg": "bla.1"})
+        if self.к.get("пики_пауза_до_mil1") and "mil.1" not in взято:
+            из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") == "infantry17" and int(c.get("total") or 0) != 0)]
+            if "pikeman" in str(st.get("train_now") or "") and t - getattr(self, "_пики_сняты", -1000) >= 30:
+                из.append({"cmd": "TRAIN", "role": "infantry17", "total": 0}); self._пики_сняты = t
         порог = float(self.к.get("крестьяне_до_золота", 0) or 0)
         if порог > 0 and self.mil1_куплена_t is not None and float(st.get("gold") or 0) < порог:
             из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") == "peasant")]
@@ -97,7 +106,7 @@ def _прогон(з):
     if SIM.МОДЕЛЬ_ПОЛЯ:
         сим.пул_поля = float(снап.get("food_ready") or 0)
     п = dict(json.load(open(путь, encoding="utf-8"))["итог"])
-    п.update({k: v for k, v in ключи.items() if k not in ("mil1_после_шахты", "mil1_с", "крестьяне_до_золота", "крестьяне_с")})
+    п.update({k: v for k, v in ключи.items() if k not in ("mil1_после_шахты", "mil1_с", "крестьяне_до_золота", "крестьяне_с", "bla1_сразу", "пики_пауза_до_mil1")})
     стр = ПС.Стратегия(п)
     стр.я.готов_gt = float(t)            # дебют пройден
     об = _Обёртка(стр, ключи, снап, зап)
