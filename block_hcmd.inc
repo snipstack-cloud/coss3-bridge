@@ -712,6 +712,10 @@
       [*] = ;                  var hmine : Integer = 0;
       [*] = ;                  var hminside : Integer = 0;
       [*] = ;                  var hmfree : Integer = 0;
+      [*] = ;                  // 17.09: a scalar declared inside a nested begin does not accumulate,
+      [*] = ;                  // so the let-out counters live here, where hminside lives.
+      [*] = ;                  var hmout : Integer = 0;
+      [*] = ;                  var hmlet : Integer = 0;
       [*] = ;                  // First pass: mines of this kind built, men already inside THEM, and men
       [*] = ;                  // free to be sent at all.
       [*] = ;                  for hmk := 0 to hcobjn-1 do
@@ -748,7 +752,52 @@
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no mine built');
       [*] = ;                  end
       [*] = ;                  else
-      [*] = ;                  if (hminside >= hca2) then
+      [*] = ;                  if (hminside > hca2) then
+      [*] = ;                  begin
+      [*] = ;                     // 20.10, game D9: this branch only ever ADDED men. The strategy asked
+      [*] = ;                     // BALANCE gold 5 from 7:00 on while fifteen worked the mine, and the only
+      [*] = ;                     // answer was '15 already work that mine' - 44 times in one game. So the
+      [*] = ;                     // gold cap (153) and gold-off-for-a-need (166b) never moved a single man
+      [*] = ;                     // in a live game: taking away was a line in why and nothing else. Now the
+      [*] = ;                     // extra men are let out, mine by mine, the way the native AI empties a
+      [*] = ;                     // transport (progresswarai.inc:3899) and the player does by the leave
+      [*] = ;                     // button (ReadLeaveOrder) - the same call, _unit_DoUnitsGoOutside.
+      [*] = ;                     hmout := hminside - hca2;
+      [*] = ;                     for hmk := 0 to hcobjn-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hmoo : Integer = GetGameObjectHandleByIndex(hmk, hcph);
+      [*] = ;                        var hmop : Pointer = _unit_GetTObj(hmoo);
+      [*] = ;                        if (hmop<>nil) then
+      [*] = ;                        if (gObjProp[TObj(hmop).cid][TObj(hmop).id].airole = hmrole) then
+      [*] = ;                        if (TObj(hmop).bbuilt) then
+      [*] = ;                        if (hmlet < hmout) then
+      [*] = ;                        begin
+      [*] = ;                           // The men inside are a TIntegerList of handles owned by the building;
+      [*] = ;                           // _unit_OrderExitUnit reorders that list, so copy the handles out
+      [*] = ;                           // first and only then order them out (lib/unit.script:4543).
+      [*] = ;                           var hmil : Pointer = _misc_GetObjectArgData(hmoo, gc_argunit_inside);
+      [*] = ;                           if (hmil<>nil) then
+      [*] = ;                           begin
+      [*] = ;                              var hmwas : Integer = TIntegerList(hmil).GetCount;
+      [*] = ;                              gIntegerList.Clear;
+      [*] = ;                              for hmk2 := 0 to hmwas-1 do
+      [*] = ;                              if (hmlet + gIntegerList.GetCount < hmout) then
+      [*] = ;                              gIntegerList.Add(TIntegerList(hmil).Get(hmk2));
+      [*] = ;                              if (gIntegerList.GetCount > 0) then
+      [*] = ;                              begin
+      [*] = ;                                 Log('bridge-human: MINE res' + IntToStr(hca1) + ' let out ' +
+      [*] = ;                                     IntToStr(gIntegerList.GetCount) + ', inside was ' + IntToStr(hmwas));
+      [*] = ;                                 hmlet := hmlet + gIntegerList.GetCount;
+      [*] = ;                                 _unit_DoUnitsGoOutside(gIntegerList, False, True);
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                          ': ' + IntToStr(hminside) + ' worked that mine, asked for ' + IntToStr(hca2) + ', let out ' + IntToStr(hmlet));
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  if (hminside = hca2) then
       [*] = ;                  begin
       [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
       [*] = ;                          ': ' + IntToStr(hminside) + ' already work that mine, asked for ' + IntToStr(hca2));
