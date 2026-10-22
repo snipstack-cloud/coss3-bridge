@@ -98,6 +98,7 @@
       [*] = ;               // so a human resolves roles exactly like the AI, without aidata. ---
       [*] = ;               var hcid : Integer = -1;
       [*] = ;               var hcj : Integer;
+      [*] = ;               var hcm : Integer;          // mask of a formation type (see FORMATION below)
       [*] = ;               if (hca1 > 0) then
       [*] = ;               for hcj := 0 to gc_country_maxmembers-1 do
       [*] = ;               if (hcid < 0) and (gObjProp[hccid][hcj].airole = hca1) then
@@ -1024,7 +1025,15 @@
       [*] = ;                     if (hfoi >= 0) then
       [*] = ;                     for hcj := 0 to gc_country_maxformationcount-1 do
       [*] = ;                     begin
-      [*] = ;                        var hfms : String = gCountry[hccid].officers[hfoi].formations[hcj].masks[0];
+      [*] = ;                        // 22.10, game D11: the mask index was fixed at 0, and masks[0] is always the
+      [*] = ;                        // SMALLEST shape. AddOfficersFormationInf (lib/country.script:2404) puts SIX
+      [*] = ;                        // masks into ONE type: LINE15, LINE36, LINE72, LINE120, LINE196, LINE400 (the
+      [*] = ;                        // same for SQUARE and KARE), so reading masks[0] could only ever give 15 - and
+      [*] = ;                        // the live squad came out LINE15 of 15 men while 143 stood in the cell. Now
+      [*] = ;                        // every mask of every type is weighed, and the widest one that fits wins.
+      [*] = ;                        for hcm := 0 to gc_country_maxofficersformationmask-1 do
+      [*] = ;                        begin
+      [*] = ;                        var hfms : String = gCountry[hccid].officers[hfoi].formations[hcj].masks[hcm];
       [*] = ;                        if (hfms <> '') then
       [*] = ;                        begin
       [*] = ;                           var hffi : Integer = _misc_GetFormationIndexBySID(hfms);
@@ -1044,6 +1053,7 @@
       [*] = ;                              end;
       [*] = ;                           end;
       [*] = ;                        end;
+      [*] = ;                        end;   // masks[hcm] of this formation type
       [*] = ;                     end;
       [*] = ;                     if (hfform < 0) then
       [*] = ;                     begin
