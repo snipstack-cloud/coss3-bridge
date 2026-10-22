@@ -294,8 +294,9 @@ class Стратегия:
                         if "=" in _п:
                             _и, _в = _п.split("=", 1)
                             _ц[_и.strip()] = {m.group(1): float(m.group(2)) for m in re.finditer(r"([fgiwsc])(\d+)", _в)}
-                    _хват = [ак for ак in _ака if ак not in _ц or all(_есть.get(r, 0) >= v for r, v in _ц[ак].items())]
-                    _ака = _хват[:int(п.get("академия_за_такт", 3) or 3)]
+                    _ака = [ак for ак in _ака if ак not in _ц or all(_есть.get(r, 0) >= v for r, v in _ц[ак].items())]
+                if st.get("build_cost"):          # живой мост (признак — как у бригады §142): потолок и без цен
+                    _ака = _ака[:int(п.get("академия_за_такт", 3) or 3)]
                 for ак in _ака:
                     из.append({"cmd": "UPGRADE", "upg": ак})
             # §156 (14.10, подсказка игрока): КУЗНИЦА bla.1 — КАК СОЗРЕЛО ПОЛЕ. [код] country.script:3714 —
