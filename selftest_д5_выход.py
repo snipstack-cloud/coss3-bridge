@@ -57,7 +57,11 @@ def прогон(С, a, b):
         for k in ("fighters", "en_fighters", "upg_done", "en_upg_done"):
             st.setdefault(k, bс[k])
         о = С.ответ(st)
-        удар = [(c["cmd"], c.get("count"), c.get("cx"), c.get("cy")) for c in о["commands"] if c["cmd"] in ("ATTACK", "ENGAGE")]
+        # §170 (22.10): ключ `выход_к` с мерой по закону урона срабатывает и в этом кейсе после 13:00
+        # (Д5 13:23 и 14:24). Здесь судятся УДАРЫ ПО ЛАГЕРЮ — приказ выхода к ним не относится и не считается
+        # (у него свой судья — `selftest_выход_к.py`).
+        удар = [(c["cmd"], c.get("count"), c.get("cx"), c.get("cy")) for c in о["commands"]
+                if c["cmd"] in ("ATTACK", "ENGAGE") and not c.get("_выход_к")]
         why = [x for x in о["why"].split("; ") if "ЛАГЕР" in x or "НЕ ГОНИМСЯ" in x]
         итог.append((t, удар, why))
     return итог

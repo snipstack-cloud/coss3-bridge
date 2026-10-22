@@ -48,7 +48,10 @@ def прогон(С, a, b):
     return итог
 
 def огонь(о): return [c for c in о["commands"] if c.get("cmd") == "ATTACK" and c.get("who") == "musk17"]
-def атаки_без_who(о): return [c for c in о["commands"] if c.get("cmd") == "ATTACK" and not c.get("who")]
+# §170 (22.10): приказ `выход_к` — тоже ATTACK без `who`, и после меры по закону урона он срабатывает
+# в этом кейсе в 13:01. Здесь судится ОГОНЬ СТРЕЛКАМИ — выход к крестьянам судит `selftest_выход_к.py`.
+def атаки_без_who(о): return [c for c in о["commands"]
+                               if c.get("cmd") == "ATTACK" and not c.get("who") and not c.get("_выход_к")]
 
 # (а) 11:26–13:16 с ключом
 С = стратегия({}); такты = прогон(С, 686, 800)
