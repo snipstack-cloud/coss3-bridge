@@ -33,10 +33,13 @@ def _разбор_ветки(текст):
     for пара in (x for x in хвост.split(",") if x.strip()):
         k, _, v = пара.partition(":")
         v = v.strip()
-        try:
-            v = float(v) if "." in v else int(v)
-        except ValueError:
-            pass
+        if v.startswith("[") and v.endswith("]"):           # список: `шахты_к:[180|250]` (внутри `|`: `;` делит ветки, `,` — ключи)
+            v = [float(x) if "." in x else int(x) for x in v[1:-1].split("|") if x.strip()]
+        else:
+            try:
+                v = float(v) if "." in v else int(v)
+            except ValueError:
+                pass
         ключи[k.strip()] = v
     return имя.strip(), ключи
 
@@ -121,8 +124,11 @@ def _прогон(з):
         for u in ("mil.1", "bla.1"):
             if u in взято and u not in сроки:
                 сроки[u] = сим.t
-        if "шахта 1" not in сроки and float(st.get("mines_gold") or 0) >= 1:
-            сроки["шахта 1"] = сим.t
+        for _n in (1, 2, 3, 4):
+            if f"шахта {_n}" not in сроки and float(st.get("mines_gold") or 0) >= _n:
+                сроки[f"шахта {_n}"] = сим.t
+        if "академия" not in сроки and float(st.get("academies") or 0) >= 1:
+            сроки["академия"] = сим.t
         if "казарма 2" not in сроки and float(st.get("ba17") or 0) >= 2:
             сроки["казарма 2"] = сим.t
         for в in вехи_:
@@ -158,8 +164,8 @@ def main():
           f"поле {'модель' if os.environ.get('COSS3_FIELD') == '1' else 'кривая'}; медианы по зёрнам")
     for имя, ключи in ветки:
         рр = [x for x in р if x["ветка"] == имя]
-        ср = {k: мед([x["сроки"].get(k) for x in рр]) for k in ("mil.1", "bla.1", "шахта 1", "казарма 2")}
-        print(f"  {имя} {ключи if ключи else ''}: mil.1 {_мм(ср['mil.1'])}, bla.1 {_мм(ср['bla.1'])}, шахта 1 {_мм(ср['шахта 1'])}, казарма 2 {_мм(ср['казарма 2'])}")
+        ср = {k: мед([x["сроки"].get(k) for x in рр]) for k in ("mil.1", "bla.1", "шахта 1", "шахта 2", "шахта 3", "шахта 4", "казарма 2", "академия")}
+        print(f"  {имя} {ключи if ключи else ''}: mil.1 {_мм(ср['mil.1'])}, bla.1 {_мм(ср['bla.1'])}, шахты {_мм(ср['шахта 1'])}/{_мм(ср.get('шахта 2'))}/{_мм(ср.get('шахта 3'))}/{_мм(ср.get('шахта 4'))}, казарма 2 {_мм(ср['казарма 2'])}, академия {_мм(ср.get('академия'))}")
         for в in вехи:
             вв = [x["вехи"][в] for x in рр if в in x["вехи"]]
             if вв:
