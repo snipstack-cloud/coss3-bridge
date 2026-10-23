@@ -565,6 +565,8 @@
       [*] = ;                  if (hbres >= 0) and (hca2 > 0) then
       [*] = ;                  begin
       [*] = ;                     var hbhave : Integer;
+      [*] = ;                     var hbout : Integer = 0;     // how many are too many on this resource
+      [*] = ;                     var hblet : Integer = 0;     // how many of them were taken off
       [*] = ;                     gTmpIntList.Clear;
       [*] = ;                     for hck := 0 to hcobjn-1 do
       [*] = ;                     begin
@@ -585,6 +587,44 @@
       [*] = ;                           if (hbot = gc_obj_order_type_none) then
       [*] = ;                           gTmpIntList.Add(hbgo);
       [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     // TAKING OFF THE EXTRA ONES (23.10, task No2 of the mac, games D11 and D12).
+      [*] = ;                     // Ground BALANCE could only ever ADD. After the academy TWELVE men stood on
+      [*] = ;                     // stone until the end of two games in a row while the strategy asked for four:
+      [*] = ;                     // the why line said 'stone taken by 12' every tick and nobody moved, and the
+      [*] = ;                     // examiner's answer was unanimous - those twelve belong on food. The mine
+      [*] = ;                     // branch already lets men out of a mine; this is the same for the ground.
+      [*] = ;                     // _unit_ClearOrders is what the game's OWN economic AI calls before moving a
+      [*] = ;                     // gatherer (progresseconomicai.inc:583), and the player's order path calls it
+      [*] = ;                     // too (readorder.inc:51): the man goes idle, and the next BALANCE - this very
+      [*] = ;                     // tick or the following one - takes idle men FIRST.
+      [*] = ;                     if (hbhave > hca2) then
+      [*] = ;                     begin
+      [*] = ;                        hbout := hbhave - hca2;
+      [*] = ;                        for hck := 0 to hcobjn-1 do
+      [*] = ;                        if (hblet < hbout) then
+      [*] = ;                        begin
+      [*] = ;                           var hbgo3 : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                           var hbpo3 : Pointer = _unit_GetTObj(hbgo3);
+      [*] = ;                           if (hbpo3<>nil) then
+      [*] = ;                           if (gObjProp[TObj(hbpo3).cid][TObj(hbpo3).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                           if (TObj(hbpo3).insideofuid = 0) then
+      [*] = ;                           if (TObj(hbpo3).orders[0].itype = gc_obj_order_type_gainres) then
+      [*] = ;                           begin
+      [*] = ;                              var hbrp4 : Pointer = _res_GetTRes(TObj(hbpo3).orders[0].info.trg);
+      [*] = ;                              if (hbrp4<>nil) then
+      [*] = ;                              if (TRes(hbrp4).itype = hbres) then
+      [*] = ;                              begin
+      [*] = ;                                 _unit_ClearOrders(hbgo3);
+      [*] = ;                                 hblet := hblet + 1;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                             ': ' + IntToStr(hbhave) + ' gathered it, asked for ' + IntToStr(hca2) +
+      [*] = ;                             ', took off ' + IntToStr(hblet) + ' - they are idle now');
+      [*] = ;                        Log('bridge-human: GATHER res' + IntToStr(hca1) + ' took off ' +
+      [*] = ;                            IntToStr(hblet) + ', had ' + IntToStr(hbhave) + ', asked ' + IntToStr(hca2));
       [*] = ;                     end;
       [*] = ;                     // Second pass: if idle peasants are not enough, take them off ANOTHER
       [*] = ;                     // resource. Without this BALANCE could only ever place idle men, and in the

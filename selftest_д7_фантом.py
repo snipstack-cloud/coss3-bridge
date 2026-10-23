@@ -25,7 +25,7 @@ def проверить(усл, что):
 
 def стратегия():
     д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
-    assert д["итог"].get("пауза_крестьян") == 1
+    д["итог"]["пауза_крестьян"] = 1   # 23.10 игрок снял паузу в файле; тест судит правило и ставит ключ сам
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(д, f, ensure_ascii=False)
     return SL.ЖиваяСтратегия(f.name)
