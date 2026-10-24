@@ -21,6 +21,7 @@ def проверить(усл, что):
 def прогон(доп):
     АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None})
     д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+    д["итог"]["отход_поля"] = 0   # §170л (24.10) уводит ВСЕХ в поле числом — его судит selftest_д13_отход_поля; здесь форма §136 «RETREAT группе», как жило
     д["итог"].update(доп)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(д, f, ensure_ascii=False)
