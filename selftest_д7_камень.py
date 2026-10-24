@@ -29,6 +29,7 @@ def проверить(усл, что):
 def стратегия(доп):
     д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
     assert д["итог"].get("нужда_по_плану") == 1 and д["итог"].get("нужда_макс") == 10 and д["итог"].get("золото_до_нужды") == 1500
+    д["итог"]["бюджет_с_академией"] = 0   # §170з судит свой селфтест (д13_бюджет_академии); здесь — правило при воротах еды 1200, как жило
     д["итог"].update(доп)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(д, f, ensure_ascii=False)
