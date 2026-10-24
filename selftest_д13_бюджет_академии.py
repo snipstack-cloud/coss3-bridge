@@ -27,7 +27,9 @@ def проверить(усл, что):
     print(("ОК   " if усл else "ОШИБКА ") + что); ошибок += not усл
 def стратегия(доп):
     д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
-    assert д["итог"].get("бюджет_с_академией") == 1 and д["итог"].get("переброс") == 1 and д["итог"].get("нужда_макс") == 10
+    # 24.10: ключ откачен в 0 по живой Д14 (mil.1 ушла на 7:04, казармы 2 нет) — тест судит ПРАВИЛО и ставит ключ сам.
+    assert д["итог"].get("переброс") == 1 and д["итог"].get("нужда_макс") == 10
+    д["итог"]["бюджет_с_академией"] = 1
     д["итог"].update(доп)
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
         json.dump(д, f, ensure_ascii=False)
