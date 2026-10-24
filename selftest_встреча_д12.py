@@ -23,7 +23,12 @@ import анализ_врага as АВ
 def проверить(усл, что):
     global ошибок
     print(("ОК   " if усл else "ОШИБКА ") + что); ошибок += not усл
-С = SL.ЖиваяСтратегия(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"))
+import tempfile
+_д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+_д["итог"]["прогноз_найма"] = 0   # §170к (24.10) выход 3:25 больше не одобряет — его судит selftest_д13_прогноз_найма; здесь (а) судит ПАМЯТЬ выхода §170д
+with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as _f:
+    json.dump(_д, _f, ensure_ascii=False)
+С = SL.ЖиваяСтратегия(_f.name)
 assert С.п.get("встреча_чистая") == 1 and С.п.get("отрядов") == 1 and float(С.п.get("без_волны_домой") or 0) > 0
 п = {}
 for s in кейс:
