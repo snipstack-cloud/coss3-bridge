@@ -89,7 +89,8 @@ print("4. отход смотрит на врага")
 
 print("5. FACE: на месте, без цели, миссия — только при удержании")
 проверить("var haface : Boolean = (hamode = 'face');" in КМД, "режим face объявлен")
-проверить("if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then" in КМД,
+# 26.10 (§170о): к условию добавлен KITE — он тоже никуда не ведёт и цели не требует
+проверить("if ((hafound) or (haface) or (hakite)) and (gIntegerList.GetCount > 0) then" in КМД,
           "FACE не требует найденной цели")
 проверить("(haretreat) or (haengage) or (haface) then" in КМД,
           "FACE берёт тех же, кого отход и ENGAGE — стоящих в поле")

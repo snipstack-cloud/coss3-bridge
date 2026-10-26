@@ -621,7 +621,7 @@ class Bridge:
 
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-               gid: int = 0, face=None, hold=None) -> bool:
+               gid: int = 0, face=None, hold=None, gap=None, step=None, far=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -641,14 +641,14 @@ class Bridge:
         if os.path.exists(self.atk_path):
             return False
         приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
-                              face, hold)
+                              face, hold, gap, step, far)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
 
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-                gid: int = 0, face=None, hold=None):
+                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
@@ -668,7 +668,9 @@ class Bridge:
             _кл = (_fx, _fy)
         # retreat (18.09): третий режим того же файла — бойцов ДАЛЬШЕ ОДНОЙ КЛЕТКИ от
         # ратуши, чем бы они ни были заняты, блок ведёт домой без боя.
-        движение = _режим in ("move", "retreat", "face")
+        # kite (26.10, §170о): залп и шаг назад — блок ведёт группу стрелков сам раз в секунду;
+        # приказ только включает режим и несёт зазор/шаг/край в десятых тайла.
+        движение = _режим in ("move", "retreat", "face", "kite")
         # engage (18.09): колонну перехватили - бойцов ДАЛЬШЕ ОДНОЙ КЛЕТКИ от ратуши, с
         # любым приказом, блок разворачивает В БОЙ на цель (те же цели, что у
         # ATTACK). Нужен, потому что ATTACK берёт только свободных.
@@ -717,6 +719,9 @@ class Bridge:
         # повернуться НЕИЗВЕСТНО КУДА нельзя, и гасим это здесь, до отправки.
         if _режим == "face" and not _кл:
             return None
+        # KITE без номера группы бессмыслен: контроллер блока живёт по номеру (ростер `br_hgrp`).
+        if _режим == "kite" and int(group or 0) <= 0:
+            return None
         # У FACE цель не значит ничего, и писать в файл случайную — врать. Блок
         # для поворота на месте целью не пользуется вовсе (и не требует её:
         # `(hafound) or (haface)`), поэтому ставим домашнюю, самую безобидную.
@@ -747,6 +752,18 @@ class Bridge:
         # ЦЕЛЬ «ГРУППА» (4.10, §78): идти к ДРУГОЙ своей группе и влиться в неё.
         # Это «к своим» без «домой» (§51), только адресно. Номер получателя — в
         # `gid`; без него цель бессмысленна, и приказ не уезжает.
+        if _режим == "kite":
+            приказ["target"] = "home"
+            # зазор к минимальной дальности, шаг назад и край от ратуши — в ДЕСЯТЫХ тайла целыми,
+            # как блок пишет rmax/pause в `fighters`: у движка нет FloatToStrF, а у парсера — дробей
+            for _имя, _зн in (("gap10", gap), ("step10", step), ("far10", far)):
+                if _зн is not None:
+                    try:
+                        _д = int(round(float(_зн) * 10))
+                    except (TypeError, ValueError):
+                        return None
+                    if _д > 0:
+                        приказ[_имя] = _д
         if цель == "group":
             if int(gid or 0) <= 0:
                 return None
@@ -799,7 +816,8 @@ class Bridge:
                 int(п.get("group", 0) or 0),
                 int(п.get("gid", 0) or 0),
                 п.get("face"),
-                п.get("hold"))
+                п.get("hold"),
+                п.get("gap"), п.get("step"), п.get("far"))
             if собран is None:
                 return False
             готовые.append(собран)

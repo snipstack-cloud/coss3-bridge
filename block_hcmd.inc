@@ -1368,6 +1368,12 @@
       [*] = ;         // Not _player_StandGroupToPosition: that one TELEPORTS men with
       [*] = ;         // SetGameObjectPositionByHandle, which is scenario placement, not an order.
       [*] = ;         var haface : Boolean = (hamode = 'face');
+      [*] = ;         // KITE (26.10): volley and step back. The order only SWITCHES the mode on for a numbered group;
+      [*] = ;         // the work is done once a game second by the controller after the order file (see KITE below).
+      [*] = ;         // Python ticks every 5 s and names 16-tile cells, while a musketeer has 7.5 tiles between his
+      [*] = ;         // minimum range and his maximum and a pikeman closes 1.15 tiles a second - so the second-by-second
+      [*] = ;         // part cannot live in python, and the order is just 'these shooters, kite'.
+      [*] = ;         var hakite : Boolean = (hamode = 'kite');
       [*] = ;         // NAME OF THE ORDER FOR THE LOG: hamode is EMPTY for an attack (an older
       [*] = ;         // client sends no such key), and pasting it raw gave 'hold released by'
       [*] = ;         // with a double space and no order named at all - seen in the live game
@@ -1611,7 +1617,7 @@
       [*] = ;            if (haheldn > 0) then
       [*] = ;            Log('bridge-human: ' + hamw + ' skipped ' + IntToStr(haheldn) +
       [*] = ;                ' holding soldiers (order them by group number to release)');
-      [*] = ;            if ((hafound) or (haface)) and (gIntegerList.GetCount > 0) then
+      [*] = ;            if ((hafound) or (haface) or (hakite)) and (gIntegerList.GetCount > 0) then
       [*] = ;            begin
       [*] = ;               // ONE GROUP PER WAVE. The name used to be the same for every wave, and
       [*] = ;               // GroupClearGameObjectsByHandle threw out of it those ALREADY MARCHING:
@@ -1664,6 +1670,16 @@
       [*] = ;                  if (haretreat) then hagm := 2;
       [*] = ;                  if (haengage) then hagm := 3;
       [*] = ;                  if (haface) and (hahold) then hagm := 4;
+      [*] = ;                  // MODE 5 = KITES (26.10). Any other order to the group switches the controller off,
+      [*] = ;                  // and says so: a group that stopped kiting in silence looks like one that never did.
+      [*] = ;                  if (hakite) then hagm := 5;
+      [*] = ;                  if (hagmwas = 5) and (hagm <> 5) then
+      [*] = ;                  begin
+      [*] = ;                     var hakrp : Integer = ParserSelectByKey('br_hkite');
+      [*] = ;                     if (hakrp <> 0) then
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakrp, 'g' + IntToStr(hagid) + '_on', 0);
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' kite released by ' + hamw);
+      [*] = ;                  end;
       [*] = ;                  if (hagmwas = 4) and (hagm <> 4) then
       [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' hold released by ' +
       [*] = ;                      hamw + ' (mode ' + IntToStr(hagmwas) + ' -> ' + IntToStr(hagm) + ')');
@@ -1816,9 +1832,47 @@
       [*] = ;               if ((hadaz mod 100) < 10) then hadfz := '0' + hadfz;
       [*] = ;               var haddir : String = ' dir=' + hadsgx + IntToStr(hadax div 100) + '.' + hadfx +
       [*] = ;                    ',' + hadsgz + IntToStr(hadaz div 100) + '.' + hadfz + ' (' + hadwhy + ')';
+      [*] = ;               if (hakite) then
+      [*] = ;               begin
+      [*] = ;                  if (hagid > 0) then
+      [*] = ;                  begin
+      [*] = ;                     // Switched on in a named parser, the way wave_sent and the group rolls live between
+      [*] = ;                     // ticks. gap10/step10 are tenths of a tile from python; defaults 1.0 and 4.0 tiles.
+      [*] = ;                     var hakp : Integer = ParserSelectByKey('br_hkite');
+      [*] = ;                     if (hakp = 0) then
+      [*] = ;                     hakp := ParserCreate('br_hkite');
+      [*] = ;                     var hakgap : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'gap10');
+      [*] = ;                     if (hakgap <= 0) then hakgap := 10;
+      [*] = ;                     var hakstep : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'step10');
+      [*] = ;                     if (hakstep <= 0) then hakstep := 40;
+      [*] = ;                     var hakfar : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'far10');
+      [*] = ;                     if (hakfar <= 0) then hakfar := 300;
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakp, 'g' + IntToStr(hagid) + '_on', 1);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakp, 'g' + IntToStr(hagid) + '_st', 0);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakp, 'g' + IntToStr(hagid) + '_gap10', hakgap);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakp, 'g' + IntToStr(hagid) + '_step10', hakstep);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hakp, 'g' + IntToStr(hagid) + '_far10', hakfar);
+      [*] = ;                     // Hold where they stand right away, facing the named cell: the controller takes over
+      [*] = ;                     // on its next second. Same two calls and same order as FACE hold (par.102).
+      [*] = ;                     _player_SetGroupPosition(haph, hagr, -1, hadsx, hadsz, hadsx, hadsz, hadx, hadz,
+      [*] = ;                          False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
+      [*] = ;                     Log('bridge-human: KITE group ' + IntToStr(hagid) + ' on: ' + IntToStr(gIntegerList.GetCount) +
+      [*] = ;                         ' shooters at ' + FloatToStr(hadsx) + ',' + FloatToStr(hadsz) + haddir +
+      [*] = ;                         ' gap10=' + IntToStr(hakgap) + ' step10=' + IntToStr(hakstep) + ' far10=' + IntToStr(hakfar));
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') +
+      [*] = ;                          ' | KITE: needs a group number (group N), nobody kites');
+      [*] = ;                     Log('bridge-human: KITE skipped - needs a group number');
+      [*] = ;                  end;
+      [*] = ;               end
+      [*] = ;               else
       [*] = ;               if (haface) then
       [*] = ;               begin
       [*] = ;                  // THE SAME CALL, only the point is where they ALREADY stand: men walk a
+
       [*] = ;                  // step inside their own formation and turn. rebuild True on purpose - that
       [*] = ;                  // is what re-lays the grid along the new direction.
       [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hadsx, hadsz, hadsx, hadsz, hadx, hadz,
@@ -1881,6 +1935,278 @@
       [*] = ;            else
       [*] = ;            Log('bridge-human: ATTACK skipped - soldiers ' + IntToStr(gIntegerList.GetCount) +
       [*] = ;                ', target found ' + BoolToStr(hafound) + ' [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;      end;
+      [*] = ;      // --- KITE CONTROLLER (26.10, question of the player: 'can a musketeer shoot, step back,
+      [*] = ;      // shoot again until the pike is dead?'). Numbers from unit.script: musketeer rmin 7.5 tiles,
+      [*] = ;      // rmax 15, pause 3.75 s, pikeman reach 1.9, ALL infantry at gc_obj_speed_default - equal speed.
+      [*] = ;      // So one shooter cannot out-walk one pike; what a player does is a VOLLEY from hold, a step
+      [*] = ;      // back when the pike gets near the minimum range, another volley - in a group, with the base
+      [*] = ;      // behind. Every game second, for each group a KITE order switched on:
+      [*] = ;      //   melee of his nearer than rmin+gap  -> step back `step` tiles, away from him and bent towards
+      [*] = ;      //                                          our hall; not beyond `far` tiles from the hall (then hold);
+      [*] = ;      //   anybody of his within rmax+gap     -> hold where we stand: a HOLDING shooter searches victims
+      [*] = ;      //                                          to his full radius (unit.script:7259), an idle one only to
+      [*] = ;      //                                          minattackradius+0.375 - idle shooters do NOT fire at 15;
+      [*] = ;      //   nobody in range                    -> hold and wait.
+      [*] = ;      // Any other order to the group, or nobody alive, switches it off (mode 5 in `groups`).
+      [*] = ;      // Zero cost until the first KITE order: the parser does not exist before it.
+      [*] = ;      var hkp : Integer = ParserSelectByKey('br_hkite');
+      [*] = ;      if (hkp <> 0) then
+      [*] = ;      begin
+      [*] = ;         var hknow : Float = GetGameTime;
+      [*] = ;         var hklast : Float = ParserGetFloatValueByKeyByHandle(hkp, 'at' + IntToStr(plind));
+      [*] = ;         if (hknow - hklast >= 1.0) or (hknow < hklast) then
+      [*] = ;         begin
+      [*] = ;            ParserSetFloatValueByKeyByHandle(hkp, 'at' + IntToStr(plind), hknow);
+      [*] = ;            var hkph : Integer = GetPlayerHandleByIndex(plind);
+      [*] = ;            var hkgp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;            // Every number that ACCUMULATES is declared HERE and reset by assignment in the loop:
+      [*] = ;            // a scalar declared in a nested begin does not accumulate (17.09, six army counters).
+      [*] = ;            var hkn : Integer = 0;
+      [*] = ;            var hksx : Float = 0;
+      [*] = ;            var hksz : Float = 0;
+      [*] = ;            var hkbest : Float = 1000000;
+      [*] = ;            var hkany : Float = 1000000;
+      [*] = ;            var hkex : Float = 0;
+      [*] = ;            var hkez : Float = 0;
+      [*] = ;            var hkrmin : Float = 0;
+      [*] = ;            var hkrmax : Float = 0;
+      [*] = ;            var hkerm : Float = 0;
+      [*] = ;            var hked : Float = 0;
+      [*] = ;            var hkgid, hkk, hkpl, hkj, hkw : Integer;
+      [*] = ;            var hkhx : Float = 0;
+      [*] = ;            var hkhz : Float = 0;
+      [*] = ;            var hkhall : Boolean = False;
+      [*] = ;            var hkon : Integer = 0;
+      [*] = ;            for hkgid := 1 to 99 do
+      [*] = ;            if (ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_on') = 1) then
+      [*] = ;            hkon := hkon + 1;
+      [*] = ;            if (hkon > 0) and (hkgp <> 0) then
+      [*] = ;            begin
+      [*] = ;               // Our hall: the anchor the step back bends towards and the edge it stops at.
+      [*] = ;               var hkoc : Integer = GetPlayerGameObjectsCountByHandle(hkph);
+      [*] = ;               for hkk := 0 to hkoc-1 do
+      [*] = ;               if (not hkhall) then
+      [*] = ;               begin
+      [*] = ;                  var hkgo : Integer = GetGameObjectHandleByIndex(hkk, hkph);
+      [*] = ;                  var hkpo : Pointer = _unit_GetTObj(hkgo);
+      [*] = ;                  if (hkpo<>nil) then
+      [*] = ;                  if (gObjProp[TObj(hkpo).cid][TObj(hkpo).id].airole = gc_ai_unit_center) then
+      [*] = ;                  begin
+      [*] = ;                     hkhx := GetGameObjectPositionXByHandle(hkgo);
+      [*] = ;                     hkhz := GetGameObjectPositionZByHandle(hkgo);
+      [*] = ;                     hkhall := True;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               for hkgid := 1 to 99 do
+      [*] = ;               if (ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_on') = 1) then
+      [*] = ;               begin
+      [*] = ;                  hkn := 0;
+      [*] = ;                  hksx := 0;
+      [*] = ;                  hksz := 0;
+      [*] = ;                  hkbest := 1000000;
+      [*] = ;                  hkany := 1000000;
+      [*] = ;                  hkrmin := 0;
+      [*] = ;                  hkrmax := 0;
+      [*] = ;                  gIntegerList.Clear;
+      [*] = ;                  // The living of the remembered roll; range of OUR shooter from the first living man:
+      [*] = ;                  // the longest enabled weapon of his kind (objbase carries the upgraded radius).
+      [*] = ;                  var hkgn : Integer = ParserGetIntValueByKeyByHandle(hkgp, 'g' + IntToStr(hkgid) + '_n');
+      [*] = ;                  for hkk := 0 to hkgn-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hkh : Integer = ParserGetIntValueByKeyByHandle(hkgp, 'g' + IntToStr(hkgid) + '_h' + IntToStr(hkk));
+      [*] = ;                     if (hkh <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hkhp : Pointer = _unit_GetTObj(hkh);
+      [*] = ;                        if (hkhp<>nil) then
+      [*] = ;                        if (not TObj(hkhp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           gIntegerList.Add(hkh);
+      [*] = ;                           hkn := hkn + 1;
+      [*] = ;                           hksx := hksx + GetGameObjectPositionXByHandle(hkh);
+      [*] = ;                           hksz := hksz + GetGameObjectPositionZByHandle(hkh);
+      [*] = ;                           if (hkrmax <= 0) then
+      [*] = ;                           for hkw := 0 to gc_obj_MaxWeapon-1 do
+      [*] = ;                           if (gObjProp[TObj(hkhp).cid][TObj(hkhp).id].weapon[hkw].enabled) then
+      [*] = ;                           if (gPlayer[plind].objbase[TObj(hkhp).cid][TObj(hkhp).id].weapon[hkw].radiusmax > hkrmax) then
+      [*] = ;                           begin
+      [*] = ;                              hkrmax := gPlayer[plind].objbase[TObj(hkhp).cid][TObj(hkhp).id].weapon[hkw].radiusmax;
+      [*] = ;                              hkrmin := gObjProp[TObj(hkhp).cid][TObj(hkhp).id].weapon[hkw].radiusmin;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hkn = 0) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_on', 0);
+      [*] = ;                     Log('bridge-human: KITE group ' + IntToStr(hkgid) + ' off - nobody alive');
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     hksx := hksx / hkn;
+      [*] = ;                     hksz := hksz / hkn;
+      [*] = ;                     // His nearest MELEE fighter (longest weapon no further than melee reach) decides the
+      [*] = ;                     // step back; his nearest fighter of any kind decides whether there is anyone to shoot.
+      [*] = ;                     // Same enemy scan as RETREAT's facing, same filters (no buildings, no peasants).
+      [*] = ;                     for hkpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;                     if (gPlayer[hkpl].bexists) and (hkpl <> plind) then
+      [*] = ;                     if ((gPlayer[plind].enemyPlMask and gPlayer[hkpl].myPlMask) <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hkeph : Integer = GetPlayerHandleByIndex(hkpl);
+      [*] = ;                        var hken : Integer = GetPlayerGameObjectsCountByHandle(hkeph);
+      [*] = ;                        for hkj := 0 to hken-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hkeg : Integer = GetGameObjectHandleByIndex(hkj, hkeph);
+      [*] = ;                           var hkep : Pointer = _unit_GetTObj(hkeg);
+      [*] = ;                           if (hkep<>nil) then
+      [*] = ;                           if (not TObj(hkep).bdead) then
+      [*] = ;                           if (not gObjProp[TObj(hkep).cid][TObj(hkep).id].bbuilding) then
+      [*] = ;                           begin
+      [*] = ;                              var hkeu : Integer = gObjProp[TObj(hkep).cid][TObj(hkep).id].usage;
+      [*] = ;                              if (hkeu <> gc_obj_usage_peasant) and (hkeu <> gc_obj_usage_none) then
+      [*] = ;                              begin
+      [*] = ;                                 hked := VectorDistance(GetGameObjectPositionXByHandle(hkeg), 0,
+      [*] = ;                                      GetGameObjectPositionZByHandle(hkeg), hksx, 0, hksz);
+      [*] = ;                                 if (hked < hkany) then
+      [*] = ;                                 hkany := hked;
+      [*] = ;                                 hkerm := 0;
+      [*] = ;                                 for hkw := 0 to gc_obj_MaxWeapon-1 do
+      [*] = ;                                 if (gObjProp[TObj(hkep).cid][TObj(hkep).id].weapon[hkw].enabled) then
+      [*] = ;                                 if (gPlayer[hkpl].objbase[TObj(hkep).cid][TObj(hkep).id].weapon[hkw].radiusmax > hkerm) then
+      [*] = ;                                 hkerm := gPlayer[hkpl].objbase[TObj(hkep).cid][TObj(hkep).id].weapon[hkw].radiusmax;
+      [*] = ;                                 if (hkerm <= gc_unit_meleeattackradius) and (hked < hkbest) then
+      [*] = ;                                 begin
+      [*] = ;                                    hkbest := hked;
+      [*] = ;                                    hkex := GetGameObjectPositionXByHandle(hkeg);
+      [*] = ;                                    hkez := GetGameObjectPositionZByHandle(hkeg);
+      [*] = ;                                 end;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     var hkgap : Float = ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_gap10') / 10;
+      [*] = ;                     var hkstep : Float = ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_step10') / 10;
+      [*] = ;                     var hkfarr : Float = ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_far10') / 10;
+      [*] = ;                     var hkst : Integer = ParserGetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_st');
+      [*] = ;                     // Facing: towards his nearest melee man (towards his nearest anybody when no melee).
+      [*] = ;                     var hkfx : Float = hkex - hksx;
+      [*] = ;                     var hkfy : Float = 0;
+      [*] = ;                     var hkfz : Float = hkez - hksz;
+      [*] = ;                     if (hkbest >= 1000000) then
+      [*] = ;                     begin
+      [*] = ;                        hkfx := 0;
+      [*] = ;                        hkfz := 1;
+      [*] = ;                     end;
+      [*] = ;                     if (VectorLength(hkfx, hkfy, hkfz) < 1) then
+      [*] = ;                     begin
+      [*] = ;                        hkfx := 0;
+      [*] = ;                        hkfz := 1;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     VectorNormalize(hkfx, hkfy, hkfz);
+      [*] = ;                     // Step direction: away from him, bent half towards the hall so the retreat curves
+      [*] = ;                     // home instead of running the shooters off into the field (or into his second heap).
+      [*] = ;                     var hkdx : Float = hksx - hkex;
+      [*] = ;                     var hkdy : Float = 0;
+      [*] = ;                     var hkdz : Float = hksz - hkez;
+      [*] = ;                     if (VectorLength(hkdx, hkdy, hkdz) < 1) then
+      [*] = ;                     begin
+      [*] = ;                        hkdx := 0;
+      [*] = ;                        hkdz := -1;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     VectorNormalize(hkdx, hkdy, hkdz);
+      [*] = ;                     if (hkhall) then
+      [*] = ;                     begin
+      [*] = ;                        var hkhdx : Float = hkhx - hksx;
+      [*] = ;                        var hkhdy : Float = 0;
+      [*] = ;                        var hkhdz : Float = hkhz - hksz;
+      [*] = ;                        if (VectorLength(hkhdx, hkhdy, hkhdz) > 4) then
+      [*] = ;                        begin
+      [*] = ;                           VectorNormalize(hkhdx, hkhdy, hkhdz);
+      [*] = ;                           hkdx := hkdx + 0.5*hkhdx;
+      [*] = ;                           hkdz := hkdz + 0.5*hkhdz;
+      [*] = ;                           if (VectorLength(hkdx, hkdy, hkdz) < 0.1) then
+      [*] = ;                           begin
+      [*] = ;                              hkdx := hkhdx;
+      [*] = ;                              hkdz := hkhdz;
+      [*] = ;                           end
+      [*] = ;                           else
+      [*] = ;                           VectorNormalize(hkdx, hkdy, hkdz);
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     // 0 nothing, 1 step back to hktx,hktz, 2 hold here. Decided first, done once below.
+      [*] = ;                     var hkdo : Integer = 0;
+      [*] = ;                     var hktx : Float = hksx + hkdx*hkstep;
+      [*] = ;                     var hktz : Float = hksz + hkdz*hkstep;
+      [*] = ;                     var hkwhat : String = '';
+      [*] = ;                     if (hkbest < hkrmin + hkgap) then
+      [*] = ;                     begin
+      [*] = ;                        var hkfar : Boolean = False;
+      [*] = ;                        if (hkhall) then
+      [*] = ;                        if (VectorDistance(hktx, 0, hktz, hkhx, 0, hkhz) > hkfarr) then hkfar := True;
+      [*] = ;                        if (hkfar) then
+      [*] = ;                        begin
+      [*] = ;                           hkwhat := 'hold at the edge (' + IntToStr(Round(hkfarr)) + ' from the hall)';
+      [*] = ;                           if (hkst <> 2) then hkdo := 2;
+      [*] = ;                           hkst := 2;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           hkwhat := 'step back ' + IntToStr(Round(hkstep*10)) + '/10';
+      [*] = ;                           hkdo := 1;
+      [*] = ;                           hkst := 1;
+      [*] = ;                        end;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     if (hkany <= hkrmax + hkgap) then
+      [*] = ;                     begin
+      [*] = ;                        hkwhat := 'hold, fire';
+      [*] = ;                        if (hkst <> 2) then hkdo := 2;
+      [*] = ;                        hkst := 2;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     begin
+      [*] = ;                        hkwhat := 'hold, wait';
+      [*] = ;                        if (hkst <> 3) then hkdo := 2;
+      [*] = ;                        hkst := 3;
+      [*] = ;                     end;
+      [*] = ;                     if (hkdo > 0) then
+      [*] = ;                     begin
+      [*] = ;                        // The group object is rebuilt from the living before every order, exactly as the
+      [*] = ;                        // order path does it; the hold goes AFTER the position call (WriteMove clears it).
+      [*] = ;                        var hkgr : Integer = _misc_GetOrCreateGroupByName(hkph, 'coss3_grp_' + IntToStr(hkgid));
+      [*] = ;                        GroupClearGameObjectsByHandle(hkgr);
+      [*] = ;                        for hkk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                        GroupAddGameObjectByHandle(hkgr, gIntegerList.Get(hkk));
+      [*] = ;                        _group_Initialize(hkgr, nil);
+      [*] = ;                        if (hkdo = 1) then
+      [*] = ;                        begin
+      [*] = ;                           _player_SetGroupPosition(hkph, hkgr, -1, hktx, hktz, hktx, hktz, hkfx, hkfz,
+      [*] = ;                                False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           _player_SetGroupPosition(hkph, hkgr, -1, hksx, hksz, hksx, hksz, hkfx, hkfz,
+      [*] = ;                                False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                           _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hkp, 'g' + IntToStr(hkgid) + '_st', hkst);
+      [*] = ;                     // One line a second while a group kites: this IS the live measurement the player
+      [*] = ;                     // asked for - distance to his melee in tenths of a tile against our rmin/rmax.
+      [*] = ;                     var hkbp : Integer = 9999;
+      [*] = ;                     if (hkbest < 999) then hkbp := Round(hkbest*10);
+      [*] = ;                     var hkap : Integer = 9999;
+      [*] = ;                     if (hkany < 999) then hkap := Round(hkany*10);
+      [*] = ;                     Log('bridge-human: KITE group ' + IntToStr(hkgid) + ' ' + hkwhat + ': ' + IntToStr(hkn) +
+      [*] = ;                         ' shooters at ' + FloatToStr(hksx) + ',' + FloatToStr(hksz) +
+      [*] = ;                         ' melee10=' + IntToStr(hkbp) + ' any10=' + IntToStr(hkap) +
+      [*] = ;                         ' rmin10=' + IntToStr(Round(hkrmin*10)) + ' rmax10=' + IntToStr(Round(hkrmax*10)) + ' st=' + IntToStr(hkst));
+      [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
