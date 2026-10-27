@@ -61,5 +61,27 @@ def ходьба(р):
     return n, макс_еда
 н0, е0 = ходьба(р0); н1, е1 = ходьба(р1)
 проверить(е1 <= 20 and е0 >= 30, f"(г) макс цель еды по кейсу {е0} → {е1}; людей в приказах сверх текущего: ключ 0 — {н0}, ключ 2000 — {н1} (справка)")
+# (д) 28.10, Д18: порог — ключ + цена ЖЕЛАННОЙ ступени, не самой дорогой доступной. Живой ценник (Д16/Д17 `upg_shown`) и бойцы.
+_ЦЕННИК = ("bar.pikeman.1.1=f900g150i0,bar.pikeman.1.2=f700g400i0,bar.pikeman.1.3=f3100g250i0,bar.pikeman.1.4=f6700g1950i0,"
+           "bar.pikeman.1.5=f16030g2000i0,bar.pikeman.2.1=f250g150i0,bar.pikeman.2.2=f800g275i0,bar.pikeman.2.3=f4200g100i0,"
+           "bar.pikeman.2.4=f9305g707i0,bar.pikeman.2.5=f17890g2850i0,bar.musketeernet.1.1=f2000g100i0,bar.musketeernet.2.1=f170g50i100")
+_БОЙЦЫ = ("infantry17=pikeman,hp90,atk8,wkind1,pause0,rmax188,dmgs0,dmgp0,dinit8,dpike3,dsword2,dbullet4,food25,gold3,iron20,coal0 "
+          "musk17=musketeernet,hp65,atk10,wkind3,pause375,rmax1500,dmgs0,dmgp0,dinit10,dpike0,dsword0,dbullet0,food50,gold8,iron4,coal0")
+_ЕГО = ("infantry17=hp90,atk8,wkind1,pause0,rmax188,dmgs0,dmgp0,dinit8,dpike3,dsword2,dbullet4 "
+        "musk17=hp65,atk10,wkind3,pause375,rmax1500,dmgs0,dmgp0,dinit10,dpike0,dsword0,dbullet0")
+s_ц = dict(s766, upg_avail=_ЦЕННИК, upg_shown=_ЦЕННИК, fighters=_БОЙЦЫ, p1_fighters=_ЕГО, food=3500, gold=4000, iron=2000)
+С5 = стратегия({"еда_лежит": 2000}); о5 = ответ(С5, s_ц)
+м5 = [x for x in о5["why"].split(", ") if "§170с" in x]
+проверить(bool(м5) and "17890" not in " ".join(м5) and (цель(о5, "food") or 0) <= 12,
+          f"(д) еда 3500 при полном ценнике (2.5 за 17 890): порог от желанной ступени, потолок есть — {м5[:1]}")
+# (д′) полный ценник, но желанная только дорогая: все ступени пик, кроме 1.5/2.5, куплены → желанная 1.5 за 16 030, потолка нет
+s_д = dict(s_ц, upg_done="mil.1,bla.1," + ",".join(f"bar.pikeman.{a}.{b}" for a in (1, 2) for b in (1, 2, 3, 4)), food=9000)
+С6 = стратегия({"еда_лежит": 2000}); о6 = ответ(С6, s_д)
+м6 = [x for x in о6["why"].split(", ") if "§170с" in x]
+проверить(not м6 and (цель(о6, "food") or 0) >= 30, f"(д′) куплены все ступени до 1.5/2.5 (16 030/17 890), еда 9000: потолка нет, цель еды {цель(о6, 'food')} {м6[:1]}")
+# (д″) просимая в этом такте прокачка поднимает порог: mil.1 за 750 еды в `из` при еде 2600 → порог 2750, потолка нет
+о7 = SL.привести([{"cmd": "UPGRADE", "role": "mil.1"}], dict(s766, food=2600, upg_shown="mil.1=f750g250i0", upg_done=""),
+                 (С7 := стратегия({"еда_лежит": 2000})).п, С7.стр, __import__("collections").Counter(), (о7о := __import__("collections").Counter()))
+проверить(not any("§170с" in k for k in о7о), f"(д″) просимая mil.1 (750 еды) при еде 2600: порог 2750, потолка нет — {[k for k in о7о if '§170с' in k][:1]}")
 print(f"\nИТОГ: ошибок {ошибок}")
 sys.exit(1 if ошибок else 0)
