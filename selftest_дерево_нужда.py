@@ -33,6 +33,9 @@ def баланс(доп):
 проверить(sum(v for k, v in с.items() if k in ("food", "wood", "stone")) <= земля, f"сумма не больше земли {земля} — мосту резать нечего")
 st_полно = dict(st0, wood=900, stone=900)
 д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+# 27.10: §170с (`еда_лежит` 2000 в файле Д18) при еде 6500 законно снимает людей с еды на дерево —
+# здесь судится §129, правило ДО него, пришпиливаем к 0 тем же порядком, что пять ключей §170м.
+д["итог"]["еда_лежит"] = 0
 with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
     json.dump(д, f, ensure_ascii=False)
 о = SL.ЖиваяСтратегия(f.name).ответ(st_полно)
