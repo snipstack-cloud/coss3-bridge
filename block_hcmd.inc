@@ -88,6 +88,32 @@
       [*] = ;               if (hcv > 0) then
       [*] = ;               hccap := hcv;
       [*] = ;            end;
+      [*] = ;            // 28.10 (mac, after game D18): targets of GROUND BALANCE in THIS file, read first like
+      [*] = ;            // BUILDERS. The second pass of ground BALANCE below takes donors only from a resource
+      [*] = ;            // that stands ABOVE its own target here (or has no target in the file). Before it took
+      [*] = ;            // them off ANY other resource by object index, and the same men walked food -> stone ->
+      [*] = ;            // food every 50 s (games D15-D18: 102, 55, 170, 52 transfers per game).
+      [*] = ;            var hcbtf : Integer = -1;
+      [*] = ;            var hcbtw : Integer = -1;
+      [*] = ;            var hcbts : Integer = -1;
+      [*] = ;            for hcn := 0 to hccount-1 do
+      [*] = ;            if (ParserGetValueByKeyByHandle(hch, IntToStr(hcn) + '_cmd') = 'BALANCE') then
+      [*] = ;            begin
+      [*] = ;               var hcbr : Integer = ParserGetIntValueByKeyByHandle(hch, IntToStr(hcn) + '_a1');
+      [*] = ;               var hcbv : Integer = ParserGetIntValueByKeyByHandle(hch, IntToStr(hcn) + '_a2');
+      [*] = ;               if (hcbr = 0) and (hcbv >= 0) then
+      [*] = ;               begin
+      [*] = ;                  hcbtf := hcbv;
+      [*] = ;               end;
+      [*] = ;               if (hcbr = 1) and (hcbv >= 0) then
+      [*] = ;               begin
+      [*] = ;                  hcbtw := hcbv;
+      [*] = ;               end;
+      [*] = ;               if (hcbr = 2) and (hcbv >= 0) then
+      [*] = ;               begin
+      [*] = ;                  hcbts := hcbv;
+      [*] = ;               end;
+      [*] = ;            end;
       [*] = ;            for hcn := 0 to hccount-1 do
       [*] = ;            begin
       [*] = ;               var hckey : String = IntToStr(hcn) + '_';
@@ -567,6 +593,10 @@
       [*] = ;                     var hbhave : Integer;
       [*] = ;                     var hbout : Integer = 0;     // how many are too many on this resource
       [*] = ;                     var hblet : Integer = 0;     // how many of them were taken off
+      [*] = ;                     var hbcf : Integer = 0;      // 28.10: men now on food / wood / stone (for the donor rule)
+      [*] = ;                     var hbcw : Integer = 0;
+      [*] = ;                     var hbcs : Integer = 0;
+      [*] = ;                     var hbkept : Integer = 0;    // donors refused: their resource is not above its target
       [*] = ;                     gTmpIntList.Clear;
       [*] = ;                     for hck := 0 to hcobjn-1 do
       [*] = ;                     begin
@@ -632,6 +662,28 @@
       [*] = ;                     // for 12 nine ticks in a row - everyone was already busy on wood and stone.
       [*] = ;                     // The engine strips gatherers for construction, so this is the game s own
       [*] = ;                     // behaviour rather than an invention of ours.
+      [*] = ;                     // 28.10 (mac, after D18): a donor is taken only from a resource that stands ABOVE its
+      [*] = ;                     // own target in this file (hcbtf/hcbtw/hcbts; -1 = no target, any man may go). Counted
+      [*] = ;                     // HERE, after the take-offs above made their men idle, and decremented per donor.
+      [*] = ;                     if (hbhave + gTmpIntList.GetCount < hca2) then
+      [*] = ;                     for hck := 0 to hcobjn-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hbgo4 : Integer = GetGameObjectHandleByIndex(hck, hcph);
+      [*] = ;                        var hbpo4 : Pointer = _unit_GetTObj(hbgo4);
+      [*] = ;                        if (hbpo4<>nil) then
+      [*] = ;                        if (gObjProp[TObj(hbpo4).cid][TObj(hbpo4).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                        if (TObj(hbpo4).insideofuid = 0) then
+      [*] = ;                        if (TObj(hbpo4).orders[0].itype = gc_obj_order_type_gainres) then
+      [*] = ;                        begin
+      [*] = ;                           var hbrp5 : Pointer = _res_GetTRes(TObj(hbpo4).orders[0].info.trg);
+      [*] = ;                           if (hbrp5<>nil) then
+      [*] = ;                           begin
+      [*] = ;                              if (TRes(hbrp5).itype = gc_resource_type_food) then hbcf := hbcf + 1;
+      [*] = ;                              if (TRes(hbrp5).itype = gc_resource_type_wood) then hbcw := hbcw + 1;
+      [*] = ;                              if (TRes(hbrp5).itype = gc_resource_type_stone) then hbcs := hbcs + 1;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                     if (hbhave + gTmpIntList.GetCount < hca2) then
       [*] = ;                     for hck := 0 to hcobjn-1 do
       [*] = ;                        if (hbhave + gTmpIntList.GetCount < hca2) then
@@ -645,9 +697,41 @@
       [*] = ;                           begin
       [*] = ;                              var hbrp3 : Pointer = _res_GetTRes(TObj(hbpo2).orders[0].info.trg);
       [*] = ;                              if (hbrp3<>nil) and (TRes(hbrp3).itype <> hbres) then
-      [*] = ;                              gTmpIntList.Add(hbgo2);
+      [*] = ;                              begin
+      [*] = ;                                 var hbdt : Integer = TRes(hbrp3).itype;
+      [*] = ;                                 var hbdok : Boolean = True;
+      [*] = ;                                 if (hbdt = gc_resource_type_food) and (hcbtf >= 0) then
+      [*] = ;                                 begin
+      [*] = ;                                    if (hbcf <= hcbtf) then hbdok := False;
+      [*] = ;                                 end;
+      [*] = ;                                 if (hbdt = gc_resource_type_wood) and (hcbtw >= 0) then
+      [*] = ;                                 begin
+      [*] = ;                                    if (hbcw <= hcbtw) then hbdok := False;
+      [*] = ;                                 end;
+      [*] = ;                                 if (hbdt = gc_resource_type_stone) and (hcbts >= 0) then
+      [*] = ;                                 begin
+      [*] = ;                                    if (hbcs <= hcbts) then hbdok := False;
+      [*] = ;                                 end;
+      [*] = ;                                 if (hbdok) then
+      [*] = ;                                 begin
+      [*] = ;                                    gTmpIntList.Add(hbgo2);
+      [*] = ;                                    if (hbdt = gc_resource_type_food) then hbcf := hbcf - 1;
+      [*] = ;                                    if (hbdt = gc_resource_type_wood) then hbcw := hbcw - 1;
+      [*] = ;                                    if (hbdt = gc_resource_type_stone) then hbcs := hbcs - 1;
+      [*] = ;                                 end
+      [*] = ;                                 else
+      [*] = ;                                 begin
+      [*] = ;                                    hbkept := hbkept + 1;
+      [*] = ;                                 end;
+      [*] = ;                              end;
       [*] = ;                           end;
       [*] = ;                        end;
+      [*] = ;                     if (hbkept > 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                             ': ' + IntToStr(hbkept) + ' men kept on resources at or below their own target in this file');
+      [*] = ;                        Log('bridge-human: GATHER res' + IntToStr(hca1) + ' kept ' + IntToStr(hbkept) + ' donors (their resource not above its target)');
+      [*] = ;                     end;
       [*] = ;                     if (hbhave < hca2) and (gTmpIntList.GetCount > 0) then
       [*] = ;                     begin
       [*] = ;                        // Nearest raised deposit of this type around the base.
