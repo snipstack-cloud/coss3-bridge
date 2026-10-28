@@ -482,7 +482,7 @@ class Bridge:
 
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = -1,
                 res: int = -1, peace: int = -1, ai: int = -1,
-                nation: str = "", balloon: int = -1,
+                nation: str = "", balloon: int = -1, nation2: str = "",
                 cannons: int = -1, capture: int = -1,
                 market: int = -1, century18: int = -1,
                 mapsize: int = -1, botslot: int = -1) -> bool:
@@ -533,6 +533,10 @@ class Bridge:
             поля["ai"] = int(ai)
         if nation:
             поля["nation"] = str(nation)
+        if nation2:
+            # НАЦИЯ ПРОТИВНИКА (28.10, серия обороны по нациям): блок ставит её
+            # слоту 1 в ветке нативного ИИ; пусто — как ours, как во всех записях.
+            поля["nation2"] = str(nation2)
         if int(balloon) >= 0:
             # additional.balloon: 0 как обычно, 1 запрещён, 2 ВЫДАН ВСЕМ — и
             # тогда тумана войны нет ни у кого (_player_UpdateFOW,

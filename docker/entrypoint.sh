@@ -487,6 +487,8 @@ else
     [ -n "${COSS3_MATCH_PEACE:-}" ]  && NEWARGS="$NEWARGS --peace ${COSS3_MATCH_PEACE}"
     [ -n "${COSS3_MATCH_AI:-}" ]     && NEWARGS="$NEWARGS --ai ${COSS3_MATCH_AI}"
     [ -n "${COSS3_MATCH_NATION:-}" ] && NEWARGS="$NEWARGS --nation ${COSS3_MATCH_NATION}"
+    # Нация ПРОТИВНИКА (28.10): пусто — та же, что наша, как во всех записях.
+    [ -n "${COSS3_MATCH_NATION2:-}" ] && NEWARGS="$NEWARGS --nation2 ${COSS3_MATCH_NATION2}"
     # Монгольфьер: 2 = выдан всем, и тумана войны нет ни у кого. С 13.09 это
     # условие ВСЕХ прогонов (решение игрока), поэтому умолчание здесь, а не в
     # env-файле: забыть его в одной серии — значит получить прогон, который не

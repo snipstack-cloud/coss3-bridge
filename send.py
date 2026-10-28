@@ -312,6 +312,9 @@ def main() -> int:
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
+    ap.add_argument("--nation2", default="",
+                    help="страна ПРОТИВНИКА строкой sid (pol, tur, ...); пусто — "
+                         "та же, что --nation, как во всех записях до 28.10")
     ap.add_argument("--new", nargs="?", type=int, const=0, default=None,
                     metavar="SEED", help="переиграть игру, можно с сидом")
     a = ap.parse_args()
@@ -344,6 +347,7 @@ def main() -> int:
         seed = a.new or 0
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
+                          nation2=a.nation2,
                           balloon=a.balloon, cannons=a.cannons,
                           capture=a.capture, market=a.market,
                           century18=a.century18, mapsize=a.mapsize,
