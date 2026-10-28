@@ -176,7 +176,7 @@ git pull
 python install_bridge.py "<игра>" --reinstall --human-only --human-state --human-cmd --endgame --human-kills
 (Select-String -Path "<игра>\data\scripts\units\global.inc\progress.inc" -Pattern '<новое_имя>').Count
 Remove-Item "<игра>\coss3_hb.dat"
-# игру запустить, довести до ГЛАВНОГО МЕНЮ, подождать 15 секунд
+# игру запустить, довести до ГЛАВНОГО МЕНЮ, ждать ДО ТРЁХ МИНУТ (Д19: пульс нового блока пришёл на 50-й секунде, 21.10 и 28.10 на 15 с чуть не откатили рабочую правку)
 Get-ChildItem "<игра>\coss3_hb.dat"
 ```
 
