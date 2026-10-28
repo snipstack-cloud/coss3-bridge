@@ -621,7 +621,7 @@ class Bridge:
 
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-               gid: int = 0, face=None, hold=None, gap=None, step=None, far=None) -> bool:
+               gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -641,15 +641,18 @@ class Bridge:
         if os.path.exists(self.atk_path):
             return False
         приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
-                              face, hold, gap, step, far)
+                              face, hold, gap, step, far, всех)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
 
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
-                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None):
+                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None):
         """Один приказ словарём полей файла, или None, если он негоден.
+
+        `всех` (28.10, Д20, ключ файла `all`): ВЕСЬ ДОМ — блок берёт и держащих строй, снимает удержание и ведёт
+        каждый наш отряд КАК ОТРЯД в ту же цель. Без ключа — как было: только свободные, отряды стоят.
 
         Выделено из `attack` 4.10, когда файл стал нести СПИСОК приказов (§78):
         проверки у списка и у одиночного приказа обязаны быть одни и те же, иначе
@@ -782,6 +785,8 @@ class Bridge:
         # целого «ключа нет» и «клетка 0,0» выглядят одинаково.
         if _кл:
             приказ["fx"], приказ["fy"] = _кл
+        if всех and not движение and _режим != "engage":
+            приказ["all"] = 1
         return приказ
 
     def attack_many(self, приказы: list[dict]) -> bool:
@@ -817,7 +822,7 @@ class Bridge:
                 int(п.get("gid", 0) or 0),
                 п.get("face"),
                 п.get("hold"),
-                п.get("gap"), п.get("step"), п.get("far"))
+                п.get("gap"), п.get("step"), п.get("far"), п.get("all"))
             if собран is None:
                 return False
             готовые.append(собран)

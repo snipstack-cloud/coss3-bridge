@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+"""§170у (28.10, Д20): ВЫХОД ВСЕМ ДОМОМ И ЛАГЕРЬ НА ПУТИ. В Д20 правило выхода насчитало дома 171, а приказ ATTACK 171 увёл 39: 143
+стояли в отряде LINE120, 33 держали строй заслоном — блок берёт счётным приказом только свободных. Волна легла в (11,9) у его лагеря
+184 (четыре клетки от ратуши, на дороге к крестьянам в (14,2)), которого прогноз выхода не видел. Кейс — живой такт Д20 13:00
+(`sim/кейсы/кейс_д20_13-00_выход.json`, клетки переведены в живую строку).
+
+(а) ключи файла (выход_всем 1, выход_лагерь 1): выход есть, приказ несёт all=1 — блок снимет удержание и поведёт отряды как отряды;
+    лагерь 171 в (12–13,9) по закону урона не останавливает 171 наших (R ≥ порога) — и это названо в why? нет: лагерь проходим, молчим.
+(б) лагерь втрое сильнее (его клетки ×3): выход не идёт, причина «на пути его лагерь … в 13,9».
+(в) выход_лагерь 0 при том же лагере ×3: как было — выход идёт (прогноз смотрит только на охрану у цели).
+(г) выход_всем 0: приказ без all.
+(д) мост: `_приказ(..., всех=1)` пишет all=1 в ATTACK и не пишет в move/retreat/face; `attack_many` переносит ключ из словаря.
+
+    python3 selftest_выход_всем.py
+"""
+import copy, json, os, sys, tempfile
+К = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, К); sys.path.insert(0, os.path.join(К, "sim"))
+os.environ.pop("COSS3_WAVE_CONTRACT", None)
+import strategy_live as SL
+import coss3_bridge as CB
+ошибок = 0
+def проверить(усл, что):
+    global ошибок
+    print(("ОК   " if усл else "ОШИБКА ") + что); ошибок += not усл
+S = json.load(open(os.path.join(К, "sim/кейсы/кейс_д20_13-00_выход.json"), encoding="utf-8"))
+def стратегия(доп):
+    д = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_ручеёк_эко_так15_нужда.json"), encoding="utf-8"))
+    д["итог"].update(доп)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(д, f, ensure_ascii=False)
+    С = SL.ЖиваяСтратегия(f.name); С._вк = dict(база=0.0, выходов=0, последний=None); return С
+def выход(доп, st):
+    С = стратегия(доп); из, w = С._выход_к([], copy.deepcopy(st))
+    return [c for c in из if c.get("cmd") == "ATTACK"], w
+def лагерь_x3(st):
+    s = dict(st); s["ecells"] = ";".join(",".join(str(int(v) * (3 if i == 2 or i == 3 else 1)) for i, v in enumerate(r.split(","))) for r in st["ecells"].split(";")); return s
+а, wа = выход({"выход_всем": 1, "выход_лагерь": 1}, S)
+проверить(len(а) == 1 and а[0].get("all") == 1 and а[0]["count"] == 171 and "выход 1" in wа, f"(а) ключи файла: выход 171 с all=1 — {а[:1]}; {wа[:120]}")
+б, wб = выход({"выход_всем": 1, "выход_лагерь": 1}, лагерь_x3(S))
+проверить(not б and "на пути его лагерь" in wб and "13,9" in wб, f"(б) лагерь ×3 на пути: не выходим — {wб[:200]}")
+в, wв = выход({"выход_всем": 1, "выход_лагерь": 0}, лагерь_x3(S))
+проверить(len(в) == 1 and "выход 1" in wв, f"(в) выход_лагерь 0 — как было, выход идёт: {wв[:100]}")
+г, wг = выход({"выход_всем": 0, "выход_лагерь": 0}, S)
+проверить(len(г) == 1 and "all" not in г[0], f"(г) выход_всем 0: приказ без all — {г[:1]}")
+br = CB.Bridge.__new__(CB.Bridge)
+п1 = br._приказ(171, "peasants", "", -1, -1, "", 0, 0, None, None, None, None, None, 1)
+п2 = br._приказ(171, "home", "retreat", -1, -1, "", 0, 0, None, None, None, None, None, 1)
+п3 = br._приказ(171, "peasants", "", -1, -1, "", 0, 0, None, None, None, None, None, None)
+проверить(п1 and п1.get("all") == 1 and п2 and "all" not in п2 and п3 and "all" not in п3, f"(д) мост: ATTACK all=1 {п1}; retreat без all {п2}; без ключа {п3}")
+import inspect
+проверить('п.get("all")' in inspect.getsource(CB.Bridge.attack_many), "(д′) attack_many переносит ключ all из словаря приказа")
+print(f"\nИТОГ: ошибок {ошибок}")
+sys.exit(1 if ошибок else 0)

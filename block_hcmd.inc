@@ -1481,6 +1481,15 @@
       [*] = ;         var hahold : Boolean = True;
       [*] = ;         if (ParserGetValueByKeyByHandle(hah, hapre + 'hold') <> '') then
       [*] = ;         hahold := (ParserGetIntValueByKeyByHandle(hah, hapre + 'hold') <> 0);
+      [*] = ;         // ALL (28.10, mac, game D20): the whole army leaves home. ATTACK by count takes idle men
+      [*] = ;         // only, and in D20 the exit rule asked for 171 while 143 stood in a LINE120 squad and 33
+      [*] = ;         // held ground as the screen: 39 went, were cut off four cells out, and the squad never
+      [*] = ;         // moved. With all=1 holding men go with the wave (hold released), and every squad of
+      [*] = ;         // ours is sent AS A SQUAD to the same target (_player_SetSquadPosition - the squad keeps
+      [*] = ;         // its shape and bonus), hold released the way lib/unit.script does it. Missing key: as before.
+      [*] = ;         var haall : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'all') <> 0);
+      [*] = ;         var hasqn : Integer = 0;
+      [*] = ;         var hasqm : Integer = 0;
       [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
       [*] = ;               // reasoning as for move and retreat.
       [*] = ;               if ((not gbool_peacemode) or (hamode = 'move') or (haretreat) or (haface)) then
@@ -1543,7 +1552,12 @@
       [*] = ;                     if (hatake2) and (hawrole >= 0) then
       [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) then
       [*] = ;                     hatake2 := False;
-      [*] = ;                     if (hatake2) and (hahled) then
+      [*] = ;                     // ALL: men of a squad go as squads (below), holding men outside squads go with the wave
+      [*] = ;                     if (hatake2) and (haall) and (TObj(hapo).squad >= 0) then
+      [*] = ;                     begin
+      [*] = ;                        hatake2 := False;
+      [*] = ;                     end;
+      [*] = ;                     if (hatake2) and (hahled) and (not haall) then
       [*] = ;                     begin
       [*] = ;                        hatake2 := False;
       [*] = ;                        haheldn := haheldn + 1;
@@ -1993,6 +2007,11 @@
       [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then
       [*] = ;               begin
+      [*] = ;                  if (haall) then
+      [*] = ;                  begin
+      [*] = ;                     // ALL: the holding men taken above are released before the move (same call as FACE hold, state False)
+      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, False, False, False);
+      [*] = ;                  end;
       [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, hadx, hadz,
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_attack);
       [*] = ;                  Log('bridge-human: ATTACK ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
@@ -2019,6 +2038,45 @@
       [*] = ;            else
       [*] = ;            Log('bridge-human: ATTACK skipped - soldiers ' + IntToStr(gIntegerList.GetCount) +
       [*] = ;                ', target found ' + BoolToStr(hafound) + ' [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
+      [*] = ;            // ALL: every squad of ours goes AS A SQUAD to the same target, with its hold released. Stands apart
+      [*] = ;            // from the wave above on purpose: when the whole army is in squads the wave list is empty, and
+      [*] = ;            // the squads must still go. Hold is released exactly as lib/unit.script _unit_SetSquadsStandGround does.
+      [*] = ;            if (haall) and (hafound) and (not haretreat) and (not haface) and (not hakite) and (hamode <> 'move') then
+      [*] = ;            begin
+      [*] = ;               var hasqi : Integer;
+      [*] = ;               for hasqi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;               begin
+      [*] = ;                  var hasqp : Pointer = gPlayer[plind].squads.Get(hasqi);
+      [*] = ;                  if (hasqp<>nil) then
+      [*] = ;                  if (TSquad(hasqp).GetCount > 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hasqx : Float = 0;
+      [*] = ;                     var hasqz : Float = 0;
+      [*] = ;                     _squad_GetCentralPosition(hasqp, hasqx, hasqz);
+      [*] = ;                     var hasdx : Float = hatx - hasqx;
+      [*] = ;                     var hasdy : Float = 0;
+      [*] = ;                     var hasdz : Float = hatz - hasqz;
+      [*] = ;                     VectorNormalize(hasdx, hasdy, hasdz);
+      [*] = ;                     TSquad(hasqp).fStandGround := False;
+      [*] = ;                     TSquad(hasqp).fHoldMode := False;
+      [*] = ;                     TSquad(hasqp).fHoldModeProgress := 0;
+      [*] = ;                     var hasqj : Integer;
+      [*] = ;                     for hasqj := 0 to TSquad(hasqp).GetCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hasqh : Integer = TSquad(hasqp).Get(hasqj);
+      [*] = ;                        var hasqu : Pointer = _unit_GetTObj(hasqh);
+      [*] = ;                        if (hasqu<>nil) then
+      [*] = ;                        TObj(hasqu).bstandground := False;
+      [*] = ;                     end;
+      [*] = ;                     _player_SetSquadPosition(haph, hasqi, hatx, hatz, hasdx, hasdz, False, True, gc_obj_order_move_mode_attack, False);
+      [*] = ;                     hasqn := hasqn + 1;
+      [*] = ;                     hasqm := hasqm + TSquad(hasqp).GetCount;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'ATTACK all: ' +
+      [*] = ;                    IntToStr(hasqn) + ' squads (' + IntToStr(hasqm) + ' men) sent as squads to ' + hatrg + ', hold released');
+      [*] = ;               Log('bridge-human: ATTACK all: ' + IntToStr(hasqn) + ' squads, ' + IntToStr(hasqm) + ' men sent as squads to ' + hatrg);
+      [*] = ;            end;
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
