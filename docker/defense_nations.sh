@@ -22,7 +22,7 @@ NATIONS="${NATIONS:-aus fra eng spa rus ukr pol swe pru ven tur alg den por pie 
 MAX="${MAX:-4}"
 STAGGER="${STAGGER:-90}"          # пауза между подъёмами: четыре игры под Wine стартуют не разом
 REF="${REF:-idea/defense-nations}"
-IDEA="${IDEA:-defense_nations}"
+IDEA="${IDEA:-defense_nations_v2}"   # v1 била в его базу (см. итог секции в experiments.ini)
 REPO="${REPO:-$HOME/coss3-git}"
 
 log() { echo "$(date '+%H:%M:%S') $*"; }
