@@ -129,6 +129,24 @@
       [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tw' + IntToStr(plind), -1);
       [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'ts' + IntToStr(plind), -1);
       [*] = ;            end;
+      [*] = ;            // 29.10 (mac, block task No1b, after balance_topup_vs_ai): the PREVIOUS targets are read before the write.
+      [*] = ;            // Ground BALANCE below takes men off a resource only when python LOWERED its target, not when it repeats
+      [*] = ;            // a target the sink (see TOPUP) has overfilled - otherwise the two would pull the same men every tick.
+      [*] = ;            var hcof : Integer = ParserGetIntValueByKeyByHandle(hctp, 'tf' + IntToStr(plind));
+      [*] = ;            var hcow : Integer = ParserGetIntValueByKeyByHandle(hctp, 'tw' + IntToStr(plind));
+      [*] = ;            var hcos : Integer = ParserGetIntValueByKeyByHandle(hctp, 'ts' + IntToStr(plind));
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctp, 'tf' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               hcof := -1;
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctp, 'tw' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               hcow := -1;
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(hctp, 'ts' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               hcos := -1;
+      [*] = ;            end;
       [*] = ;            if (hcbtf >= 0) then
       [*] = ;            begin
       [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tf' + IntToStr(plind), hcbtf);
@@ -143,6 +161,22 @@
       [*] = ;            end;
       [*] = ;            ParserSetFloatValueByKeyByHandle(hctp, 'cmd' + IntToStr(plind), GetGameTime);
       [*] = ;            ParserSetIntValueByKeyByHandle(hctp, 'set' + IntToStr(plind), 1);
+      [*] = ;            // The targets as stored NOW (this file, else the last file): MINE takes donors from a resource above them.
+      [*] = ;            var hcstf : Integer = hcbtf;
+      [*] = ;            var hcstw : Integer = hcbtw;
+      [*] = ;            var hcsts : Integer = hcbts;
+      [*] = ;            if (hcstf < 0) then
+      [*] = ;            begin
+      [*] = ;               hcstf := hcof;
+      [*] = ;            end;
+      [*] = ;            if (hcstw < 0) then
+      [*] = ;            begin
+      [*] = ;               hcstw := hcow;
+      [*] = ;            end;
+      [*] = ;            if (hcsts < 0) then
+      [*] = ;            begin
+      [*] = ;               hcsts := hcos;
+      [*] = ;            end;
       [*] = ;            for hcn := 0 to hccount-1 do
       [*] = ;            begin
       [*] = ;               var hckey : String = IntToStr(hcn) + '_';
@@ -657,9 +691,19 @@
       [*] = ;                     // gatherer (progresseconomicai.inc:583), and the player's order path calls it
       [*] = ;                     // too (readorder.inc:51): the man goes idle, and the next BALANCE - this very
       [*] = ;                     // tick or the following one - takes idle men FIRST.
-      [*] = ;                     if (hbhave > hca2) then
+      [*] = ;                     // 29.10 (mac, No1b): the sink seats every idle man, so a repeated target is often BELOW the count.
+      [*] = ;                     // Men come off only when python lowered its target since the last file (hbold = previous target,
+      [*] = ;                     // -1 = none yet), and only as many as it released - the rest stay where they work.
+      [*] = ;                     var hbold : Integer = hcof;
+      [*] = ;                     if (hca1 = 1) then hbold := hcow;
+      [*] = ;                     if (hca1 = 2) then hbold := hcos;
+      [*] = ;                     if ((hbold < 0) or (hca2 < hbold)) and (hbhave > hca2) then
       [*] = ;                     begin
       [*] = ;                        hbout := hbhave - hca2;
+      [*] = ;                        if (hbold >= 0) then
+      [*] = ;                        begin
+      [*] = ;                           if (hbold - hca2 < hbout) then hbout := hbold - hca2;
+      [*] = ;                        end;
       [*] = ;                        for hck := 0 to hcobjn-1 do
       [*] = ;                        if (hblet < hbout) then
       [*] = ;                        begin
@@ -684,6 +728,15 @@
       [*] = ;                             ', took off ' + IntToStr(hblet) + ' - they are idle now');
       [*] = ;                        Log('bridge-human: GATHER res' + IntToStr(hca1) + ' took off ' +
       [*] = ;                            IntToStr(hblet) + ', had ' + IntToStr(hbhave) + ', asked ' + IntToStr(hca2));
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     if (hbhave > hca2) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
+      [*] = ;                             ': ' + IntToStr(hbhave) + ' gather it, asked for ' + IntToStr(hca2) +
+      [*] = ;                             ' - same target as before, the extra men were seated by the sink and stay');
+      [*] = ;                        Log('bridge-human: GATHER res' + IntToStr(hca1) + ' kept ' + IntToStr(hbhave - hca2) +
+      [*] = ;                            ' over target (no new decrease), had ' + IntToStr(hbhave) + ', asked ' + IntToStr(hca2));
       [*] = ;                     end;
       [*] = ;                     // Second pass: if idle peasants are not enough, take them off ANOTHER
       [*] = ;                     // resource. Without this BALANCE could only ever place idle men, and in the
@@ -870,6 +923,13 @@
       [*] = ;                  // so the let-out counters live here, where hminside lives.
       [*] = ;                  var hmout : Integer = 0;
       [*] = ;                  var hmlet : Integer = 0;
+      [*] = ;                  // 29.10 (mac, No1b): the sink leaves no idle men, so a mine is filled from the ground too -
+      [*] = ;                  // only from a resource ABOVE its stored target (hcstf/hcstw/hcsts; -1 = no target, any man may go),
+      [*] = ;                  // i.e. from the very men who would have stood idle before. Counters live here (scalar lesson).
+      [*] = ;                  var hmcf : Integer = 0;
+      [*] = ;                  var hmcw : Integer = 0;
+      [*] = ;                  var hmcs : Integer = 0;
+      [*] = ;                  var hmdon : Integer = 0;
       [*] = ;                  // First pass: mines of this kind built, men already inside THEM, and men
       [*] = ;                  // free to be sent at all.
       [*] = ;                  for hmk := 0 to hcobjn-1 do
@@ -893,9 +953,37 @@
       [*] = ;                           end
       [*] = ;                           else
       [*] = ;                           if (TObj(hmpo).orders[0].itype = gc_obj_order_type_none) then
-      [*] = ;                           hmfree := hmfree + 1;
+      [*] = ;                           begin
+      [*] = ;                              hmfree := hmfree + 1;
+      [*] = ;                           end
+      [*] = ;                           else
+      [*] = ;                           if (TObj(hmpo).orders[0].itype = gc_obj_order_type_gainres) then
+      [*] = ;                           begin
+      [*] = ;                              var hmrp : Pointer = _res_GetTRes(TObj(hmpo).orders[0].info.trg);
+      [*] = ;                              if (hmrp<>nil) then
+      [*] = ;                              begin
+      [*] = ;                                 if (TRes(hmrp).itype = gc_resource_type_food) then hmcf := hmcf + 1;
+      [*] = ;                                 if (TRes(hmrp).itype = gc_resource_type_wood) then hmcw := hmcw + 1;
+      [*] = ;                                 if (TRes(hmrp).itype = gc_resource_type_stone) then hmcs := hmcs + 1;
+      [*] = ;                              end;
+      [*] = ;                           end;
       [*] = ;                        end;
       [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hcstf < 0) then hmdon := hmdon + hmcf;
+      [*] = ;                  if (hcstw < 0) then hmdon := hmdon + hmcw;
+      [*] = ;                  if (hcsts < 0) then hmdon := hmdon + hmcs;
+      [*] = ;                  if (hcstf >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmcf > hcstf) then hmdon := hmdon + hmcf - hcstf;
+      [*] = ;                  end;
+      [*] = ;                  if (hcstw >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmcw > hcstw) then hmdon := hmdon + hmcw - hcstw;
+      [*] = ;                  end;
+      [*] = ;                  if (hcsts >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (hmcs > hcsts) then hmdon := hmdon + hmcs - hcsts;
       [*] = ;                  end;
       [*] = ;                  // Silence is indistinguishable from doing nothing: every refusal says why,
       [*] = ;                  // and the reason goes back into the next request.
@@ -958,11 +1046,11 @@
       [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - already inside ' + IntToStr(hminside));
       [*] = ;                  end
       [*] = ;                  else
-      [*] = ;                  if (hmfree = 0) then
+      [*] = ;                  if (hmfree + hmdon = 0) then
       [*] = ;                  begin
       [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'BALANCE res' + IntToStr(hca1) +
-      [*] = ;                          ': no idle peasant to send, and a busy one is not taken away');
-      [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no idle peasants');
+      [*] = ;                          ': no idle peasant to send, and every resource stands at or below its target - lower one first');
+      [*] = ;                     Log('bridge-human: MINE res' + IntToStr(hca1) + ' - no idle peasants and no resource above its target');
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  begin
@@ -1009,6 +1097,48 @@
       [*] = ;                                 if (TObj(hmpo3).insideofuid = 0) then
       [*] = ;                                 if (TObj(hmpo3).orders[0].itype = gc_obj_order_type_none) then
       [*] = ;                                 gTmpIntList.Add(hmgo3);
+      [*] = ;                              end;
+      [*] = ;                              // Second pass (No1b): donors off the ground, a resource above its stored target only.
+      [*] = ;                              if (gTmpIntList.GetCount < hmroom) then
+      [*] = ;                              for hmk2 := 0 to hcobjn-1 do
+      [*] = ;                              if (gTmpIntList.GetCount < hmroom) then
+      [*] = ;                              begin
+      [*] = ;                                 var hmgo4 : Integer = GetGameObjectHandleByIndex(hmk2, hcph);
+      [*] = ;                                 var hmpo4 : Pointer = _unit_GetTObj(hmgo4);
+      [*] = ;                                 if (hmpo4<>nil) then
+      [*] = ;                                 if (gObjProp[TObj(hmpo4).cid][TObj(hmpo4).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                                 if (TObj(hmpo4).insideofuid = 0) then
+      [*] = ;                                 if (TObj(hmpo4).orders[0].itype = gc_obj_order_type_gainres) then
+      [*] = ;                                 begin
+      [*] = ;                                    var hmrp4 : Pointer = _res_GetTRes(TObj(hmpo4).orders[0].info.trg);
+      [*] = ;                                    if (hmrp4<>nil) then
+      [*] = ;                                    begin
+      [*] = ;                                       var hmdt : Integer = TRes(hmrp4).itype;
+      [*] = ;                                       var hmdok : Boolean = False;
+      [*] = ;                                       if (hmdt = gc_resource_type_food) then
+      [*] = ;                                       begin
+      [*] = ;                                          if (hcstf < 0) then hmdok := True;
+      [*] = ;                                          if (hmcf > hcstf) then hmdok := True;
+      [*] = ;                                       end;
+      [*] = ;                                       if (hmdt = gc_resource_type_wood) then
+      [*] = ;                                       begin
+      [*] = ;                                          if (hcstw < 0) then hmdok := True;
+      [*] = ;                                          if (hmcw > hcstw) then hmdok := True;
+      [*] = ;                                       end;
+      [*] = ;                                       if (hmdt = gc_resource_type_stone) then
+      [*] = ;                                       begin
+      [*] = ;                                          if (hcsts < 0) then hmdok := True;
+      [*] = ;                                          if (hmcs > hcsts) then hmdok := True;
+      [*] = ;                                       end;
+      [*] = ;                                       if (hmdok) then
+      [*] = ;                                       begin
+      [*] = ;                                          gTmpIntList.Add(hmgo4);
+      [*] = ;                                          if (hmdt = gc_resource_type_food) then hmcf := hmcf - 1;
+      [*] = ;                                          if (hmdt = gc_resource_type_wood) then hmcw := hmcw - 1;
+      [*] = ;                                          if (hmdt = gc_resource_type_stone) then hmcs := hmcs - 1;
+      [*] = ;                                       end;
+      [*] = ;                                    end;
+      [*] = ;                                 end;
       [*] = ;                              end;
       [*] = ;                              if (gTmpIntList.GetCount > 0) then
       [*] = ;                              begin
@@ -2215,8 +2345,12 @@
       [*] = ;            end;
       [*] = ;            if (gTmpIntList.GetCount > 0) and (hthall) then
       [*] = ;            begin
+      [*] = ;               // SINK (29.10, mac, No1b, after balance_topup_vs_ai: idle 3+ in 22-31 % of ticks while every target
+      [*] = ;               // was met - python let 10 out of the gold mine and its own 50 s transfer term refused to seat them).
+      [*] = ;               // Passes 3..5: whoever is still idle after the targets goes to wood, else food (mill), else stone.
+      [*] = ;               // Nobody stands. BALANCE and MINE take these men back as donors (above target), see No1b there.
       [*] = ;               var htr : Integer;
-      [*] = ;               for htr := 0 to 2 do
+      [*] = ;               for htr := 0 to 5 do
       [*] = ;               if (gTmpIntList.GetCount > 0) then
       [*] = ;               begin
       [*] = ;                  var htres : Integer = -1;
@@ -2245,7 +2379,28 @@
       [*] = ;                     httarget := htts;
       [*] = ;                     hthad := hts;
       [*] = ;                  end;
+      [*] = ;                  if (htr = 3) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_wood;
+      [*] = ;                     httarget := -1;
+      [*] = ;                     hthad := htw;
+      [*] = ;                  end;
+      [*] = ;                  if (htr = 4) and (htmill) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_food;
+      [*] = ;                     httarget := -1;
+      [*] = ;                     hthad := htf;
+      [*] = ;                     htfx := htmx;
+      [*] = ;                     htfz := htmz;
+      [*] = ;                  end;
+      [*] = ;                  if (htr = 5) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_stone;
+      [*] = ;                     httarget := -1;
+      [*] = ;                     hthad := hts;
+      [*] = ;                  end;
       [*] = ;                  htneed := httarget - hthad;
+      [*] = ;                  if (htr >= 3) then htneed := gTmpIntList.GetCount;
       [*] = ;                  if (htres >= 0) and (htneed > 0) then
       [*] = ;                  begin
       [*] = ;                     if (htneed > gTmpIntList.GetCount) then htneed := gTmpIntList.GetCount;
@@ -2282,8 +2437,16 @@
       [*] = ;                           _unit_OrderGainResource(htgo2, httrg, htpx, htpz);
       [*] = ;                           htsent := htsent + 1;
       [*] = ;                        end;
-      [*] = ;                        Log('bridge-human: TOPUP res' + IntToStr(htr) + ' +' + IntToStr(htsent) + ' idle (had ' +
-      [*] = ;                            IntToStr(hthad) + ', target ' + IntToStr(httarget) + ')');
+      [*] = ;                        if (htr < 3) then
+      [*] = ;                        begin
+      [*] = ;                           Log('bridge-human: TOPUP res' + IntToStr(htr) + ' +' + IntToStr(htsent) + ' idle (had ' +
+      [*] = ;                               IntToStr(hthad) + ', target ' + IntToStr(httarget) + ')');
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           Log('bridge-human: TOPUP sink res' + IntToStr(htr - 3) + ' +' + IntToStr(htsent) + ' idle (had ' +
+      [*] = ;                               IntToStr(hthad) + ', no target below)');
+      [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
