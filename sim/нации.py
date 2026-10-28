@@ -227,7 +227,11 @@ def совет(м: dict) -> str:
 
 def main():
     юн = юниты_из_скрипта(); рос = роспись()
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    # 28.10: значение `--md` не начинается с дефисов и попадало в список НАЦИЙ — раздел выходил
+    # с именем файла вместо нации, роспись для него не находилась, таблица пустая.
+    _хвост = sys.argv[1:]
+    args = [a for i, a in enumerate(_хвост)
+            if not a.startswith("--") and not (i > 0 and _хвост[i - 1] == "--md")]
     md = sys.argv[sys.argv.index("--md") + 1] if "--md" in sys.argv else None
     нации = args or [n for n in НАЦИИ.values() if n != "net"]
     out = ["# Матрица адаптации Нидерландов по нациям противника (28.10)", "",
