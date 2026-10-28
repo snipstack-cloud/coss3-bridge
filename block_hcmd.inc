@@ -114,6 +114,35 @@
       [*] = ;                  hcbts := hcbv;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // TOPUP STORE (29.10, mac, block task No1): the ground targets of THIS file are remembered (br_hbal) for the
+      [*] = ;            // per-second top-up at the end of the block: idle men are seated to a resource below its target every second,
+      [*] = ;            // so a peasant leaving the town hall or a finished building does not wait five seconds for python. Game D19:
+      [*] = ;            // idle 4-6 from 1:15 to 1:40 while men came out one by one. Only idle men are moved - the circle fix above
+      [*] = ;            // is not touched. A target of 0 is kept too: python took the men off, nobody is seated back.
+      [*] = ;            var hctp : Integer = ParserSelectByKey('br_hbal');
+      [*] = ;            if (hctp = 0) then
+      [*] = ;            hctp := ParserCreate('br_hbal');
+      [*] = ;            if (GetGameTime < ParserGetFloatValueByKeyByHandle(hctp, 'cmd' + IntToStr(plind))) then
+      [*] = ;            begin
+      [*] = ;               // a new game started: the targets of the old one are void
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tf' + IntToStr(plind), -1);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tw' + IntToStr(plind), -1);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'ts' + IntToStr(plind), -1);
+      [*] = ;            end;
+      [*] = ;            if (hcbtf >= 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tf' + IntToStr(plind), hcbtf);
+      [*] = ;            end;
+      [*] = ;            if (hcbtw >= 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'tw' + IntToStr(plind), hcbtw);
+      [*] = ;            end;
+      [*] = ;            if (hcbts >= 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hctp, 'ts' + IntToStr(plind), hcbts);
+      [*] = ;            end;
+      [*] = ;            ParserSetFloatValueByKeyByHandle(hctp, 'cmd' + IntToStr(plind), GetGameTime);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hctp, 'set' + IntToStr(plind), 1);
       [*] = ;            for hcn := 0 to hccount-1 do
       [*] = ;            begin
       [*] = ;               var hckey : String = IntToStr(hcn) + '_';
@@ -2095,6 +2124,172 @@
       [*] = ;      //   nobody in range                    -> hold and wait.
       [*] = ;      // Any other order to the group, or nobody alive, switches it off (mode 5 in `groups`).
       [*] = ;      // Zero cost until the first KITE order: the parser does not exist before it.
+      [*] = ;      // === TOPUP (29.10, mac, block task No1): idle men to the resource below its target, once a second ===
+      [*] = ;      // Targets come from the last command file (br_hbal, see TOPUP STORE). Only IDLE men are moved - a man already
+      [*] = ;      // gathering is never touched, so this cannot walk anybody in circles. Food is searched around the MILL, wood and
+      [*] = ;      // stone around the town hall, exactly as the BALANCE command does. Skipped for a second after a command file,
+      [*] = ;      // so python's own orders of the tick apply first.
+      [*] = ;      var htp : Integer = ParserSelectByKey('br_hbal');
+      [*] = ;      if (htp <> 0) then
+      [*] = ;      if (ParserGetIntValueByKeyByHandle(htp, 'set' + IntToStr(plind)) = 1) then
+      [*] = ;      begin
+      [*] = ;         var htnow : Float = GetGameTime;
+      [*] = ;         var htlast : Float = ParserGetFloatValueByKeyByHandle(htp, 'at' + IntToStr(plind));
+      [*] = ;         var htcmd : Float = ParserGetFloatValueByKeyByHandle(htp, 'cmd' + IntToStr(plind));
+      [*] = ;         if (htnow < htcmd) then
+      [*] = ;         begin
+      [*] = ;            ParserSetIntValueByKeyByHandle(htp, 'set' + IntToStr(plind), 0);
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         if ((htnow - htlast >= 1.0) or (htnow < htlast)) and (htnow - htcmd >= 1.0) then
+      [*] = ;         begin
+      [*] = ;            ParserSetFloatValueByKeyByHandle(htp, 'at' + IntToStr(plind), htnow);
+      [*] = ;            var httf : Integer = ParserGetIntValueByKeyByHandle(htp, 'tf' + IntToStr(plind));
+      [*] = ;            var httw : Integer = ParserGetIntValueByKeyByHandle(htp, 'tw' + IntToStr(plind));
+      [*] = ;            var htts : Integer = ParserGetIntValueByKeyByHandle(htp, 'ts' + IntToStr(plind));
+      [*] = ;            if (ParserGetValueByKeyByHandle(htp, 'tf' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               httf := -1;
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(htp, 'tw' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               httw := -1;
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(htp, 'ts' + IntToStr(plind)) = '') then
+      [*] = ;            begin
+      [*] = ;               htts := -1;
+      [*] = ;            end;
+      [*] = ;            var htph : Integer = GetPlayerHandleByIndex(plind);
+      [*] = ;            var htoc : Integer = GetPlayerGameObjectsCountByHandle(htph);
+      [*] = ;            var htf : Integer = 0;
+      [*] = ;            var htw : Integer = 0;
+      [*] = ;            var hts : Integer = 0;
+      [*] = ;            var hthx : Float = 0;
+      [*] = ;            var hthz : Float = 0;
+      [*] = ;            var hthall : Boolean = False;
+      [*] = ;            var htmx : Float = 0;
+      [*] = ;            var htmz : Float = 0;
+      [*] = ;            var htmill : Boolean = False;
+      [*] = ;            var htk : Integer;
+      [*] = ;            gTmpIntList.Clear;
+      [*] = ;            for htk := 0 to htoc-1 do
+      [*] = ;            begin
+      [*] = ;               var htgo : Integer = GetGameObjectHandleByIndex(htk, htph);
+      [*] = ;               var htpo : Pointer = _unit_GetTObj(htgo);
+      [*] = ;               if (htpo<>nil) then
+      [*] = ;               begin
+      [*] = ;                  var htrole : Integer = gObjProp[TObj(htpo).cid][TObj(htpo).id].airole;
+      [*] = ;                  if (htrole = gc_ai_unit_center) and (not hthall) then
+      [*] = ;                  begin
+      [*] = ;                     hthall := True;
+      [*] = ;                     hthx := GetGameObjectPositionXByHandle(htgo);
+      [*] = ;                     hthz := GetGameObjectPositionZByHandle(htgo);
+      [*] = ;                  end;
+      [*] = ;                  if (htrole = gc_ai_unit_mill) and (not htmill) then
+      [*] = ;                  if (TObj(htpo).bbuilt) then
+      [*] = ;                  begin
+      [*] = ;                     htmill := True;
+      [*] = ;                     htmx := GetGameObjectPositionXByHandle(htgo);
+      [*] = ;                     htmz := GetGameObjectPositionZByHandle(htgo);
+      [*] = ;                  end;
+      [*] = ;                  if (gObjProp[TObj(htpo).cid][TObj(htpo).id].usage = gc_obj_usage_peasant) then
+      [*] = ;                  if (TObj(htpo).insideofuid = 0) then
+      [*] = ;                  begin
+      [*] = ;                     var htot : Integer = TObj(htpo).orders[0].itype;
+      [*] = ;                     if (htot = gc_obj_order_type_gainres) then
+      [*] = ;                     begin
+      [*] = ;                        var htrp : Pointer = _res_GetTRes(TObj(htpo).orders[0].info.trg);
+      [*] = ;                        if (htrp<>nil) then
+      [*] = ;                        begin
+      [*] = ;                           if (TRes(htrp).itype = gc_resource_type_food) then htf := htf + 1;
+      [*] = ;                           if (TRes(htrp).itype = gc_resource_type_wood) then htw := htw + 1;
+      [*] = ;                           if (TRes(htrp).itype = gc_resource_type_stone) then hts := hts + 1;
+      [*] = ;                        end;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     if (htot = gc_obj_order_type_none) then
+      [*] = ;                     if (not TObj(htpo).bstandground) then
+      [*] = ;                     gTmpIntList.Add(htgo);
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (gTmpIntList.GetCount > 0) and (hthall) then
+      [*] = ;            begin
+      [*] = ;               var htr : Integer;
+      [*] = ;               for htr := 0 to 2 do
+      [*] = ;               if (gTmpIntList.GetCount > 0) then
+      [*] = ;               begin
+      [*] = ;                  var htres : Integer = -1;
+      [*] = ;                  var htneed : Integer = 0;
+      [*] = ;                  var httarget : Integer = 0;
+      [*] = ;                  var hthad : Integer = 0;
+      [*] = ;                  var htfx : Float = hthx;
+      [*] = ;                  var htfz : Float = hthz;
+      [*] = ;                  if (htr = 0) and (httf >= 0) and (htmill) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_food;
+      [*] = ;                     httarget := httf;
+      [*] = ;                     hthad := htf;
+      [*] = ;                     htfx := htmx;
+      [*] = ;                     htfz := htmz;
+      [*] = ;                  end;
+      [*] = ;                  if (htr = 1) and (httw >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_wood;
+      [*] = ;                     httarget := httw;
+      [*] = ;                     hthad := htw;
+      [*] = ;                  end;
+      [*] = ;                  if (htr = 2) and (htts >= 0) then
+      [*] = ;                  begin
+      [*] = ;                     htres := gc_resource_type_stone;
+      [*] = ;                     httarget := htts;
+      [*] = ;                     hthad := hts;
+      [*] = ;                  end;
+      [*] = ;                  htneed := httarget - hthad;
+      [*] = ;                  if (htres >= 0) and (htneed > 0) then
+      [*] = ;                  begin
+      [*] = ;                     if (htneed > gTmpIntList.GetCount) then htneed := gTmpIntList.GetCount;
+      [*] = ;                     gIntegerList.Clear;
+      [*] = ;                     _misc_MakeListEnvironmentInRadius(htfx, htfz, 40, True, True, True, True, False, gIntegerList);
+      [*] = ;                     var httrg : Integer = 0;
+      [*] = ;                     var htbest : Float = 1000000;
+      [*] = ;                     var htj : Integer;
+      [*] = ;                     for htj := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hth : Integer = gIntegerList.Get(htj);
+      [*] = ;                        var htrp2 : Pointer = _res_GetTRes(hth);
+      [*] = ;                        if (htrp2<>nil) then
+      [*] = ;                        if (TRes(htrp2).brised) and (TRes(htrp2).itype = htres) then
+      [*] = ;                        begin
+      [*] = ;                           var htd : Float = VectorDistance(GetGameObjectPositionXByHandle(hth), 0,
+      [*] = ;                                GetGameObjectPositionZByHandle(hth), hthx, 0, hthz);
+      [*] = ;                           if (htd < htbest) then
+      [*] = ;                           begin
+      [*] = ;                              htbest := htd;
+      [*] = ;                              httrg := hth;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (httrg <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        var htpx : Float = GetGameObjectPositionXByHandle(httrg);
+      [*] = ;                        var htpz : Float = GetGameObjectPositionZByHandle(httrg);
+      [*] = ;                        var htsent : Integer = 0;
+      [*] = ;                        while (htsent < htneed) and (gTmpIntList.GetCount > 0) do
+      [*] = ;                        begin
+      [*] = ;                           var htgo2 : Integer = gTmpIntList.Get(gTmpIntList.GetCount-1);
+      [*] = ;                           gTmpIntList.Delete(gTmpIntList.GetCount-1);
+      [*] = ;                           _unit_OrderGainResource(htgo2, httrg, htpx, htpz);
+      [*] = ;                           htsent := htsent + 1;
+      [*] = ;                        end;
+      [*] = ;                        Log('bridge-human: TOPUP res' + IntToStr(htr) + ' +' + IntToStr(htsent) + ' idle (had ' +
+      [*] = ;                            IntToStr(hthad) + ', target ' + IntToStr(httarget) + ')');
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;      end;
       [*] = ;      var hkp : Integer = ParserSelectByKey('br_hkite');
       [*] = ;      if (hkp <> 0) then
       [*] = ;      begin
