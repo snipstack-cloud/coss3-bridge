@@ -50,5 +50,12 @@ br = CB.Bridge.__new__(CB.Bridge)
 проверить(п1 and п1.get("all") == 1 and п2 and "all" not in п2 and п3 and "all" not in п3, f"(д) мост: ATTACK all=1 {п1}; retreat без all {п2}; без ключа {п3}")
 import inspect
 проверить('п.get("all")' in inspect.getsource(CB.Bridge.attack_many), "(д′) attack_many переносит ключ all из словаря приказа")
+# (е) 28.10, Д21: ОБЕ ветки отказа «больше свободных» (урезание и «собирать некого») пропускают приказ с all — иначе выход всем домом
+# молча остаётся дома (Д21: 136 при 112 свободных, «ATTACK all» в game.log 0 строк)
+_src = open(os.path.join(К, "llm_policy.py"), encoding="utf-8").read()
+_отказы = [l for l in _src.split("\n") if "attack > св + аг" in l]
+проверить(len(_отказы) >= 2 and all("not ВЕСЬ_ДОМ" in l for l in _отказы), f"(е) ветки отказа по свободным ({len(_отказы)}) все знают про ВЕСЬ_ДОМ: {[l.strip()[:60] for l in _отказы]}")
+проверить('приказ["all"] = 1' in _src and "ВЕСЬ ДОМ (all=1" in _src, "(е′) список удара несёт all при ВЕСЬ_ДОМ, отправка говорит об этом вслух")
+проверить("ЦЕЛЬ ДОСТИГНУТА: его крестьян потеряно" in _src, "(ж) приговор горизонта судит по p1_pea_lost, а не печатает «не достигнута» безусловно")
 print(f"\nИТОГ: ошибок {ошибок}")
 sys.exit(1 if ошибок else 0)
