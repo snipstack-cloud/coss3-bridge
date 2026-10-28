@@ -69,5 +69,19 @@ _к = json.load(open(os.path.join(К, "sim/поиск/шт_s2_оборона_р�
 _разн = {б: {k for k in set(_ж[б]) | set(_к[б]) if _ж[б].get(k) != _к[б].get(k)} for б in ("итог", "лучший")}
 проверить(all(v == {"выход_к", "выход_к_после_цели"} for v in _разн.values()) and _к["итог"]["выход_к"] == 300 and _к["итог"]["выход_к_после_цели"] == 1,
           f"(и) контейнерный файл партии отличается от живого ровно ключами выход_к/выход_к_после_цели: {_разн}")
+# (к) 29.10, exit_all_vs_ai_2: выход помнится памятью сирот и следующий такт не возвращает вышедших домой
+import анализ_врага as АВ
+Ск = стратегия({"выход_всем": 1, "выход_лагерь": 1})
+АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None})
+о1 = Ск.ответ(copy.deepcopy(S))
+а1 = [c for c in о1["commands"] if c.get("cmd") == "ATTACK" and c.get("all")]
+пам = getattr(Ск, "_выход_поля", None)
+проверить(bool(а1) and пам is not None and tuple(пам["цель"]) == (14, 2) and пам["до"] > 780,
+          f"(к) выход 13:00 запомнен памятью сирот: {пам}")
+S2 = dict(S, gametime=800, mil_away=120, mil_far=70, my_freewar=10, ocells="12,9,120,110,10,0;12,13,51,43,8,0")
+АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None})
+о2 = Ск.ответ(copy.deepcopy(S2))
+проверить(not any(c.get("cmd") == "RETREAT" for c in о2["commands"]) and "СИРОТЫ" not in о2["why"],
+          f"(к′) 13:20, 120 наших в (12,9) на пути к (14,2): сирот нет, RETREAT нет — {[c for c in о2['commands'] if c.get('cmd') in ('RETREAT','ATTACK')][:2]} | {[x for x in о2['why'].split('; ') if 'сирот' in x.lower()][:1]}")
 print(f"\nИТОГ: ошибок {ошибок}")
 sys.exit(1 if ошибок else 0)

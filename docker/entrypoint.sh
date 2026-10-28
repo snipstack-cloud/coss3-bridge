@@ -619,7 +619,8 @@ postmortem() {
     if [ -z "$GAMELOG" ]; then
         # 28.10 (серия exit_all_vs_ai): в профиле лога не нашлось ни разу, а игра под Wine пишет свой `game.log` В КАТАЛОГ ИГРЫ
         # (на Windows — `<игра>\game.log`, именно его шлёт в архив человек). Берём самый свежий *.log из каталога игры.
-        GAMELOG=$(ls -t "$COSS3_GAME"/game.log "$COSS3_GAME"/*.log 2>/dev/null | head -1) || true
+        # 29.10 (Windows, exit_all_vs_ai_2): лог лежит на каталог глубже — /opt/cossacks/log/<дата>.log (1861 строка, 136 bridge-human)
+        GAMELOG=$(ls -t "$COSS3_GAME"/log/*.log "$COSS3_GAME"/game.log "$COSS3_GAME"/*.log 2>/dev/null | head -1) || true
     fi
     if [ -n "$GAMELOG" ]; then
         grep "bridge-human" "$GAMELOG" 2>/dev/null | tail -400 \
