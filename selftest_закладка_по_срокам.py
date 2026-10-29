@@ -61,4 +61,8 @@ st3 = dict(st); st3.update({"on_gold": 7, "gold": 2532, "wood": 178, "stone": 16
                  {"gametime": 304, "food": 1796, "idle_pea": 0, "on_food": 13, "on_wood": 0, "on_stone": 0, "on_gold": 15, "on_iron": 0, "on_coal": 0},
                  {"переброс_раз": 50}, с, отд)
 проверить(sorted((c["role"], c["total"]) for c in в) == [("gold", 10), ("wood", 5)] and not any("срок" in k for k in отд), f"(ж) `_по_срокам` мимо срока: {[(c['role'], c['total']) for c in в]}; {[k[:60] for k in отд][:2]}")
+# (з) 29.10 (Д26): ЗОЛОТО ОТСТАЁТ — шахтёров не трогаем: золото 1000/2500 при 10 шахтёрах (90 с), дерево и камень 400/500 при 3 (≤ 60 с)
+st4 = dict(st); st4.update({"on_gold": 10, "gold": 1000, "wood": 400, "stone": 400, "on_wood": 3, "on_stone": 3, "mines_gold": 2})
+о4 = ответ(стратегия({"закладка_по_срокам": 1}), st4)
+проверить("§170щ" not in о4["why"] and баланс(о4, "gold") in (-1, 10), f"(з) золото отстаёт — шахтёры на месте (gold {баланс(о4, 'gold')}, §170щ {'есть' if '§170щ' in о4['why'] else 'нет'})")
 print(f"ошибок: {ошибок}"); raise SystemExit(1 if ошибок else 0)

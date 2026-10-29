@@ -2258,15 +2258,19 @@
       [*] = ;                  hgtx := -1;
       [*] = ;                  hgty := -1;
       [*] = ;                  hgmode := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_m');
+      [*] = ;                  var hgw : Integer = 0;
       [*] = ;                  for hgk := 0 to hgcnt-1 do
       [*] = ;                  begin
       [*] = ;                     var hgh : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk));
+      [*] = ;                     var hgkeep : Boolean = False;
       [*] = ;                     if (hgh <> 0) then
       [*] = ;                     begin
       [*] = ;                        var hgp : Pointer = _unit_GetTObj(hgh);
       [*] = ;                        if (hgp<>nil) then
       [*] = ;                        if (not TObj(hgp).bdead) then
+      [*] = ;                        if (GetGameObjectPlayerHandleByHandle(hgh) = hsph) then
       [*] = ;                        begin
+      [*] = ;                           hgkeep := True;
       [*] = ;                           var hgu : Integer = gObjProp[TObj(hgp).cid][TObj(hgp).id].usage;
       [*] = ;                           hgliv := hgliv + 1;
       [*] = ;                           hgsx := hgsx + Round(GetGameObjectPositionXByHandle(hgh)+hmhw);
@@ -2291,6 +2295,7 @@
       [*] = ;                              var hgoy : Float = TObj(hgp).orders[0].info.y;
       [*] = ;                              if (TObj(hgp).orders[0].itype = gc_obj_order_type_attackobj) then
       [*] = ;                              if (TObj(hgp).orders[0].info.trg <> 0) then
+      [*] = ;                              if (_unit_GetTObj(TObj(hgp).orders[0].info.trg) <> nil) then
       [*] = ;                              begin
       [*] = ;                                 hgox := GetGameObjectPositionXByHandle(TObj(hgp).orders[0].info.trg);
       [*] = ;                                 hgoy := GetGameObjectPositionZByHandle(TObj(hgp).orders[0].info.trg);
@@ -2303,6 +2308,27 @@
       [*] = ;                           end;
       [*] = ;                        end;
       [*] = ;                     end;
+      [*] = ;                     if (hgkeep) then
+      [*] = ;                     begin
+      [*] = ;                        if (hgw <> hgk) then
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgw), hgh);
+      [*] = ;                        hgw := hgw + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  // ROLL CLEANING (29.10, D26 freeze named by the stage probe: stage 9, this loop).
+      [*] = ;                  // Handles of men who died are kept in br_hgrp forever, and the engine REUSES a
+      [*] = ;                  // freed handle for a new object: in D26 group 1 had 1 man alive at 13:07 and 5 at
+      [*] = ;                  // 13:37 without any order - strangers under our old handles. Reading them is
+      [*] = ;                  // what died here. A dead or foreign handle is dropped from the roll the second it
+      [*] = ;                  // is seen (the body still exists then, so the handle is still valid), and the roll
+      [*] = ;                  // is packed, so neither this block nor the command block touches it again.
+      [*] = ;                  if (hgw < hgcnt) then
+      [*] = ;                  begin
+      [*] = ;                     for hgk := hgw to hgcnt-1 do
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk), 0);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', hgw);
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned: ' + IntToStr(hgcnt-hgw) +
+      [*] = ;                          ' dead or foreign handles dropped, ' + IntToStr(hgw) + ' left');
       [*] = ;                  end;
       [*] = ;                  // A group with nobody alive is not written at all: the model must
       [*] = ;                  // not order a group that no longer exists.
@@ -2326,6 +2352,7 @@
       [*] = ;            hgstr := 'none';
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'groups', hgstr);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'groups_n', hgrows);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 91);
       [*] = ;            // MERGE ON ARRIVAL (4.10, par.78). A group told to walk to another one
       [*] = ;            // carries g<A>_to = B. Arrived means THE SAME CELL - the same measure
       [*] = ;            // ocells and the whole post-mortem use, and the only one visible in the
@@ -2359,6 +2386,7 @@
       [*] = ;                      IntToStr(hgto) + ', now ' + IntToStr(hgbn) + ' men');
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 92);
       [*] = ;            // BUILDINGS OF BOTH SIDES (29.09, P6): 'type,x,z,done,hp%' through ';',
       [*] = ;            // at most 60, with *_all saying how many there were in all. Coordinates
       [*] = ;            // are ENGINE UNITS SHIFTED to the grid frame (0..map_w), the same frame
@@ -2425,6 +2453,7 @@
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'owalls', hmwst);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'owalls_n', hmwsn);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'owalls_seg', hmowseg);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 93);
       [*] = ;         end;
       [*] = ;         // Open map? additional.balloon = 2 hands the balloon to everyone
       [*] = ;         // and turns the fog of war off for all (_player_UpdateFOW,
@@ -2456,6 +2485,7 @@
       [*] = ;         // and the command block matches by suffix. The first three letters
       [*] = ;         // are the nation, so they are cut off. Comma separated, ready to be
       [*] = ;         // shown to the model as is.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 94);
       [*] = ;         var hsupg : String;
       [*] = ;         // Which upgrades are ALREADY TAKEN and which are being paid for right now.
       [*] = ;         // The engine keeps both in gPlayer[pl].upgstate[cid][i] - the same pair the
