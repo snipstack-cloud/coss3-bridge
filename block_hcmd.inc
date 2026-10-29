@@ -2350,6 +2350,30 @@
       [*] = ;               // Passes 3..5: whoever is still idle after the targets goes to wood, else food (mill), else stone.
       [*] = ;               // Nobody stands. BALANCE and MINE take these men back as donors (above target), see No1b there.
       [*] = ;               var htr : Integer;
+      [*] = ;               // SINK ORDER (29.10 evening, mac, after balance_sink_vs_ai): the sink parked all 45 surplus men on wood
+      [*] = ;               // while wood lay at 900 and stone at 80, and the gold mine waited for stone from 2:07 to 3:26 (base 3:27,
+      [*] = ;               // here 4:07 / 4:38). The surplus now goes to the SCARCEST of wood / stone / food by the treasury (food only
+      [*] = ;               // with a mill), the next pass to the next one. Ranks = how many sink resources are scarcer; ties keep wood
+      [*] = ;               // first. The treasury is read as the state block reads it (not gPlayer[].res[]).
+      [*] = ;               var htsw : Integer = 0;
+      [*] = ;               var htss : Integer = 0;
+      [*] = ;               var htsf : Integer = 0;
+      [*] = ;               htsw := not gPlayer[plind].res[gc_resource_type_wood];
+      [*] = ;               htss := not gPlayer[plind].res[gc_resource_type_stone];
+      [*] = ;               htsf := not gPlayer[plind].res[gc_resource_type_food];
+      [*] = ;               var htrw : Integer = 0;
+      [*] = ;               var htrs : Integer = 0;
+      [*] = ;               var htrf : Integer = 3;
+      [*] = ;               if (htss < htsw) then htrw := htrw + 1;
+      [*] = ;               if (htsw <= htss) then htrs := htrs + 1;
+      [*] = ;               if (htmill) then
+      [*] = ;               begin
+      [*] = ;                  htrf := 0;
+      [*] = ;                  if (htsf < htsw) then htrw := htrw + 1;
+      [*] = ;                  if (htsf < htss) then htrs := htrs + 1;
+      [*] = ;                  if (htsw <= htsf) then htrf := htrf + 1;
+      [*] = ;                  if (htss <= htsf) then htrf := htrf + 1;
+      [*] = ;               end;
       [*] = ;               for htr := 0 to 5 do
       [*] = ;               if (gTmpIntList.GetCount > 0) then
       [*] = ;               begin
@@ -2357,6 +2381,7 @@
       [*] = ;                  var htneed : Integer = 0;
       [*] = ;                  var httarget : Integer = 0;
       [*] = ;                  var hthad : Integer = 0;
+      [*] = ;                  var htri : Integer = -1;   // resource in GATHER numbering for the log: 0 food, 1 wood, 2 stone
       [*] = ;                  var htfx : Float = hthx;
       [*] = ;                  var htfz : Float = hthz;
       [*] = ;                  if (htr = 0) and (httf >= 0) and (htmill) then
@@ -2379,25 +2404,28 @@
       [*] = ;                     httarget := htts;
       [*] = ;                     hthad := hts;
       [*] = ;                  end;
-      [*] = ;                  if (htr = 3) then
+      [*] = ;                  if (htr = 3 + htrw) then
       [*] = ;                  begin
       [*] = ;                     htres := gc_resource_type_wood;
       [*] = ;                     httarget := -1;
       [*] = ;                     hthad := htw;
+      [*] = ;                     htri := 1;
       [*] = ;                  end;
-      [*] = ;                  if (htr = 4) and (htmill) then
+      [*] = ;                  if (htr = 3 + htrf) and (htmill) then
       [*] = ;                  begin
       [*] = ;                     htres := gc_resource_type_food;
       [*] = ;                     httarget := -1;
       [*] = ;                     hthad := htf;
       [*] = ;                     htfx := htmx;
       [*] = ;                     htfz := htmz;
+      [*] = ;                     htri := 0;
       [*] = ;                  end;
-      [*] = ;                  if (htr = 5) then
+      [*] = ;                  if (htr = 3 + htrs) then
       [*] = ;                  begin
       [*] = ;                     htres := gc_resource_type_stone;
       [*] = ;                     httarget := -1;
       [*] = ;                     hthad := hts;
+      [*] = ;                     htri := 2;
       [*] = ;                  end;
       [*] = ;                  htneed := httarget - hthad;
       [*] = ;                  if (htr >= 3) then htneed := gTmpIntList.GetCount;
@@ -2444,8 +2472,9 @@
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        begin
-      [*] = ;                           Log('bridge-human: TOPUP sink res' + IntToStr(htr - 3) + ' +' + IntToStr(htsent) + ' idle (had ' +
-      [*] = ;                               IntToStr(hthad) + ', no target below)');
+      [*] = ;                           Log('bridge-human: TOPUP sink res' + IntToStr(htri) + ' +' + IntToStr(htsent) + ' idle (had ' +
+      [*] = ;                               IntToStr(hthad) + ', no target below; scarcest first, treasury food/wood/stone ' +
+      [*] = ;                               IntToStr(htsf) + '/' + IntToStr(htsw) + '/' + IntToStr(htss) + ')');
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;

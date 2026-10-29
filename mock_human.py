@@ -789,6 +789,7 @@ class Мир:
              "my_freewar": max(0, self.армия - self.волна - sum(
                  int(г.get("n") or 0) for г in self.группы.values()
                  if г.get("режим") == 4)),
+             "sink_pea": 0,   # сток блока (29.10): мок сажает только по приказам python, припаркованных нет
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],
              "cost_ok": "true",

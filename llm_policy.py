@@ -2256,6 +2256,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     "mines_gold", "mines_iron", "mines_coal", "building_now",
     "mil_inf", "mil_shooters", "mil_cav", "mil_away", "mil_near", "mil_far",
     "mil_hurt", "my_freewar", "my_agressors", "my_farm", "my_farmused",
+    "tgt_food", "tgt_wood", "tgt_stone", "sink_pea",
     "wave_sent", "wave_n", "en_at_base", "en_near_dist",
     "p1_army", "p1_inf", "p1_shoot", "p1_cav", "p1_peasants", "p1_ba17",
     "p1_food", "p1_gold", "p1_iron", "p1_bldgs", "p1_mines",
@@ -10948,7 +10949,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                     _снимок = {k: st.get(k) for k in (
                         "gametime", "food", "wood", "stone", "gold", "iron", "coal",
                         "peasants", "idle_pea", "on_food", "on_wood", "on_stone",
-                        "on_mine", "on_build", "centers", "mills", "smiths", "ba17",
+                        "on_mine", "on_build", "tgt_food", "tgt_wood", "tgt_stone", "sink_pea",
+                        "centers", "mills", "smiths", "ba17",
                         "my_stores", "mines_iron", "mines_gold", "mines_coal",
                         "mil_inf", "mil_shooters", "my_freewar", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
@@ -11954,7 +11956,7 @@ def строка_такта(st: dict, mp: dict, cmds, attack, цель_атак�
         + f" склад={_ц('my_stores')} "
         f"шахты з{_ц('mines_gold')}/ж{_ц('mines_iron')}/у{_ц('mines_coal')} | "
         f"пехота={_ц('mil_inf')} стрелки={_ц('mil_shooters')} "
-        f"свободбойц={_ц('my_freewar')} волна={_ц('wave_sent')} "
+        f"свободбойц={_ц('my_freewar')} сток={_ц('sink_pea')} волна={_ц('wave_sent')} "
         f"ушли={_ц('mil_away')} ранены={_ц('mil_hurt')} "
         f"от={_ц('mil_near')}до={_ц('mil_far')} сторона={_ц('mil_side')} | "
         f"апгр_взято={_взято_апгр} "

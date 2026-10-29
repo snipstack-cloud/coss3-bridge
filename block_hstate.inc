@@ -501,6 +501,51 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'cap_coal',  hscapc);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_build',  hsbuildp);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'idle_pea',  hsidle);
+      [*] = ;         // BLOCK TARGETS AND THE SINK SURPLUS (29.10 evening, mac, after balance_sink_vs_ai). The sink seats every idle
+      [*] = ;         // man, so python saw 'idle 0' for the whole game and its own transfer rule (par. 170p) refused every fill for
+      [*] = ;         // want of donors: stone 3 -> 5 waited from 2:02 to 2:50, the gold mine from 3:27 to 4:07. What python needs
+      [*] = ;         // is the number of men the block parked ABOVE its targets - they are as free as idle men. The targets live
+      [*] = ;         // in br_hbal (written by the command block, see TOPUP STORE); absent = python never asked, every man there
+      [*] = ;         // is parked. tgt_* say the targets themselves, sink_pea the sum of the surpluses.
+      [*] = ;         var hstgp : Integer = ParserSelectByKey('br_hbal');
+      [*] = ;         var hstgf : Integer = -1;
+      [*] = ;         var hstgw : Integer = -1;
+      [*] = ;         var hstgs : Integer = -1;
+      [*] = ;         if (hstgp <> 0) then
+      [*] = ;         begin
+      [*] = ;            if (ParserGetValueByKeyByHandle(hstgp, 'tf' + IntToStr(plind)) <> '') then
+      [*] = ;            begin
+      [*] = ;               hstgf := ParserGetIntValueByKeyByHandle(hstgp, 'tf' + IntToStr(plind));
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(hstgp, 'tw' + IntToStr(plind)) <> '') then
+      [*] = ;            begin
+      [*] = ;               hstgw := ParserGetIntValueByKeyByHandle(hstgp, 'tw' + IntToStr(plind));
+      [*] = ;            end;
+      [*] = ;            if (ParserGetValueByKeyByHandle(hstgp, 'ts' + IntToStr(plind)) <> '') then
+      [*] = ;            begin
+      [*] = ;               hstgs := ParserGetIntValueByKeyByHandle(hstgp, 'ts' + IntToStr(plind));
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;         var hssink : Integer = 0;
+      [*] = ;         if (hstgf < 0) then hssink := hssink + hsonf;
+      [*] = ;         if (hstgf >= 0) then
+      [*] = ;         begin
+      [*] = ;            if (hsonf > hstgf) then hssink := hssink + hsonf - hstgf;
+      [*] = ;         end;
+      [*] = ;         if (hstgw < 0) then hssink := hssink + hsonw;
+      [*] = ;         if (hstgw >= 0) then
+      [*] = ;         begin
+      [*] = ;            if (hsonw > hstgw) then hssink := hssink + hsonw - hstgw;
+      [*] = ;         end;
+      [*] = ;         if (hstgs < 0) then hssink := hssink + hsons;
+      [*] = ;         if (hstgs >= 0) then
+      [*] = ;         begin
+      [*] = ;            if (hsons > hstgs) then hssink := hssink + hsons - hstgs;
+      [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'tgt_food',  hstgf);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'tgt_wood',  hstgw);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'tgt_stone', hstgs);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'sink_pea',  hssink);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'centers',   hscen);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mills',     hsmill);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'smiths',    hssmith);
