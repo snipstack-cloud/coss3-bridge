@@ -368,10 +368,27 @@ class Bridge:
         # лишь «петля жива»; нужно «идёт ли ИГРОВОЕ время». Д23 (29.10) показала,
         # зачем: состояние встало на 804 с и больше не пошло, а `coss3_gui.dat`
         # дал gametime 1229 — игра играла ещё семь игровых минут.
-        пульс, hb_gt = "", None
+        пульс, hb_gt, этап = "", None, ""
         try:
             with open(self.hb_path, "r", encoding="latin-1") as f:
-                hb_gt = _to_int(parse_parser_file(f.read()).get("gametime"))
+                _hb = parse_parser_file(f.read())
+            hb_gt = _to_int(_hb.get("gametime"))
+            # ЭТАПЫ БЛОКА СОСТОЯНИЯ (прибор мака, 29.10): блок ставит
+            # `stage<plind>` 0..11 по своим разделам, 11 = файл сохранён, а петля
+            # копирует их в пульс как `hs_stage<n>`/`hs_at<n>`. Этим немота
+            # отвечает на главный вопрос в той же строке: на каком разделе блок
+            # умер. 11 — дошёл до конца (значит дело не в блоке), 10 — гибнет
+            # само сохранение, N < 10 — следующий раздел.
+            _сыр = _hb.get(f"hs_stage{self.plind}")
+            _ст = _to_int(_сыр) if _сыр is not None else None
+            _сыр = _hb.get(f"hs_at{self.plind}")
+            _ко = _to_int(_сыр) if _сыр is not None else None
+            if _ст is not None:
+                этап = (f"; ЭТАП БЛОКА {_ст}"
+                        + (f" на {_ко} с" if _ко is not None else "")
+                        + (" (дошёл до конца — смотреть не блок)" if _ст >= 11
+                           else " (гибнет само сохранение)" if _ст == 10
+                           else f" — умер в разделе {_ст + 1}"))
         except OSError:
             pass
         if hb_gt is None:
@@ -420,7 +437,7 @@ class Bridge:
                      "застрявший в обходе")
         print(f"состояние стоит {self.немых * 0.2:.0f} с ({self.немых} опросов): "
               f"{self.state_path} не менялся {возраст:.1f} с, {st.st_size} байт; "
-              f"{пульс} — {кто}")
+              f"{пульс} — {кто}{этап}")
 
     # --- чтение состояния ---------------------------------------------------
     def read_state(self) -> dict[str, int | str] | None:
