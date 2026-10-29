@@ -82,6 +82,7 @@
       [*] = ;         var hswi : Integer = 0;
       [*] = ;         var hswc : Integer = 0;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
+      [*] = ;         var hsheld, hsinsq : Integer;   // block task No2 (29.10): holding outside squads / inside squads
       [*] = ;         var hsoffn, hsdrumn : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
@@ -354,6 +355,27 @@
       [*] = ;                     if (hsusage <> gc_obj_usage_none) and (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
       [*] = ;                     if (not TObj(hspo).bstandground) then
       [*] = ;                     hsfree := hsfree + 1;
+      [*] = ;                     // WHO ELSE IS HOME (29.10, mac, block task No2, after D20 and exit_all_vs_ai). my_freewar names
+      [*] = ;                     // the men a COUNTED order takes: idle and not holding. In D20 python saw 171 at home and asked
+      [*] = ;                     // for 171; the counted order took 39, because 143 stood in a LINE120 squad and 33 held ground
+      [*] = ;                     // in the FACE screen - and nothing in the state said so. ATTACK all now takes both kinds, but
+      [*] = ;                     // the forecast, the critic and the model still could not tell free from held from squad.
+      [*] = ;                     // Two more numbers from the same pass, the same tests the command block applies:
+      [*] = ;                     // my_insquad - soldiers that belong to a squad (TObj.squad >= 0; ATTACK all drives them as
+      [*] = ;                     // squads), my_held - soldiers outside squads standing their ground (bstandground, the flag a
+      [*] = ;                     // counted order refuses). Orders are not looked at: a squad on the march is still a squad.
+      [*] = ;                     if (hsusage <> gc_obj_usage_none) then
+      [*] = ;                     begin
+      [*] = ;                        if (TObj(hspo).squad >= 0) then
+      [*] = ;                        begin
+      [*] = ;                           hsinsq := hsinsq + 1;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        if (TObj(hspo).bstandground) then
+      [*] = ;                        begin
+      [*] = ;                           hsheld := hsheld + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
@@ -652,6 +674,8 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'kills_n', hskn);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_cav',      hscav);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_held',      hsheld);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_insquad',   hsinsq);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
       [*] = ;         // --- WHICH FIGHTERS THIS NATION CAN HIRE ----------------------------
