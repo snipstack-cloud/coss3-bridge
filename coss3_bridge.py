@@ -648,7 +648,7 @@ class Bridge:
 
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = -1,
                 res: int = -1, peace: int = -1, ai: int = -1,
-                nation: str = "", balloon: int = -1,
+                nation: str = "", nation2: str = "", balloon: int = -1,
                 cannons: int = -1, capture: int = -1,
                 market: int = -1, century18: int = -1,
                 mapsize: int = -1, botslot: int = -1) -> bool:
@@ -699,6 +699,16 @@ class Bridge:
             поля["ai"] = int(ai)
         if nation:
             поля["nation"] = str(nation)
+        # НАЦИЯ ПРОТИВНИКА ОТДЕЛЬНО (мак 29.10, block_gameloop.inc:142 читает
+        # ключ `nation2`; пусто — врагу ставится та же нация, что нам). Без
+        # этого параметра `send.py --nation2` падал на
+        # `control() got an unexpected keyword argument 'nation2'`, NEW не
+        # уходил вовсе, и партия стояла в меню: так умерли обе копии
+        # russia_noattack_6011 в 21:31. Нужен для партии против России при
+        # наших Нидерландах — иначе сравнимость хозяйства с прежними прогонами
+        # теряется вместе с нашей нацией.
+        if nation2:
+            поля["nation2"] = str(nation2)
         if int(balloon) >= 0:
             # additional.balloon: 0 как обычно, 1 запрещён, 2 ВЫДАН ВСЕМ — и
             # тогда тумана войны нет ни у кого (_player_UpdateFOW,
