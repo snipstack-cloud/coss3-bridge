@@ -39,6 +39,9 @@
       [*] = ;         ParserClearByHandle(hsp);
       [*] = ;         var hscid : Integer = gPlayer[plind].cid;
       [*] = ;         var hsph : Integer = GetPlayerHandleByIndex(plind);
+      [*] = ;         // Group-roll scalars live HERE, not in the nested begin (17.09 lesson: a number declared in a nested block does not accumulate).
+      [*] = ;         var hgw, hgdrop : Integer;
+      [*] = ;         var hgkeep : Boolean;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'plind',    plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'gametime', Round(hsnow));
       [*] = ;         // SIZE OF THE MAP, in engine units. THE FIELD WAS ALREADY HERE, but
@@ -2243,6 +2246,12 @@
       [*] = ;               hgcelly[hgid] := -1;
       [*] = ;               hglive[hgid] := 0;
       [*] = ;            end;
+      [*] = ;            // NEW GAME, OLD ROLLS (29.10, D26/D27): br_hgrp outlives the match - the parser is not cleared on NEW, so a
+      [*] = ;            // wave of the previous game sat in g1 with handles the engine had already given to new objects (D26 'group 1' of
+      [*] = ;            // 16 at 4:07 without any order, D27 three cleanings of 4/8/25 with nobody ordered). In the first seconds the rolls are zeroed.
+      [*] = ;            if (hggp <> 0) and (hsnow < 15) then
+      [*] = ;            for hgid := 1 to 16 do
+      [*] = ;            ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', 0);
       [*] = ;            if (hggp <> 0) then
       [*] = ;            for hgid := 1 to 16 do
       [*] = ;            begin
@@ -2258,17 +2267,18 @@
       [*] = ;                  hgtx := -1;
       [*] = ;                  hgty := -1;
       [*] = ;                  hgmode := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_m');
-      [*] = ;                  var hgw : Integer = 0;
+      [*] = ;                  hgw := 0;
+      [*] = ;                  hgdrop := 0;
       [*] = ;                  for hgk := 0 to hgcnt-1 do
       [*] = ;                  begin
       [*] = ;                     var hgh : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk));
-      [*] = ;                     var hgkeep : Boolean = False;
+      [*] = ;                     hgkeep := False;
       [*] = ;                     if (hgh <> 0) then
       [*] = ;                     begin
       [*] = ;                        var hgp : Pointer = _unit_GetTObj(hgh);
       [*] = ;                        if (hgp<>nil) then
       [*] = ;                        if (not TObj(hgp).bdead) then
-      [*] = ;                        if (GetGameObjectPlayerHandleByHandle(hgh) = hsph) then
+      [*] = ;                        if (GetPlayerIndexByHandle(GetGameObjectPlayerHandleByHandle(hgh)) = plind) then
       [*] = ;                        begin
       [*] = ;                           hgkeep := True;
       [*] = ;                           var hgu : Integer = gObjProp[TObj(hgp).cid][TObj(hgp).id].usage;
@@ -2313,7 +2323,9 @@
       [*] = ;                        if (hgw <> hgk) then
       [*] = ;                        ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgw), hgh);
       [*] = ;                        hgw := hgw + 1;
-      [*] = ;                     end;
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     hgdrop := hgdrop + 1;
       [*] = ;                  end;
       [*] = ;                  // ROLL CLEANING (29.10, D26 freeze named by the stage probe: stage 9, this loop).
       [*] = ;                  // Handles of men who died are kept in br_hgrp forever, and the engine REUSES a
@@ -2327,7 +2339,7 @@
       [*] = ;                     for hgk := hgw to hgcnt-1 do
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk), 0);
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', hgw);
-      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned: ' + IntToStr(hgcnt-hgw) +
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned: ' + IntToStr(hgdrop) + ' of ' + IntToStr(hgcnt) +
       [*] = ;                          ' dead or foreign handles dropped, ' + IntToStr(hgw) + ' left');
       [*] = ;                  end;
       [*] = ;                  // A group with nobody alive is not written at all: the model must

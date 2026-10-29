@@ -56,6 +56,8 @@
       [*] = ;            var hcbase : Integer = 0;
       [*] = ;            var hck : Integer;
       [*] = ;            var hcobjn : Integer = GetPlayerGameObjectsCountByHandle(hcph);
+      [*] = ;            // FORMATION scalars at block scope (17.09 lesson: a number declared in a nested begin does not accumulate; D27 found officer 0 with officers 1 in the state).
+      [*] = ;            var hfoff, hfdrum, hfr21, hfr22, hfr50, hfr51, hfdead : Integer;
       [*] = ;            for hck := 0 to hcobjn-1 do
       [*] = ;            begin
       [*] = ;               var hcgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
@@ -1228,8 +1230,13 @@
       [*] = ;                  // carry zeroes. The set of shapes belongs to the officer type,
       [*] = ;                  // so we ask the country table, exactly as the native AI does,
       [*] = ;                  // and take the most compact one by width+height.
-      [*] = ;                  var hfoff : Integer = 0;
-      [*] = ;                  var hfdrum : Integer = 0;
+      [*] = ;                  hfoff := 0;
+      [*] = ;                  hfdrum := 0;
+      [*] = ;                  hfr21 := 0;
+      [*] = ;                  hfr22 := 0;
+      [*] = ;                  hfr50 := 0;
+      [*] = ;                  hfr51 := 0;
+      [*] = ;                  hfdead := 0;
       [*] = ;                  gIntegerList.Clear;
       [*] = ;                  gTmpIntList.Clear;
       [*] = ;                  for hck := 0 to hcobjn-1 do
@@ -1242,13 +1249,24 @@
       [*] = ;                     // tick), and every squad order then wrote 'WriteMove checkcount' and 'bdead unit' into the log. Both
       [*] = ;                     // passes skip the dead now - the officer and the drummer too.
       [*] = ;                     if (hfp<>nil) then
+      [*] = ;                     if (TObj(hfp).bdead) then
+      [*] = ;                     hfdead := hfdead + 1;
+      [*] = ;                     if (hfp<>nil) then
       [*] = ;                     if (not TObj(hfp).bdead) then
       [*] = ;                     begin
       [*] = ;                        var hfrole : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].airole;
       [*] = ;                        var hfu : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].usage;
-      [*] = ;                        if (hfoff = 0) and (hfrole = gc_ai_unit_officer17) then
+      [*] = ;                        if (hfrole = gc_ai_unit_officer17) then
+      [*] = ;                        hfr21 := hfr21 + 1;
+      [*] = ;                        if (hfrole = gc_ai_unit_drummer17) then
+      [*] = ;                        hfr22 := hfr22 + 1;
+      [*] = ;                        if (hfrole = gc_ai_unit_officer18) then
+      [*] = ;                        hfr50 := hfr50 + 1;
+      [*] = ;                        if (hfrole = gc_ai_unit_drummer18) then
+      [*] = ;                        hfr51 := hfr51 + 1;
+      [*] = ;                        if (hfoff = 0) and ((hfrole = gc_ai_unit_officer17) or (hfrole = gc_ai_unit_officer18)) then
       [*] = ;                        hfoff := hfgo;
-      [*] = ;                        if (hfdrum = 0) and (hfrole = gc_ai_unit_drummer17) then
+      [*] = ;                        if (hfdrum = 0) and ((hfrole = gc_ai_unit_drummer17) or (hfrole = gc_ai_unit_drummer18)) then
       [*] = ;                        hfdrum := hfgo;
       [*] = ;                        if (hfu = gc_obj_usage_lightinfantry) or (hfu = gc_obj_usage_weak) or
       [*] = ;                           (hfu = gc_obj_usage_grenadier) or (hfu = gc_obj_usage_shooter) or
@@ -1262,7 +1280,7 @@
       [*] = ;                          'formation needs BOTH an officer and a drummer. Have ' +
       [*] = ;                          'officers: ' + IntToStr(hfoff) + ', drummers: ' + IntToStr(hfdrum) +
       [*] = ;                          ' (0 means none free). Train officer17 and drummer17 first');
-      [*] = ;                     Log('bridge-human: FORMATION - no officer or no drummer');
+      [*] = ;                     Log('bridge-human: FORMATION - no officer or no drummer (scanned ' + IntToStr(hcobjn) + ' objects, role 21/22/50/51 seen ' + IntToStr(hfr21) + '/' + IntToStr(hfr22) + '/' + IntToStr(hfr50) + '/' + IntToStr(hfr51) + ', dead skipped ' + IntToStr(hfdead) + ')');
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  begin

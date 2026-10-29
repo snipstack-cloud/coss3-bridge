@@ -1894,7 +1894,9 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 29.10 вечер (мак, переделка стока после balance_sink_vs_ai; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2744**, `block_hstate.inc` **2501**, `block_gameloop.inc` 336 (verify_blocks; wc на единицу меньше), установленный `progress.inc` **5771** (+74 к 5697). Сток сажает на самый скудный по казне ресурс (`TOPUP sink resN … treasury food/wood/stone`), состояние отдаёт `tgt_food/tgt_wood/tgt_stone` и `sink_pea`; python-ключ `сток_излишек` (§170ф). Судья — контейнер `balance_sink2_vs_ai`.
 
-**ЧИСЛА УСТАНОВКИ НА 29.10 ночь (7) (мак, чистка списков групп после стопора Д26; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2846**, `block_hstate.inc` **2580**, `block_gameloop.inc` **352**, установленный `progress.inc` **5968**.
+**ЧИСЛА УСТАНОВКИ НА 29.10 ночь (8) (мак, скаляры FORMATION/чистки на уровне блока, диагностика FORMATION, обнуление списков групп на старте; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2864**, `block_hstate.inc` **2592**, `block_gameloop.inc` **352**, установленный `progress.inc` **5999**.
+
+**ЧИСЛА УСТАНОВКИ НА 29.10 ночь (7) (мак, чистка списков групп после стопора Д26; пульс Д27 взят):** `block_hcmd.inc` **2846**, `block_hstate.inc` **2580**, `block_gameloop.inc` **352**, установленный `progress.inc` **5968**.
 
 **ЧИСЛА УСТАНОВКИ НА 29.10 ночь (2) (мак, FORMATION без трупов; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2846**, `block_hstate.inc` 2550, `block_gameloop.inc` 352 (verify_blocks), установленный `progress.inc` **5938** (+7 к 5931). Оба прохода отбора FORMATION пропускают `bdead` — отряд больше не рождается с убитыми (Д22 8/99, mine_pair x1 5/137, russia x1 16/109). Прибор этапов (hs_stage/hs_at в coss3_hb.dat) прошёл живой пульс в Д24 (5931).
 
