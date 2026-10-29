@@ -2193,6 +2193,93 @@
       [*] = ;                     ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
       [*] = ;                  end;
       [*] = ;               end;
+      [*] = ;               // SQUAD BY GROUP NUMBER (29.10 evening, mac, block task No3). A numbered order goes through WriteMove with
+      [*] = ;               // squad -1: every man walks on his own and the formation he stood in is left behind (writemove.inc:35 rebuilds
+      [*] = ;               // the grid only for squad >= 0). After the group call above, every squad that has a man in this list gets THE
+      [*] = ;               // SAME order as a squad (_player_SetSquadPosition - grid rebuilt, bonus kept, the later order wins the tick):
+      [*] = ;               // attack and engage with the hunt on, move and retreat without it, FACE in place at the squad's own centre with
+      [*] = ;               // the hold set after the move, as FACE does for men. Kite is left alone: it is a controller for shooters.
+      [*] = ;               if (hagid > 0) and (not hakite) then
+      [*] = ;               begin
+      [*] = ;                  var hgsn : Integer = 0;
+      [*] = ;                  var hgsm : Integer = 0;
+      [*] = ;                  var hgsi : Integer;
+      [*] = ;                  for hgsi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hgsp : Pointer = gPlayer[plind].squads.Get(hgsi);
+      [*] = ;                     if (hgsp<>nil) then
+      [*] = ;                     if (TSquad(hgsp).GetCount > 0) then
+      [*] = ;                     begin
+      [*] = ;                        var hgsin : Boolean = False;
+      [*] = ;                        var hgsj : Integer;
+      [*] = ;                        for hgsj := 0 to TSquad(hgsp).GetCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hgsh : Integer = TSquad(hgsp).Get(hgsj);
+      [*] = ;                           var hgsk : Integer;
+      [*] = ;                           for hgsk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                           begin
+      [*] = ;                              if (gIntegerList.Get(hgsk) = hgsh) then hgsin := True;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hgsin) then
+      [*] = ;                        begin
+      [*] = ;                           var hgsx : Float = 0;
+      [*] = ;                           var hgsz : Float = 0;
+      [*] = ;                           _squad_GetCentralPosition(hgsp, hgsx, hgsz);
+      [*] = ;                           var hgtx : Float = hatx;
+      [*] = ;                           var hgtz : Float = hatz;
+      [*] = ;                           var hgmode : Integer = gc_obj_order_move_mode_attack;
+      [*] = ;                           var hghunt : Boolean = True;
+      [*] = ;                           if (haface) then
+      [*] = ;                           begin
+      [*] = ;                              hgtx := hgsx;
+      [*] = ;                              hgtz := hgsz;
+      [*] = ;                              hgmode := gc_obj_order_move_mode_default;
+      [*] = ;                              hghunt := False;
+      [*] = ;                           end;
+      [*] = ;                           if (hamode = 'move') or (haretreat) then
+      [*] = ;                           begin
+      [*] = ;                              hgmode := gc_obj_order_move_mode_default;
+      [*] = ;                              hghunt := False;
+      [*] = ;                           end;
+      [*] = ;                           TSquad(hgsp).fSearchVictim := hghunt;
+      [*] = ;                           TSquad(hgsp).fStandGround := False;
+      [*] = ;                           TSquad(hgsp).fHoldMode := False;
+      [*] = ;                           TSquad(hgsp).fHoldModeProgress := 0;
+      [*] = ;                           for hgsj := 0 to TSquad(hgsp).GetCount-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hgsh2 : Integer = TSquad(hgsp).Get(hgsj);
+      [*] = ;                              var hgsu : Pointer = _unit_GetTObj(hgsh2);
+      [*] = ;                              if (hgsu<>nil) then
+      [*] = ;                              begin
+      [*] = ;                                 TObj(hgsu).bsearchenemy := hghunt;
+      [*] = ;                                 TObj(hgsu).bstandground := False;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                           _player_SetSquadPosition(haph, hgsi, hgtx, hgtz, hadx, hadz, False, True, hgmode, False);
+      [*] = ;                           if (haface) and (hahold) then
+      [*] = ;                           begin
+      [*] = ;                              TSquad(hgsp).fStandGround := True;
+      [*] = ;                              for hgsj := 0 to TSquad(hgsp).GetCount-1 do
+      [*] = ;                              begin
+      [*] = ;                                 var hgsh3 : Integer = TSquad(hgsp).Get(hgsj);
+      [*] = ;                                 var hgsu3 : Pointer = _unit_GetTObj(hgsh3);
+      [*] = ;                                 if (hgsu3<>nil) then
+      [*] = ;                                 TObj(hgsu3).bstandground := True;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                           hgsn := hgsn + 1;
+      [*] = ;                           hgsm := hgsm + TSquad(hgsp).GetCount;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hgsn > 0) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'GROUP ' + IntToStr(hagid) +
+      [*] = ;                          ' ' + hamw + ': ' + IntToStr(hgsn) + ' squads (' + IntToStr(hgsm) + ' men) re-ordered as squads, formation kept');
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' ' + hamw + ': ' + IntToStr(hgsn) + ' squads, ' + IntToStr(hgsm) + ' men ordered as squads');
+      [*] = ;                  end;
+      [*] = ;               end;
       [*] = ;            end
       [*] = ;            else
       [*] = ;            Log('bridge-human: ATTACK skipped - soldiers ' + IntToStr(gIntegerList.GetCount) +
@@ -2225,8 +2312,16 @@
       [*] = ;                        var hasqh : Integer = TSquad(hasqp).Get(hasqj);
       [*] = ;                        var hasqu : Pointer = _unit_GetTObj(hasqh);
       [*] = ;                        if (hasqu<>nil) then
-      [*] = ;                        TObj(hasqu).bstandground := False;
+      [*] = ;                        begin
+      [*] = ;                           TObj(hasqu).bstandground := False;
+      [*] = ;                           TObj(hasqu).bsearchenemy := True;
+      [*] = ;                        end;
       [*] = ;                     end;
+      [*] = ;                     // HUNT (29.10 evening, mac, block task No3). The wave above gets _unit_ListSetSearchEnemy; the squad got
+      [*] = ;                     // nothing and walked to the target as a parade (state_held_vs_ai x2: four exits of 125 men, his peasants
+      [*] = ;                     // 11 -> 10). Same two fields the lib writes in _unit_SetSquadsSearchEnemy (unit.script:10583, :10589),
+      [*] = ;                     // set here because that call wants a list of squad indices and both temp lists are busy in this branch.
+      [*] = ;                     TSquad(hasqp).fSearchVictim := True;
       [*] = ;                     _player_SetSquadPosition(haph, hasqi, hatx, hatz, hasdx, hasdz, False, True, gc_obj_order_move_mode_attack, False);
       [*] = ;                     hasqn := hasqn + 1;
       [*] = ;                     hasqm := hasqm + TSquad(hasqp).GetCount;
@@ -2234,7 +2329,7 @@
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'ATTACK all: ' +
       [*] = ;                    IntToStr(hasqn) + ' squads (' + IntToStr(hasqm) + ' men) sent as squads to ' + hatrg + ', hold released');
-      [*] = ;               Log('bridge-human: ATTACK all: ' + IntToStr(hasqn) + ' squads, ' + IntToStr(hasqm) + ' men sent as squads to ' + hatrg);
+      [*] = ;               Log('bridge-human: ATTACK all: ' + IntToStr(hasqn) + ' squads, ' + IntToStr(hasqm) + ' men sent as squads to ' + hatrg + ', search enemy on');
       [*] = ;            end;
       [*] = ;               end;
       [*] = ;            end;

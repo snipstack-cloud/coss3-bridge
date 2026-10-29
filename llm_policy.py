@@ -2281,7 +2281,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # артефакт, про который правило «ноль по полю, которого нет, — не факт».
     # Строка, а не число: ступени читаются подстрокой (`bar.pikeman.1.3`).
     "upg_done",
-    "academies", "my_officers", "my_drummers", "squads", "squad_units",
+    "academies", "my_officers", "my_drummers", "squads", "squad_units", "squad_hunt", "squad_hold",
     "squad_dmg", "squad_def", "p1_squads",
 )
 
@@ -10999,7 +10999,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         # посылала волну и был ли строй — а значит нельзя и
                         # сравнить идею с базой.
                         "mil_guns", "my_officers", "my_drummers",
-                        "squads", "squad_units", "squad_form",
+                        "squads", "squad_units", "squad_hunt", "squad_hold", "squad_form",
                         "squad_dmg", "squad_def", "squad_hdmg", "squad_hdef",
                         "can_pea", "can_inf", "famine", "en_near_dist",
                         # Где стоит свой кулак и своя волна: без этого по трассе

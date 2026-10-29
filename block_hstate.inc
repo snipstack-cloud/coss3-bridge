@@ -596,6 +596,8 @@
       [*] = ;         var hssq : Integer = gPlayer[plind].squads.GetCount;
       [*] = ;         var hssqu, hssqi : Integer;
       [*] = ;         var hssqf : Integer = -1;
+      [*] = ;         var hssqh : Integer = 0;   // block task No3 (29.10): does the largest squad hunt (fSearchVictim)
+      [*] = ;         var hssqg : Integer = 0;   // ... and does it stand its ground (fStandGround)
       [*] = ;         for hssqi := 0 to hssq-1 do
       [*] = ;         begin
       [*] = ;            var hspsq : Pointer = gPlayer[plind].squads.Get(hssqi);
@@ -604,10 +606,16 @@
       [*] = ;            begin
       [*] = ;               hssqu := TSquad(hspsq).GetCount;
       [*] = ;               hssqf := TSquad(hspsq).fFormation;
+      [*] = ;               hssqh := 0;
+      [*] = ;               if (TSquad(hspsq).fSearchVictim) then hssqh := 1;
+      [*] = ;               hssqg := 0;
+      [*] = ;               if (TSquad(hspsq).fStandGround) then hssqg := 1;
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squads',      hssq);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_units', hssqu);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hunt',  hssqh);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hold',  hssqg);
       [*] = ;         if (hssqf >= 0) then
       [*] = ;         begin
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'squad_form', gFormation[hssqf].sid);

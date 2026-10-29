@@ -13195,3 +13195,21 @@ x2: FORMATION LINE120 9:53, затем `ATTACK all: 1 squads, 125 men` ×4 — �
 не держащих, включая бойцов отряда, стоящего без приказа и без hold; офицер и барабанщик дают ещё +2. Поля — подмножества, не разбиение;
 документировано в ПЛАН. `my_held` ноль во всех тактах (заслона против ИИ не бывает) — проверит живая Д22 на такте FACE hold.
 Блок №2 закрыт. Следующий пункт списка — приказы отряду по номеру группы.
+
+## 29.10 поздний вечер (мак) — блок №3: охота отряда при ATTACK all и приказ по номеру группы отрядам как отрядам (2839/2533, progress 5898)
+
+Пункт списка «приказы отряду по номеру группы» плюс кандидат из exit_all_vs_ai_2 «bsearchenemy отряду». По коду: `_player_SetGroupPosition`
+с squadInd −1 идёт через WriteMove, где сетка отряда перестраивается только при squad ≥ 0 (writemove.inc:35–52) — приказ по номеру группы
+бойцам отряда рассыпает строй; `_unit_ListSetSearchEnemy` стоит у волны, у отряда после `_player_SetSquadPosition` поиска врага нет
+(state_held x2: четыре выхода по 125, его крестьян 11 → 10 за четыре минуты, kills 68 → 100). В lib есть `_unit_SetSquadsSearchEnemy` и
+`_unit_SetSquadsStandGround`, но они берут список ИНДЕКСОВ отрядов, а оба временных списка в ветке заняты — поля пишутся прямо, как в lib
+(fSearchVictim :=, bsearchenemy :=, fStandGround := в корпусе 5/11/8 раз).
+`block_hcmd.inc` +95 (2744 → 2839): (а) в цикле отрядов ATTACK all — `bsearchenemy := True` каждому и `fSearchVictim := True` отряду до
+`_player_SetSquadPosition`, лог «…, search enemy on»; (б) после ветвей режимов внутри блока «цель найдена»: при `hagid > 0` и не kite — для
+каждого отряда, у которого хоть один боец в gIntegerList, тот же приказ отрядом: attack/engage режим attack с охотой; move/retreat default без
+охоты; FACE — к центру отряда (`_squad_GetCentralPosition`) режимом default, при hold флаги удержания ставятся ПОСЛЕ хода (WriteMove их
+стирает, writemove.inc:42–44); why и лог `GROUP N <mode>: K squads, M men ordered as squads`. Список не режется: групповой приказ ушёл первым,
+отрядный вторым — поздний приказ такта побеждает (так уже работает ATTACK all). `block_hstate.inc` +8: `squad_hunt`/`squad_hold` крупнейшего
+отряда. Python: только снимок (ПОЛЯ_СНИМКА, `_снимок`). verify_blocks ОК, не-ASCII 0, песочница 5898; selftest_snap/снимок_врага/выход_всем/kills
+чисто. Идея `squad_orders_vs_ai` (база state_held_vs_ai), меры в experiments.ini: squad_hunt = 1 после ATTACK all; kills за 240 с ≥ +32; строй не
+рассыпан после GROUP; бояться squad_hunt = 1 сразу после FORMATION.
