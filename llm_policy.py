@@ -2255,7 +2255,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     "centers", "mills", "smiths", "ba17", "my_stores", "houses",
     "mines_gold", "mines_iron", "mines_coal", "building_now",
     "mil_inf", "mil_shooters", "mil_cav", "mil_away", "mil_near", "mil_far",
-    "mil_hurt", "my_freewar", "my_agressors", "my_farm", "my_farmused",
+    "mil_hurt", "my_freewar", "my_held", "my_insquad", "my_agressors", "my_farm", "my_farmused",
     "wave_sent", "wave_n", "en_at_base", "en_near_dist",
     "p1_army", "p1_inf", "p1_shoot", "p1_cav", "p1_peasants", "p1_ba17",
     "p1_food", "p1_gold", "p1_iron", "p1_bldgs", "p1_mines",
@@ -6152,7 +6152,9 @@ def запрос_найма(st: dict, mp: dict, роль: str, номер: int,
 
     из += ["", "## Что у тебя есть",
            f"  пехота {_чис(st.get('mil_inf'))}, стрелки {_чис(st.get('mil_shooters'))}, "
-           f"конница {_чис(st.get('mil_cav'))}; свободных {_чис(st.get('my_freewar'))}",
+           f"конница {_чис(st.get('mil_cav'))}; свободных {_чис(st.get('my_freewar'))}"
+           + (f", держат строй вне отрядов {_чис(st.get('my_held'))}, в отрядах {_чис(st.get('my_insquad'))}"
+              if "my_held" in st else ""),
            f"  крестьян {_чис(st.get('peasants'))}"]
     if его_главный:
         из.append(f"  у врага: {его_главный} {его_числа.get(его_главный)} — "
@@ -7077,7 +7079,9 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
         f"мельниц={st.get('mills')} складов={st.get('my_stores')} домов={st.get('houses')}",
         _шахты_строкой(st),
         f"  армия: пехота={st.get('mil_inf')} стрелки={st.get('mil_shooters')} "
-        f"конница={st.get('mil_cav')}; свободных бойцов={st.get('my_freewar')}, "
+        f"конница={st.get('mil_cav')}; свободных бойцов={st.get('my_freewar')}"
+        + (f" (держат строй вне отрядов {st.get('my_held')}, в отрядах {st.get('my_insquad')} — "
+           f"их берёт только ATTACK all=1)" if "my_held" in st else "") + ", "
         + (f"ударный пул={st.get('my_agressors')} (стоят у базы, это НЕ поход)"
            if "my_agressors" in st else "все они готовы к походу"),
         f"  можно послать сейчас: "
@@ -10950,7 +10954,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "peasants", "idle_pea", "on_food", "on_wood", "on_stone",
                         "on_mine", "on_build", "centers", "mills", "smiths", "ba17",
                         "my_stores", "mines_iron", "mines_gold", "mines_coal",
-                        "mil_inf", "mil_shooters", "my_freewar", "my_farm",
+                        "mil_inf", "mil_shooters", "my_freewar", "my_held", "my_insquad", "my_farm",
                         "my_farmused", "building_now", "wip", "last_fail",
                         # НАШИ ПОТЕРИ (28.09). В трассе лежали только ЕГО
                         # (`p1_mil_lost`, `p1_pea_lost`), а наших не было — и счёт
@@ -11954,7 +11958,7 @@ def строка_такта(st: dict, mp: dict, cmds, attack, цель_атак�
         + f" склад={_ц('my_stores')} "
         f"шахты з{_ц('mines_gold')}/ж{_ц('mines_iron')}/у{_ц('mines_coal')} | "
         f"пехота={_ц('mil_inf')} стрелки={_ц('mil_shooters')} "
-        f"свободбойц={_ц('my_freewar')} волна={_ц('wave_sent')} "
+        f"свободбойц={_ц('my_freewar')} держат={_ц('my_held')} вотрядах={_ц('my_insquad')} волна={_ц('wave_sent')} "
         f"ушли={_ц('mil_away')} ранены={_ц('mil_hurt')} "
         f"от={_ц('mil_near')}до={_ц('mil_far')} сторона={_ц('mil_side')} | "
         f"апгр_взято={_взято_апгр} "

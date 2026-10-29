@@ -789,6 +789,9 @@ class Мир:
              "my_freewar": max(0, self.армия - self.волна - sum(
                  int(г.get("n") or 0) for г in self.группы.values()
                  if г.get("режим") == 4)),
+             # БЛОК №2 (29.10): держащие вне отрядов и бойцы отрядов — те же группы режима 4; отрядов мок не строит.
+             "my_held": sum(int(г.get("n") or 0) for г in self.группы.values() if г.get("режим") == 4),
+             "my_insquad": 0,
              "my_x": 128.0, "my_z": 128.0,
              "pea_food": ЦЕНА["peasant"][0], "pea_wood": 0, "pea_gold": ЦЕНА["peasant"][3],
              "cost_ok": "true",
