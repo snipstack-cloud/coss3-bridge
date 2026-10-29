@@ -51,6 +51,10 @@
       [*] = ;         // Names come from locale/en/gui.txt: 0 None, 1 Normal,
       [*] = ;         // 2 Hard, 3 Very Hard, 4 Impossible.
       [*] = ;         var brctlnat   : String;         // country sid, 'net' = Netherlands
+      [*] = ;         // THE OPPONENT'S NATION (28.10, defense series). Empty means 'same as
+      [*] = ;         // ours', which is what every recorded run played. Read only by the
+      [*] = ;         // native-ai branch below: the bot-slot branch keeps both sides equal.
+      [*] = ;         var brctlnat2  : String;
       [*] = ;         // additional.balloon: 0 as usual, 1 forbidden, 2 GIVEN TO ALL.
       [*] = ;         // With 2 the fog of war is off for everyone - _player_UpdateFOW
       [*] = ;         // (player.script:456) skips AddFOWPlayers when balloon=with.
@@ -120,6 +124,7 @@
       [*] = ;            if (ParserGetValueByKeyByHandle(hctl, 'botslot') <> '') then
       [*] = ;            brctlbot := ParserGetIntValueByKeyByHandle(hctl, 'botslot');
       [*] = ;            brctlnat := ParserGetValueByKeyByHandle(hctl, 'nation');
+      [*] = ;            brctlnat2 := ParserGetValueByKeyByHandle(hctl, 'nation2');
       [*] = ;         end;
       [*] = ;         DeleteFileStream(brctlpath);
       [*] = ;         var back : Integer = ParserSelectByKey('br_ack');
@@ -253,8 +258,16 @@
       [*] = ;               gMap.players[1].bready := True;
       [*] = ;               gMap.players[1].team := 2;
       [*] = ;               gMap.players[1].aidifficulty := brctlai;
+      [*] = ;               // His nation: nation2 when asked for, else the same as ours.
+      [*] = ;               if (brctlnat2 <> '') then
+      [*] = ;               begin
+      [*] = ;                  gMap.players[1].cid := _country_GetIDBySID(brctlnat2);
+      [*] = ;               end
+      [*] = ;               else
       [*] = ;               if (brctlnat <> '') then
-      [*] = ;               gMap.players[1].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               begin
+      [*] = ;                  gMap.players[1].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               end;
       [*] = ;               // Close the rest: extra players change the conditions.
       [*] = ;               var brpl : Integer;
       [*] = ;               for brpl := 2 to gc_MaxPlayerCount-1 do

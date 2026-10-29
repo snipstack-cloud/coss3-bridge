@@ -277,6 +277,7 @@ def _условия() -> dict:
         return int(v) if v.lstrip("-").isdigit() else -1
     return dict(res=n("COSS3_MATCH_RES"), peace=n("COSS3_MATCH_PEACE"),
                 ai=n("COSS3_MATCH_AI"), nation=os.environ.get("COSS3_MATCH_NATION", ""),
+                nation2=os.environ.get("COSS3_MATCH_NATION2", ""),
                 balloon=n("COSS3_MATCH_BALLOON"), cannons=n("COSS3_MATCH_CANNONS"),
                 capture=n("COSS3_MATCH_CAPTURE"), market=n("COSS3_MATCH_MARKET"),
                 century18=n("COSS3_MATCH_CENTURY18"),

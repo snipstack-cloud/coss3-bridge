@@ -521,6 +521,9 @@ else
     [ -n "${COSS3_MATCH_MARKET:-}" ] && NEWARGS="$NEWARGS --market ${COSS3_MATCH_MARKET}"
     [ -n "${COSS3_MATCH_CENTURY18:-}" ] && NEWARGS="$NEWARGS --century18 ${COSS3_MATCH_CENTURY18}"
     [ -n "${COSS3_MATCH_MAPSIZE:-}" ] && NEWARGS="$NEWARGS --mapsize ${COSS3_MATCH_MAPSIZE}"
+    # Нация ПРОТИВНИКА (перенесено с idea/defense-nations 29.10 для серии «Россия без атаки»):
+    # пусто — та же, что наша, как во всех записях до 28.10.
+    [ -n "${COSS3_MATCH_NATION2:-}" ] && NEWARGS="$NEWARGS --nation2 ${COSS3_MATCH_NATION2}"
     if [ -n "$NEWARGS" ]; then
         log "состояния нет: игра в меню. Начинаю партию: ${NEWARGS}"
     else

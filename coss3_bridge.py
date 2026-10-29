@@ -482,7 +482,7 @@ class Bridge:
 
     def control(self, cmd: str, seed0: int = 0, seed1: int = 0, speed: int = -1,
                 res: int = -1, peace: int = -1, ai: int = -1,
-                nation: str = "", balloon: int = -1,
+                nation: str = "", nation2: str = "", balloon: int = -1,
                 cannons: int = -1, capture: int = -1,
                 market: int = -1, century18: int = -1,
                 mapsize: int = -1, botslot: int = -1) -> bool:
@@ -500,6 +500,8 @@ class Bridge:
                    (_misc_GetPeaceTime, misc.script:4264)
             ai     сложность противника, gc_player_difficulty_* по номеру
             nation строковый sid страны, 'net' = Нидерланды
+            nation2 sid страны ПРОТИВНИКА; пусто — та же, что наша
+                   (перенесено с idea/defense-nations 29.10)
 
         Зачем это вообще. Без настроек DoNewGame берёт то, что осталось в меню,
         и партии выходят разными: 12.09 так получились 5000 ресурсов вместо
@@ -533,6 +535,8 @@ class Bridge:
             поля["ai"] = int(ai)
         if nation:
             поля["nation"] = str(nation)
+        if nation2:
+            поля["nation2"] = str(nation2)
         if int(balloon) >= 0:
             # additional.balloon: 0 как обычно, 1 запрещён, 2 ВЫДАН ВСЕМ — и
             # тогда тумана войны нет ни у кого (_player_UpdateFOW,
