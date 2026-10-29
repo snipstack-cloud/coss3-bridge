@@ -18,6 +18,22 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'gametime', Round(GetGameTime));
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'myplind', plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'victory', gPlayer[plind].victorystate);
+      [*] = ;         // STAGE OF THE STATE BLOCK (29.10 night, mac, after D22/D23): the state block marks how far it got in
+      [*] = ;         // br_hstate (stage<plind> 0..11, 11 = saved; stageat = game time of the entry). Copied into the pulse,
+      [*] = ;         // because this parser is cleared before every save and the state block runs after us in the tick.
+      [*] = ;         var hhbs : Integer = ParserSelectByKey('br_hstate');
+      [*] = ;         if (hhbs <> 0) then
+      [*] = ;         begin
+      [*] = ;            var hhbi : Integer;
+      [*] = ;            for hhbi := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;            begin
+      [*] = ;               if (ParserGetValueByKeyByHandle(hhbs, 'stage' + IntToStr(hhbi)) <> '') then
+      [*] = ;               begin
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hhb, 'hs_stage' + IntToStr(hhbi), ParserGetIntValueByKeyByHandle(hhbs, 'stage' + IntToStr(hhbi)));
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hhb, 'hs_at' + IntToStr(hhbi), ParserGetIntValueByKeyByHandle(hhbs, 'stageat' + IntToStr(hhbi)));
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
       [*] = ;         ParserSaveToFileByHandle(hhb, '@@OUT@@coss3_hb.dat');
       [*] = ;      end;
       [*] = ;      var brctlpath : String = '@@OUT@@coss3_ctl.dat';

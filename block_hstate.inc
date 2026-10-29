@@ -27,6 +27,12 @@
       [*] = ;      if (hsnow - hslast >= 1.0) or (hsnow < hslast) then
       [*] = ;      begin
       [*] = ;         ParserSetFloatValueByKeyByHandle(hshb, 'wrote' + IntToStr(plind), hsnow);
+      [*] = ;         // STAGE MARKS (29.10 night, mac, after D22/D23): twice the state file froze for 158 s and for good while the loop
+      [*] = ;         // and the command block went on - this block entered (the stamp above moved) and never reached its save. Every
+      [*] = ;         // division and every grid index below is guarded, so the killer is unknown; the mark says how far we got. The
+      [*] = ;         // loop block copies stage/stageat into coss3_hb.dat (hs_stage<plind>/hs_at<plind>), where python reads it.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 0);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stageat' + IntToStr(plind), Round(hsnow));
       [*] = ;         var hsp : Integer = ParserSelectByKey('br_hp');
       [*] = ;         if (hsp = 0) then
       [*] = ;         hsp := ParserCreate('br_hp');
@@ -63,6 +69,7 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_farm',     gPlayer[plind].farm);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_farmused', gPlayer[plind].counter.farmused);
       [*] = ;         // --- one pass over our objects: everything below comes from it ---
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 1);
       [*] = ;         var hspea, hsidle, hsbuildp, hsunfin : Integer;
       [*] = ;         var hsonf, hsonw, hsons, hsonmine : Integer;
       [*] = ;         // Mines split by kind. on_mine was one number for gold, iron and coal
@@ -381,6 +388,7 @@
       [*] = ;            end;
       [*] = ;         end;
       [*] = ;         // --- WHAT BECAME OF THE WAVE -----------------------------------
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 2);
       [*] = ;         //
       [*] = ;         // 18 games, 1139 men sent in waves, ZERO enemy peasants killed - and
       [*] = ;         // the trace could not tell 'died on the way' from 'arrived and failed'.
@@ -687,6 +695,7 @@
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
       [*] = ;         // --- WHICH FIGHTERS THIS NATION CAN HIRE ----------------------------
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 3);
       [*] = ;         //
       [*] = ;         // A newcomer opens the barracks and reads what is inside: name, price,
       [*] = ;         // health. The bot never had that. Result, 12 games of 14.09: the army was
@@ -832,6 +841,7 @@
       [*] = ;              _unit_CanApplyCountCostByID(hscid, hsinfid, plind, 1));
       [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'famine', gPlayer[plind].bfamine);
       [*] = ;         // --- wood and stone on the ground, within reach --------------------
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 4);
       [*] = ;         //
       [*] = ;         // The model wrote this urok itself (14.09): '15 men on stone gave +0, it must
       [*] = ;         // be worked out within 40'. She was right and had no way to check: the human
@@ -912,6 +922,7 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_near', hssn);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_free', hssf);
       [*] = ;         // --- what can be paid for RIGHT NOW -----------------------------------
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 5);
       [*] = ;         //
       [*] = ;         // The model used to find this out by spending a tick: order it, get nothing,
       [*] = ;         // guess which resource was short. Now the bridge asks the engine the same
@@ -991,6 +1002,7 @@
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'can_now', hscan);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'cant_now', hscant);
       [*] = ;         // --- ore deposits: what a player sees on the map ---------------------
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 6);
       [*] = ;         // The model asked for this itself (questions10, 1:46): 'is there an iron
       [*] = ;         // deposit within 26 of my town centre, and on which side?'. Until now the
       [*] = ;         // human slot reported only how many mines were BUILT, never where the
@@ -1097,6 +1109,7 @@
       [*] = ;         else
       [*] = ;         ParserSetBoolValueByKeyByHandle(hsp, 'cost_ok', False);
       [*] = ;         // --- enemies: who they are and how many peasants they still have ---
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 7);
       [*] = ;         // --- MINIMAP ----------------------------------------------------
       [*] = ;         // A human sees the minimap at all times, and on an open map it shows
       [*] = ;         // everything on it. Until 16.09 the model had distances and compass
@@ -1793,6 +1806,7 @@
       [*] = ;               hmbase[hmbcx][hmbcy] := hmcode;
       [*] = ;            end;
       [*] = ;         end;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 8);
       [*] = ;         // The grid goes out ONLY when a town center exists: without it there
       [*] = ;         // is no anchor and the 'my base' cell would be a lie. No grid_n key
       [*] = ;         // means python says nothing about the map at all.
@@ -2218,6 +2232,7 @@
       [*] = ;            // Cells and live counts BY GROUP NUMBER, for the merge pass below.
       [*] = ;            // Arrays, not scalars: an array survives a nested begin by reference,
       [*] = ;            // a number does not (six army counters, 17.09).
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 9);
       [*] = ;            var hgcell : array [0..16] of Integer;
       [*] = ;            var hgcelly : array [0..16] of Integer;
       [*] = ;            var hglive : array [0..16] of Integer;
@@ -2520,6 +2535,7 @@
       [*] = ;         // so this block is about to freeze - and this is the last line it writes.
       [*] = ;         // Without it the trace simply stopped and the policy had to guess between
       [*] = ;         // 'window minimized', 'match over' and 'MODE 1 broke it'.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 10);
       [*] = ;         var hsvic : String = 'none';
       [*] = ;         if (gPlayer[plind].victorystate = gc_player_victorystate_win) then
       [*] = ;         hsvic := 'win'
@@ -2528,6 +2544,7 @@
       [*] = ;         hsvic := 'lose';
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'victory', hsvic);
       [*] = ;         ParserSaveToFileByHandle(hsp, '@@OUT@@coss3_eco_P' + IntToStr(plind) + '.dat');
+      [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 11);
       [*] = ;      end;
       [*] = ;   end;
       [*] = ;   // === END BRIDGE HUMAN STATE ===
