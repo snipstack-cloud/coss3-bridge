@@ -311,6 +311,9 @@ def main() -> int:
                          "не 16, и пороги в клетках означали не то, что записано")
     ap.add_argument("--nation", default="",
                     help="страна строкой sid, например net (Нидерланды). "
+    ap.add_argument("--nation2", default="",
+                    help="страна ПРОТИВНИКА строкой sid (rus, pol, tur…); пусто — та же, "
+                         "что --nation (перенесено с idea/russia-noattack 29.10)")
                          "Номер не зашит: блок зовёт _country_GetIDBySID")
     ap.add_argument("--new", nargs="?", type=int, const=0, default=None,
                     metavar="SEED", help="переиграть игру, можно с сидом")
@@ -344,6 +347,7 @@ def main() -> int:
         seed = a.new or 0
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
+                          res=a.res, peace=a.peace, ai=a.ai, nation2=a.nation2,
                           balloon=a.balloon, cannons=a.cannons,
                           capture=a.capture, market=a.market,
                           century18=a.century18, mapsize=a.mapsize,
