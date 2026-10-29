@@ -1236,7 +1236,13 @@
       [*] = ;                  begin
       [*] = ;                     var hfgo : Integer = GetGameObjectHandleByIndex(hck, hcph);
       [*] = ;                     var hfp : Pointer = _unit_GetTObj(hfgo);
+      [*] = ;                     // NO CORPSES IN THE SQUAD (29.10 night, mac, after D22/D23 and two container freezes). A dead man stays
+      [*] = ;                     // in the player's object list until the engine removes the body, and this selection took him: squads
+      [*] = ;                     // built after losses were born with 8 / 5 / 16 dead inside (squad_units above my_insquad from the first
+      [*] = ;                     // tick), and every squad order then wrote 'WriteMove checkcount' and 'bdead unit' into the log. Both
+      [*] = ;                     // passes skip the dead now - the officer and the drummer too.
       [*] = ;                     if (hfp<>nil) then
+      [*] = ;                     if (not TObj(hfp).bdead) then
       [*] = ;                     begin
       [*] = ;                        var hfrole : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].airole;
       [*] = ;                        var hfu : Integer = gObjProp[TObj(hfp).cid][TObj(hfp).id].usage;
@@ -1278,6 +1284,7 @@
       [*] = ;                           var hfg2 : Integer = GetGameObjectHandleByIndex(hck, hcph);
       [*] = ;                           var hfp2 : Pointer = _unit_GetTObj(hfg2);
       [*] = ;                           if (hfp2 <> nil) then
+      [*] = ;                           if (not TObj(hfp2).bdead) then
       [*] = ;                           begin
       [*] = ;                              var hfs2 : String = gCountry[hccid].members[TObj(hfp2).id];
       [*] = ;                              for hcj := 0 to gc_country_maxformationunitcount-1 do
