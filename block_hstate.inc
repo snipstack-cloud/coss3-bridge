@@ -2608,7 +2608,10 @@
       [*] = ;               // aca.12..15 give +10..+25 per cent of BULLET damage and
       [*] = ;               // aca.31/33 cut its reload by 30 per cent each.
       [*] = ;               var hsupac : Boolean = (StrLength(hsun) > 4) and (SubStr(hsun, 1, 4) = 'aca.');
-      [*] = ;               if (hsudots >= 3) or (hsupac) then
+      [*] = ;               // LIST ITEM 4 (30.10 night): the price goes with EVERY upgrade, not only military (3 dots) and
+      [*] = ;               // academic ones - bla.*, mil.*, sto.*, mil18 came without a price, and python could not weigh them
+      [*] = ;               // (29.10: the bot bought aca.13 for 4000 while bla.1 had no number). hsudots/hsupac are kept for the record.
+      [*] = ;               if (hsudots >= 0) then
       [*] = ;               begin
       [*] = ;                  var hsupf : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_food];
       [*] = ;                  var hsupg2 : Integer = gCountry[hscid].upgrade[hsui].price[gc_resource_type_gold];
