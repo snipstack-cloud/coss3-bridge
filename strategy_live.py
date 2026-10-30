@@ -2128,6 +2128,58 @@ class ЖиваяСтратегия:
         темп = max(замер, пол)
         return темп, f"темп {темп:.2f}/с ({'замер' if замер >= пол else 'казарм ' + str(int(float(st.get('p1_ba17') or 0)))})"
 
+    def _стойка_дома(self, из: list, st: dict, t: float) -> tuple:
+        """Ключ `стойка_дома` K (с), 0/нет — как было (30.10 вечер). Раз в K с свободные бойцы дома (`my_freewar` ≥
+        `стойка_дома_от`, 20) идут MOVE по числу группой ЗАСЛОН (91) в клетку рядом с ратушей со стороны врага, через
+        `встреча_сек` (20) та же группа получает FACE hold лицом к его ближайшей куче (или базе). Зачем: в контейнерах
+        против ИИ `my_held` 0 всю партию (винда 30.10: «рефлексу нечего отпускать»), и ни рефлекс (п. 1), ни оборонительная
+        ATTACK блока (п. 2) судимы быть не могут — строй у дома делает судью возможным. Молчит при `defend_on` 1 и когда
+        группе 91 уже есть приказ в этом такте."""
+        п = self.п
+        K = float(п.get("стойка_дома", 0) or 0)
+        if K <= 0:
+            return из, ""
+        if int(float(st.get("defend_on") or 0)) == 1:
+            return из, ""
+        if any(c.get("group") == self.ЗАСЛОН for c in из):
+            return из, ""
+        сост = getattr(self, "_стойка", None)
+        if сост is None or t < float(сост.get("t0") or 0):
+            сост = self._стойка = {"move_t": None, "done_t": None, "t0": t}
+        д = _дом(st)
+        лицо = _куда_смотреть(st)
+        if not лицо:
+            eb = st.get("en_base")
+            if isinstance(eb, (list, tuple)) and len(eb) >= 2:
+                try:
+                    лицо = (int(eb[0]), int(eb[1]))
+                except (TypeError, ValueError):
+                    лицо = None
+        if not лицо:
+            return из, ""
+        лицо = (int(лицо[0]), int(лицо[1]))
+        sx = (лицо[0] > int(д[0])) - (лицо[0] < int(д[0]))
+        sy = (лицо[1] > int(д[1])) - (лицо[1] < int(д[1]))
+        клетка = (int(д[0]) + sx, int(д[1]) + sy)
+        сек = float(п.get("встреча_сек", 20) or 20)
+        if сост["move_t"] is not None and сост["done_t"] is None:
+            if t - сост["move_t"] >= сек:
+                сост["done_t"] = t
+                из.insert(0, {"cmd": "FACE", "count": 0, "group": self.ЗАСЛОН, "face": [лицо[0], лицо[1]], "hold": 1})
+                self.реестр.мера["стойка дома: FACE hold"] += 1
+                return из, f"§170ж стойка дома: группа {self.ЗАСЛОН} в {клетка} держит строй лицом к {лицо} (FACE hold)"
+            return из, ""
+        if сост["done_t"] is not None and t - сост["done_t"] < K:
+            return из, ""
+        своб = int(float(st.get("my_freewar") or 0))
+        if своб < int(п.get("стойка_дома_от", 20) or 20):
+            return из, ""
+        сост["move_t"] = t
+        сост["done_t"] = None
+        из.insert(0, {"cmd": "MOVE", "count": 9999, "group": self.ЗАСЛОН, "target": "cell", "cx": int(клетка[0]), "cy": int(клетка[1])})
+        self.реестр.мера["стойка дома: MOVE"] += 1
+        return из, f"§170ж стойка дома: свободных {своб} — MOVE группой {self.ЗАСЛОН} в {клетка} (FACE hold через {сек:.0f} с)"
+
     def _оборона_всем(self, из: list, st: dict) -> tuple:
         """§170ж (в) (30.10, Польша 12:47–13:08): ATTACK у дома шёл числом (9999), а 77 держали строй — блок отвечал «attack skipped 77
         holding soldiers (order them by group number to release)», и в бой пошли 27. Ключ `оборона_всем` 1: ATTACK в клетку не дальше
@@ -2452,13 +2504,22 @@ class ЖиваяСтратегия:
         # §170ё: запрет атаки до срока — последним, после всех, кто шлёт ATTACK (волна, ручеёк, подток, лагерь, выход)
         # Выключатель рефлекса обороны блока (30.10): ключ `рефлекс_обороны` -1/нет — блок как есть (включён по умолчанию); 0/1 —
         # DEFEND шлётся первым тактом и раз в 60 с (блок помнит, повтор — на случай потери файла). Плечо A/B: тот же файл, ключ 0.
+        # Стойка дома (30.10 вечер, ключ `стойка_дома`): строй у ратуши для контейнерного судьи пункта 2 — до ворот и до DEFEND.
+        из, _сд_why = self._стойка_дома(из, st, float(st.get("gametime") or 0))
+        if _сд_why:
+            why += "; " + _сд_why
+        # a2 — выключатель оборонительной ATTACK блока (30.10 вечер, пункт 2): ключ `оборона_числом` -1/нет — как есть
+        # (в блоке включено), 0/1 — явно; шлётся тем же DEFEND (a1 рефлекс, a2 оборонительная ATTACK).
         _рф = self.п.get("рефлекс_обороны", None)
-        if _рф is not None and int(float(_рф)) >= 0:
+        _оч = self.п.get("оборона_числом", None)
+        _рф = int(float(_рф)) if _рф is not None else -1
+        _оч = int(float(_оч)) if _оч is not None else -1
+        if _рф >= 0 or _оч >= 0:
             _t = float(st.get("gametime") or 0)
             if getattr(self, "_defend_at", None) is None or _t - self._defend_at >= 60.0 or _t < self._defend_at:
                 self._defend_at = _t
-                из.append({"cmd": "DEFEND", "count": int(float(_рф))})
-                why += f"; DEFEND {int(float(_рф))} (рефлекс обороны блока)"
+                из.append({"cmd": "DEFEND", "count": _рф if _рф >= 0 else 1, "atk": _оч})
+                why += f"; DEFEND {_рф if _рф >= 0 else 1}/{_оч} (рефлекс обороны блока / оборонительная ATTACK)"
         из, _бз_why = self._без_атаки(из, st)
         if _бз_why:
             why += "; " + _бз_why

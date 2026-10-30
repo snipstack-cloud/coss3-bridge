@@ -635,6 +635,14 @@ postmortem() {
     # ним, а на ферме из десяти копий сравнивать становится нечего уже к утру.
     if [ -n "${COSS3_RESULTS_GIT:-}" ]; then
         RUN_NAME="${COSS3_RESULTS_NAME:-${COSS3_EXPERIMENT:-прогон}/${COSS3_SLOT}}"
+        # Короткий SHA моста в имени копии (30.10, просьба винды: три прогона подряд под одним именем
+        # затёрли друг друга в coss3-results). COSS3_RESULTS_SHA=0 — как было.
+        if [ "${COSS3_RESULTS_SHA:-1}" = "1" ]; then
+            _sha=$(cut -c1-7 "$COSS3_IO/bridge.sha" 2>/dev/null || true)
+            case "$_sha" in
+                [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) RUN_NAME="${RUN_NAME}-${_sha}" ;;
+            esac
+        fi
         log "отправляю результат в git: ${COSS3_RESULTS_GIT} (${RUN_NAME})"
         python3 /opt/bridge/push_results.py \
             --io "$COSS3_IO" \

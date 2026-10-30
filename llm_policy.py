@@ -8992,7 +8992,12 @@ def to_commands(data: dict, доступные: set[str] | None = None,
             elif c == "DEFEND":
                 # ВЫКЛЮЧАТЕЛЬ РЕФЛЕКСА ОБОРОНЫ ДОМА (30.10): команда стратегии по ключу
                 # `рефлекс_обороны`, в списке команд модели её НЕТ нарочно (как KITE).
-                cmds.append(defend(1 if (total is None or total > 0) else 0))
+                _atk = -1
+                try:
+                    _atk = int(float(item.get("atk", -1) if item.get("atk") is not None else -1))
+                except (TypeError, ValueError):
+                    _atk = -1
+                cmds.append(defend(1 if (total is None or total > 0) else 0, _atk))
             elif c == "KITE":
                 # ЗАЛП И ШАГ НАЗАД (26.10, §170о, вопрос игрока «мушкетёр: выстрел,
                 # отход, выстрел, пока не перебьёт пику»). Приказ только ВКЛЮЧАЕТ
@@ -9561,6 +9566,24 @@ def _спросить_ollama(кл: "Родной", model: str, prompt: str, syst
 
 
 EVENT_TIMEOUT = 90       # родной путь: событие короткое, ждать дольше незачем
+
+
+def _defend_из_ключей(стр) -> "Command | None":
+    """DEFEND по ключам стратегии `рефлекс_обороны` (a1) и `оборона_числом` (a2): None, если оба не заданы или < 0.
+    Та же логика, что в конце `ЖиваяСтратегия.ответ()`; здесь — для дебюта, когда стратегия ещё молчит."""
+    п = getattr(стр, "п", None)
+    if not isinstance(п, dict):
+        return None
+    try:
+        _рф = п.get("рефлекс_обороны", None)
+        _оч = п.get("оборона_числом", None)
+        _рф = int(float(_рф)) if _рф is not None else -1
+        _оч = int(float(_оч)) if _оч is not None else -1
+    except (TypeError, ValueError):
+        return None
+    if _рф < 0 and _оч < 0:
+        return None
+    return defend(_рф if _рф >= 0 else 1, _оч)
 
 
 def ask(client, model: str, prompt: str, think: bool = False,
@@ -10406,7 +10429,18 @@ def одна_партия(a, client, br: Bridge, plind: int,
                 continue
             if not дебют.готов(st):
                 _дк, _дс = дебют.такт(st, gt)
+                # DEFEND ДО ПЕРЕДАЧИ ХОДА (30.10 вечер, винда: «первый DEFEND приходит на 60-й секунде» — стратегия
+                # молчит, пока ведёт дебют, а выключатели блока нужны с первой секунды). Один раз за дебют, по тем же
+                # ключам стратегии; стратегия потом повторит сама — блок идемпотентен.
+                _дд = None
+                if СТРАТЕГИЯ is not None and not getattr(дебют, "_defend_sent", False):
+                    _дд = _defend_из_ключей(СТРАТЕГИЯ)
+                    if _дд is not None:
+                        _дк = list(_дк) + [_дд]
+                        _дс = list(_дс) + [f"DEFEND {_дд.a1}/{_дд.a2} (ключи стратегии, до передачи хода)"]
                 if _дк and br.send(_дк):
+                    if _дд is not None:
+                        дебют._defend_sent = True
                     for _с in _дс:
                         print(f"     дебют {gt} с: {_с}", flush=True)
                 continue

@@ -1182,7 +1182,11 @@
       [*] = ;                  if (hcdf = 0) then
       [*] = ;                  hcdf := ParserCreate('br_hdef');
       [*] = ;                  ParserSetIntValueByKeyByHandle(hcdf, 'defend' + IntToStr(plind), hca1);
-      [*] = ;                  Log('bridge-human: DEFEND ' + IntToStr(hca1) + ' (home defence reflex switch)');
+      [*] = ;                  // a2 (30.10 evening, list item 2): switch of the DEFENSIVE ATTACK rule (ATTACK branch, hadefn): 1 on, 0 off,
+      [*] = ;                  // -1 leaves it as it is; default 1 when never set.
+      [*] = ;                  if (hca2 >= 0) then
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hcdf, 'atkdef' + IntToStr(plind), hca2);
+      [*] = ;                  Log('bridge-human: DEFEND ' + IntToStr(hca1) + ' (home defence reflex switch), attack-defence ' + IntToStr(hca2));
       [*] = ;               end;
       [*] = ;               if (hccmd = 'SEED') then
       [*] = ;               begin
@@ -1598,6 +1602,9 @@
       [*] = ;            // in a nested begin does not accumulate (17.09, six army counters read zero
       [*] = ;            // at 208 soldiers).
       [*] = ;            var haheldn : Integer = 0;
+      [*] = ;            // DEFENSIVE ATTACK counters (list item 2) live here too, reset per order below.
+      [*] = ;            var hadefn : Boolean;
+      [*] = ;            var hadefe, hadeft : Integer;
       [*] = ;            gTmpIntList.Clear;
       [*] = ;            for haoi := 0 to haon-1 do
       [*] = ;            begin
@@ -1904,6 +1911,94 @@
       [*] = ;            // FACE NEEDS NO TARGET (5.10, par.98): turning in place needs no enemy and no
       [*] = ;            // point to walk to, so it must not be blocked by 'target found' - a bot with
       [*] = ;            // nobody in sight would have been unable to turn at all.
+      [*] = ;            // DEFENSIVE ATTACK (30.10 evening, mac, list item 2; Poland game 12:47-13:08): python's ATTACK by number at his
+      [*] = ;            // camp 4 cells from our town hall was refused for the 77 holding men and 27 went. Here the block itself: the
+      [*] = ;            // target is within 5 cells of our town hall (Chebyshev, cell = map/16) AND at least 5 enemy soldiers stand
+      [*] = ;            // within 2 cells of the target -> the holding men outside squads are taken into the wave after all (second
+      [*] = ;            // pass, same filters as above minus the hold refusal), their hold released before the move exactly as ALL
+      [*] = ;            // does. Switch atkdef<p> in br_hdef (DEFEND a2), default 1; 0 = as before. Said aloud either way.
+      [*] = ;            hadefn := False;
+      [*] = ;            hadefe := 0;
+      [*] = ;            hadeft := 0;
+      [*] = ;            if (hafound) and (haheldn > 0) and (not haall) and (not haretreat) and (not haengage) and (not haface) and (not hakite) and (hamode <> 'move') then
+      [*] = ;            begin
+      [*] = ;               var hadefp : Integer = ParserSelectByKey('br_hdef');
+      [*] = ;               var hadefsw : Integer = 1;
+      [*] = ;               if (hadefp <> 0) then
+      [*] = ;               if (ParserGetValueByKeyByHandle(hadefp, 'atkdef' + IntToStr(plind)) <> '') then
+      [*] = ;               hadefsw := ParserGetIntValueByKeyByHandle(hadefp, 'atkdef' + IntToStr(plind));
+      [*] = ;               var hadefr : Float = 5.0 * GetMapWidth / 16.0;
+      [*] = ;               var hadefr2 : Float = 2.0 * GetMapWidth / 16.0;
+      [*] = ;               var hadefdx : Float = hatx - hax;
+      [*] = ;               var hadefdz : Float = hatz - haz;
+      [*] = ;               if (hadefsw = 1) and (hadefdx <= hadefr) and (hadefdx >= -hadefr) and (hadefdz <= hadefr) and (hadefdz >= -hadefr) then
+      [*] = ;               begin
+      [*] = ;                  var hadefpl : Integer;
+      [*] = ;                  for hadefpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;                  if (gPlayer[hadefpl].bexists) and (hadefpl <> plind) then
+      [*] = ;                  if ((gPlayer[plind].enemyPlMask and gPlayer[hadefpl].myPlMask) <> 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hadefph : Integer = GetPlayerHandleByIndex(hadefpl);
+      [*] = ;                     var hadefoc : Integer = GetPlayerGameObjectsCountByHandle(hadefph);
+      [*] = ;                     var hadefj : Integer;
+      [*] = ;                     for hadefj := 0 to hadefoc-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hadefgo : Integer = GetGameObjectHandleByIndex(hadefj, hadefph);
+      [*] = ;                        var hadefpo : Pointer = _unit_GetTObj(hadefgo);
+      [*] = ;                        if (hadefpo<>nil) then
+      [*] = ;                        if (not TObj(hadefpo).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           var hadefu : Integer = gObjProp[TObj(hadefpo).cid][TObj(hadefpo).id].usage;
+      [*] = ;                           if (hadefu = gc_obj_usage_lightinfantry) or (hadefu = gc_obj_usage_weak) or (hadefu = gc_obj_usage_grenadier) or
+      [*] = ;                              (hadefu = gc_obj_usage_shooter) or (hadefu = gc_obj_usage_archer) or (hadefu = gc_obj_usage_fasthorse) or
+      [*] = ;                              (hadefu = gc_obj_usage_hardhorse) or (hadefu = gc_obj_usage_horseshooter) then
+      [*] = ;                           begin
+      [*] = ;                              var hadefex : Float = GetGameObjectPositionXByHandle(hadefgo) - hatx;
+      [*] = ;                              var hadefez : Float = GetGameObjectPositionZByHandle(hadefgo) - hatz;
+      [*] = ;                              if (hadefex <= hadefr2) and (hadefex >= -hadefr2) and (hadefez <= hadefr2) and (hadefez >= -hadefr2) then
+      [*] = ;                              hadefe := hadefe + 1;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hadefe >= 5) then
+      [*] = ;                  hadefn := True;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            if (hadefn) then
+      [*] = ;            begin
+      [*] = ;               // Second pass: holding men outside squads, idle, of the asked kind, not taken by an earlier order of this tick.
+      [*] = ;               for hak := 0 to han-1 do
+      [*] = ;               if (gIntegerList.GetCount < hawant) then
+      [*] = ;               begin
+      [*] = ;                  var hadfgo : Integer = GetGameObjectHandleByIndex(hak, haph);
+      [*] = ;                  var hadfpo : Pointer = _unit_GetTObj(hadfgo);
+      [*] = ;                  if (hadfpo<>nil) then
+      [*] = ;                  if (not TObj(hadfpo).bdead) then
+      [*] = ;                  if (not gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].bbuilding) then
+      [*] = ;                  if (TObj(hadfpo).bstandground) and (TObj(hadfpo).squad < 0) then
+      [*] = ;                  if (TObj(hadfpo).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                  begin
+      [*] = ;                     var hadfu : Integer = gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].usage;
+      [*] = ;                     var hadftk : Boolean = (hadfu <> gc_obj_usage_peasant) and (hadfu <> gc_obj_usage_none);
+      [*] = ;                     if (hadftk) and (hawrole >= 0) then
+      [*] = ;                     if (gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].airole <> hawrole) then
+      [*] = ;                     hadftk := False;
+      [*] = ;                     if (hadftk) and (gTmpIntList.GetCount > 0) then
+      [*] = ;                     for hatk := 0 to gTmpIntList.GetCount-1 do
+      [*] = ;                     if (gTmpIntList.Get(hatk) = hadfgo) then
+      [*] = ;                     hadftk := False;
+      [*] = ;                     if (hadftk) then
+      [*] = ;                     begin
+      [*] = ;                        gIntegerList.Add(hadfgo);
+      [*] = ;                        hadeft := hadeft + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               Log('bridge-human: ' + hamw + ' home defence - target ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + ' within 5 cells of the town hall, ' +
+      [*] = ;                   IntToStr(hadefe) + ' enemy soldiers within 2 cells of it: ' + IntToStr(hadeft) + ' of ' + IntToStr(haheldn) + ' holding soldiers taken, hold released');
+      [*] = ;            end
+      [*] = ;            else
       [*] = ;            // Said BEFORE the order goes out: the number refused for holding explains a
       [*] = ;            // short wave, and silence here would look like 'there was nobody'.
       [*] = ;            if (haheldn > 0) then
@@ -2201,9 +2296,9 @@
       [*] = ;               else
       [*] = ;               if (_unit_ListSetSearchEnemy(haph, gIntegerList, True, True)) then
       [*] = ;               begin
-      [*] = ;                  if (haall) then
+      [*] = ;                  if (haall) or (hadefn) then
       [*] = ;                  begin
-      [*] = ;                     // ALL: the holding men taken above are released before the move (same call as FACE hold, state False)
+      [*] = ;                     // ALL (and the defensive ATTACK, item 2): the holding men taken above are released before the move (same call as FACE hold, state False)
       [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, False, False, False);
       [*] = ;                  end;
       [*] = ;                  _player_SetGroupPosition(haph, hagr, -1, hatx, hatz, hatx, hatz, hadx, hadz,
@@ -2890,16 +2985,21 @@
       [*] = ;      hdp := ParserCreate('br_hdef');
       [*] = ;      if (ParserGetValueByKeyByHandle(hdp, 'defend' + IntToStr(plind)) = '') then
       [*] = ;      ParserSetIntValueByKeyByHandle(hdp, 'defend' + IntToStr(plind), 1);
+      [*] = ;      // TIME MARK (30.10, asked by Windows): LOG|N in game.log is a line number, not a second; one line per game second
+      [*] = ;      // lets any bridge-human line be dated by the nearest mark above it. ABOVE the switch (30.10 evening, Windows: in the
+      [*] = ;      // 'off' copies the clock died at TIME 60 - the mark has nothing to do with the reflex).
+      [*] = ;      var hdnow : Float = GetGameTime;
+      [*] = ;      var hdlast : Float = ParserGetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind));
+      [*] = ;      var hdtick : Boolean = (hdnow - hdlast >= 1.0) or (hdnow < hdlast);
+      [*] = ;      if (hdtick) then
+      [*] = ;      begin
+      [*] = ;         ParserSetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind), hdnow);
+      [*] = ;         Log('bridge-human: TIME ' + IntToStr(Round(hdnow)));
+      [*] = ;      end;
       [*] = ;      if (ParserGetIntValueByKeyByHandle(hdp, 'defend' + IntToStr(plind)) = 1) then
       [*] = ;      begin
-      [*] = ;         var hdnow : Float = GetGameTime;
-      [*] = ;         var hdlast : Float = ParserGetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind));
-      [*] = ;         if (hdnow - hdlast >= 1.0) or (hdnow < hdlast) then
+      [*] = ;         if (hdtick) then
       [*] = ;         begin
-      [*] = ;            ParserSetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind), hdnow);
-      [*] = ;            // TIME MARK (30.10, asked by Windows): LOG|N in game.log is a line number, not a second; one line per game second
-      [*] = ;            // lets any bridge-human line be dated by the nearest mark above it.
-      [*] = ;            Log('bridge-human: TIME ' + IntToStr(Round(hdnow)));
       [*] = ;            var hdph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;            var hdoc : Integer = GetPlayerGameObjectsCountByHandle(hdph);
       [*] = ;            hdcx := 0;
