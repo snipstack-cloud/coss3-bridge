@@ -1174,6 +1174,16 @@
       [*] = ;               // (ontagstates.inc:140). What nobody did on the human slot is sow AGAIN once
       [*] = ;               // that field is reaped - and that is where the hunger came from: food only
       [*] = ;               // fell, and below 500 the whole endless production stops.
+      [*] = ;               // DEFEND a1 (30.10): the switch of the home defence reflex (hcmd tail): 1 on, 0 off; remembered in br_hdef for the rest
+      [*] = ;               // of the game. Lets a container copy run with the reflex off against the same strategy file - one difference from the base.
+      [*] = ;               if (hccmd = 'DEFEND') then
+      [*] = ;               begin
+      [*] = ;                  var hcdf : Integer = ParserSelectByKey('br_hdef');
+      [*] = ;                  if (hcdf = 0) then
+      [*] = ;                  hcdf := ParserCreate('br_hdef');
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hcdf, 'defend' + IntToStr(plind), hca1);
+      [*] = ;                  Log('bridge-human: DEFEND ' + IntToStr(hca1) + ' (home defence reflex switch)');
+      [*] = ;               end;
       [*] = ;               if (hccmd = 'SEED') then
       [*] = ;               begin
       [*] = ;                  // sid must be a VARIABLE: _unit_ConvertObjSIDToID takes it as
@@ -2864,6 +2874,8 @@
       [*] = ;      // Poland game 12:47-13:08: his 221 pikes stood 4 cells from our town hall, our 77 held the line (FACE hold) and the
       [*] = ;      // python's ATTACK by number was refused ('attack skipped 77 holding soldiers'); python looks once in 5 s. Here the
       [*] = ;      // block itself: enemy SOLDIERS within hdrad cells of our town hall >= hdmin -> every held soldier outside squads and
+      [*] = ;      // (cells by Chebyshev - max of |dx|,|dz| - the same measure the python analysis uses for 'N cells from the town hall';
+      [*] = ;      // the first build used a circle and missed a camp 4 cells away on the diagonal, 30.10 container copy 2)
       [*] = ;      // every squad of ours gets stand ground OFF and search victim ON, so they engage by themselves; repeated not more
       [*] = ;      // than once in 10 s while the enemy stays; logged. br_hdef keeps on<p>/t<p>/n<p> for the state block (defend_on,
       [*] = ;      // defend_n) and the switch defend<p> (1 by default; python may set 0 later through a command).
@@ -2929,7 +2941,7 @@
       [*] = ;                        begin
       [*] = ;                           var hddx : Float = GetGameObjectPositionXByHandle(hdego) - hdcx;
       [*] = ;                           var hddz : Float = GetGameObjectPositionZByHandle(hdego) - hdcz;
-      [*] = ;                           if (hddx*hddx + hddz*hddz <= hdrad*hdrad) then
+      [*] = ;                           if (hddx <= hdrad) and (hddx >= -hdrad) and (hddz <= hdrad) and (hddz >= -hdrad) then
       [*] = ;                           hden := hden + 1;
       [*] = ;                        end;
       [*] = ;                     end;

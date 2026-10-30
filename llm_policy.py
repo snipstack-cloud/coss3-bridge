@@ -47,7 +47,7 @@ import time
 
 from coss3_bridge import (formation, Bridge, BUILDABLE, ROLE, UPGRADES, RESOURCE,
                            INFINITE, build, train, upgrade, mode, balance,
-                           builders, seed)
+                           builders, seed, defend)
 import coss3_map
 import combat_math
 from reward import stages
@@ -8989,6 +8989,10 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                 else:
                     брак.append(f"ENGAGE: нужно число бойцов > 0 в поле count"
                                 f" (поля: {поля})")
+            elif c == "DEFEND":
+                # ВЫКЛЮЧАТЕЛЬ РЕФЛЕКСА ОБОРОНЫ ДОМА (30.10): команда стратегии по ключу
+                # `рефлекс_обороны`, в списке команд модели её НЕТ нарочно (как KITE).
+                cmds.append(defend(1 if (total is None or total > 0) else 0))
             elif c == "KITE":
                 # ЗАЛП И ШАГ НАЗАД (26.10, §170о, вопрос игрока «мушкетёр: выстрел,
                 # отход, выстрел, пока не перебьёт пику»). Приказ только ВКЛЮЧАЕТ

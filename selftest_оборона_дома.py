@@ -59,4 +59,18 @@ def выходы(доп, en):
 # (г) рефлекс блока включён (defend_on 1) — FACE с hold снимается, строка есть
 в3, w3 = С._оборона_всем([{"cmd": "FACE", "count": 0, "group": 92, "face": [1, 1], "hold": 1}, {"cmd": "BALANCE", "role": "wood", "total": 5}], dict(st, defend_on=1, defend_n=40))
 проверить(all(c.get("cmd") != "FACE" for c in в3) and "рефлекс обороны блока" in w3, f"(г) при defend_on FACE/hold снят: {[c.get('cmd') for c in в3]} «{w3}»")
+# (д) страж выхода читает и defend_n блока: en_at_base 0, defend_n 50 — выхода нет
+С5 = стратегия({"выход_к": 780, "выход_к_после_цели": 0, "выход_не_при_осаде": 30}); в5 = []; с5 = []
+for s in КЕЙС:
+    s = dict(s); s["en_at_base"] = 0; s["defend_n"] = 50
+    АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None}); о = С5.ответ(copy.deepcopy(s))
+    if any(c.get("_выход_к") for c in о["commands"]): в5.append(int(s["gametime"]))
+    if "сперва оборона" in о["why"]: с5.append(int(s["gametime"]))
+проверить(not в5 and с5, f"(д) en_at_base 0, defend_n 50 — выхода нет, строк {len(с5)}")
+# (е) ключ рефлекс_обороны 0 — DEFEND 0 первым тактом и не чаще раза в 60 с; без ключа — команды нет
+С6 = стратегия({"рефлекс_обороны": 0}); деф = []
+for s in КЕЙС[:14]:
+    АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None}); о = С6.ответ(copy.deepcopy(s))
+    деф += [(int(s["gametime"]), c.get("count")) for c in о["commands"] if c.get("cmd") == "DEFEND"]
+проверить(деф and деф[0][1] == 0 and len(деф) <= 2, f"(е) DEFEND 0 первым тактом, повтор не чаще 60 с: {деф}")
 print(f"ошибок: {ошибок}"); raise SystemExit(1 if ошибок else 0)
