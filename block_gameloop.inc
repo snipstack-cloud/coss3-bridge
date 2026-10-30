@@ -241,8 +241,17 @@
       [*] = ;               // A name, so the scoreboard says who this is. Safe here, unlike on
       [*] = ;               // slot 0: this slot has no profile to lose.
       [*] = ;               gMap.players[brctlbot].name := 'BRIDGE';
+      [*] = ;               // The bot's nation (30.10, Poland game): nation2 when asked for, else the same as the human's -
+      [*] = ;               // this branch had only 'nation' and gave Poland to both slots (nat0 = 6, nat1 = 6).
+      [*] = ;               if (brctlnat2 <> '') then
+      [*] = ;               begin
+      [*] = ;                  gMap.players[brctlbot].cid := _country_GetIDBySID(brctlnat2);
+      [*] = ;               end
+      [*] = ;               else
       [*] = ;               if (brctlnat <> '') then
-      [*] = ;               gMap.players[brctlbot].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               begin
+      [*] = ;                  gMap.players[brctlbot].cid := _country_GetIDBySID(brctlnat);
+      [*] = ;               end;
       [*] = ;               // Everyone else closed, slot 0 and the bot's aside: a third player
       [*] = ;               // changes the conditions, and a stray native ai would make the
       [*] = ;               // match unlike the one that was asked for.
