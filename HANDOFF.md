@@ -1894,7 +1894,7 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 29.10 вечер (мак, переделка стока после balance_sink_vs_ai; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2744**, `block_hstate.inc` **2501**, `block_gameloop.inc` 336 (verify_blocks; wc на единицу меньше), установленный `progress.inc` **5771** (+74 к 5697). Сток сажает на самый скудный по казне ресурс (`TOPUP sink resN … treasury food/wood/stone`), состояние отдаёт `tgt_food/tgt_wood/tgt_stone` и `sink_pea`; python-ключ `сток_излишек` (§170ф). Судья — контейнер `balance_sink2_vs_ai`.
 
-**ЧИСЛА УСТАНОВКИ НА 30.10 день (мак, nation2 в ветке человек-против-бота; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2864**, `block_hstate.inc` **2592**, `block_gameloop.inc` **373**, установленный `progress.inc` **6020**.
+**ЧИСЛА УСТАНОВКИ НА 30.10 день (nation2 в ветке человек-против-бота; ПРОВЕРЕНО ЖИВОЙ ИГРОЙ на Windows — партия с Польшей: пульс `hs_stage1` = 11 на 2-й игровой секунде, состояние свежее 0,4 с, квитанция NEW `nat0 = 6` у игрока и `nat1 = 13` у бота; метка `verified` на HEAD):** `block_hcmd.inc` **2864**, `block_hstate.inc` **2592**, `block_gameloop.inc` **373**, установленный `progress.inc` **6020**.
 
 **ЧИСЛА УСТАНОВКИ НА 29.10 ночь (9) (мак, nation2 в gameloop; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2864**, `block_hstate.inc` **2592**, `block_gameloop.inc` **364**, установленный `progress.inc` **6011**.
 
