@@ -1713,6 +1713,7 @@
       [*] = ;            var hak : Integer;
       [*] = ;            // Idle soldiers only: a unit already marching is left alone, otherwise
       [*] = ;            // a new order regroups the wave and it stalls - learned the hard way.
+      [*] = ;            hadefo := 0;   // reset BEFORE the first pass that counts it (30.10 evening: reset stood after it, Ho printed 0 at 171 taken)
       [*] = ;            gIntegerList.Clear;
       [*] = ;            for hak := 0 to han-1 do
       [*] = ;            if (gIntegerList.GetCount < hawant) then
@@ -1920,7 +1921,6 @@
       [*] = ;            // pass, same filters as above minus the hold refusal), their hold released before the move exactly as ALL
       [*] = ;            // does. Switch atkdef<p> in br_hdef (DEFEND a2), default 1; 0 = as before. Said aloud either way.
       [*] = ;            hadefn := False;
-      [*] = ;            hadefo := 0;
       [*] = ;            hadefe := 0;
       [*] = ;            hadeft := 0;
       [*] = ;            if (hafound) and (haheldn > 0) and (not haall) and (not haretreat) and (not haengage) and (not haface) and (not hakite) and (hamode <> 'move') then
