@@ -2882,7 +2882,9 @@
       [*] = ;      // Defence counters at block scope (17.09 lesson: a number declared in a nested begin does not accumulate).
       [*] = ;      var hdcx, hdcz : Float;
       [*] = ;      var hdcen : Boolean;
-      [*] = ;      var hden, hdheld, hdsqn : Integer;
+      [*] = ;      var hden, hdheld, hdsqn, hdoff, hdon : Integer;
+      [*] = ;      var hdt, hdseen : Float;
+      [*] = ;      var hdfire : Boolean;
       [*] = ;      var hdp : Integer = ParserSelectByKey('br_hdef');
       [*] = ;      if (hdp = 0) then
       [*] = ;      hdp := ParserCreate('br_hdef');
@@ -2895,6 +2897,9 @@
       [*] = ;         if (hdnow - hdlast >= 1.0) or (hdnow < hdlast) then
       [*] = ;         begin
       [*] = ;            ParserSetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind), hdnow);
+      [*] = ;            // TIME MARK (30.10, asked by Windows): LOG|N in game.log is a line number, not a second; one line per game second
+      [*] = ;            // lets any bridge-human line be dated by the nearest mark above it.
+      [*] = ;            Log('bridge-human: TIME ' + IntToStr(Round(hdnow)));
       [*] = ;            var hdph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;            var hdoc : Integer = GetPlayerGameObjectsCountByHandle(hdph);
       [*] = ;            hdcx := 0;
@@ -2948,69 +2953,88 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;               ParserSetIntValueByKeyByHandle(hdp, 'n' + IntToStr(plind), hden);
+      [*] = ;               // HYSTERESIS (30.10, container s2): with the enemy standing still at 25-35 the count crossed 20 both ways and the
+      [*] = ;               // reflex switched 8 times on and 4 times off in two minutes - the line went back to stand ground under fire. Now:
+      [*] = ;               // on at >= hdmin (20), off only when the count has been below hdoff (12) for 30 s; while on, the flags are re-applied
+      [*] = ;               // every 10 s silently (python's FACE of the tick may have re-held somebody). Game time is printed in every line.
+      [*] = ;               hdoff := 12;
+      [*] = ;               hdon := ParserGetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind));
+      [*] = ;               hdt := ParserGetFloatValueByKeyByHandle(hdp, 't' + IntToStr(plind));
+      [*] = ;               hdseen := ParserGetFloatValueByKeyByHandle(hdp, 'seen' + IntToStr(plind));
+      [*] = ;               hdfire := False;
       [*] = ;               if (hden >= hdmin) then
       [*] = ;               begin
-      [*] = ;                  var hdt : Float = ParserGetFloatValueByKeyByHandle(hdp, 't' + IntToStr(plind));
-      [*] = ;                  var hdon : Integer = ParserGetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind));
-      [*] = ;                  if (hdon = 0) or (hdnow - hdt >= 10.0) or (hdnow < hdt) then
+      [*] = ;                  ParserSetFloatValueByKeyByHandle(hdp, 'seen' + IntToStr(plind), hdnow);
+      [*] = ;                  hdseen := hdnow;
+      [*] = ;                  if (hdon = 0) then
       [*] = ;                  begin
+      [*] = ;                     hdon := 1;
+      [*] = ;                     hdfire := True;
       [*] = ;                     ParserSetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind), 1);
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               if (hdon = 1) then
+      [*] = ;               begin
+      [*] = ;                  if (hden < hdoff) and (hdnow - hdseen >= 30.0) and (not hdfire) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind), 0);
+      [*] = ;                     Log('bridge-human: DEFENCE over at ' + IntToStr(Round(hdnow)) + ' s - ' + IntToStr(hden) + ' enemy soldiers within 4 cells, below ' +
+      [*] = ;                          IntToStr(hdoff) + ' for 30 s');
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  if (hdfire) or (hdnow - hdt >= 10.0) or (hdnow < hdt) then
+      [*] = ;                  begin
       [*] = ;                     ParserSetFloatValueByKeyByHandle(hdp, 't' + IntToStr(plind), hdnow);
-      [*] = ;                     hdheld := 0;
-      [*] = ;                     hdsqn := 0;
-      [*] = ;                     gIntegerList.Clear;
-      [*] = ;                     for hdk := 0 to hdoc-1 do
+      [*] = ;                  hdheld := 0;
+      [*] = ;                  hdsqn := 0;
+      [*] = ;                  gIntegerList.Clear;
+      [*] = ;                  for hdk := 0 to hdoc-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hdgo2 : Integer = GetGameObjectHandleByIndex(hdk, hdph);
+      [*] = ;                     var hdpo2 : Pointer = _unit_GetTObj(hdgo2);
+      [*] = ;                     if (hdpo2<>nil) then
+      [*] = ;                     if (not TObj(hdpo2).bdead) then
+      [*] = ;                     if (TObj(hdpo2).squad < 0) and (TObj(hdpo2).bstandground) then
       [*] = ;                     begin
-      [*] = ;                        var hdgo2 : Integer = GetGameObjectHandleByIndex(hdk, hdph);
-      [*] = ;                        var hdpo2 : Pointer = _unit_GetTObj(hdgo2);
-      [*] = ;                        if (hdpo2<>nil) then
-      [*] = ;                        if (not TObj(hdpo2).bdead) then
-      [*] = ;                        if (TObj(hdpo2).squad < 0) and (TObj(hdpo2).bstandground) then
+      [*] = ;                        var hdu2 : Integer = gObjProp[TObj(hdpo2).cid][TObj(hdpo2).id].usage;
+      [*] = ;                        if (hdu2 = gc_obj_usage_lightinfantry) or (hdu2 = gc_obj_usage_weak) or (hdu2 = gc_obj_usage_grenadier) or
+      [*] = ;                           (hdu2 = gc_obj_usage_shooter) or (hdu2 = gc_obj_usage_archer) or (hdu2 = gc_obj_usage_fasthorse) or
+      [*] = ;                           (hdu2 = gc_obj_usage_hardhorse) or (hdu2 = gc_obj_usage_horseshooter) then
       [*] = ;                        begin
-      [*] = ;                           var hdu2 : Integer = gObjProp[TObj(hdpo2).cid][TObj(hdpo2).id].usage;
-      [*] = ;                           if (hdu2 = gc_obj_usage_lightinfantry) or (hdu2 = gc_obj_usage_weak) or (hdu2 = gc_obj_usage_grenadier) or
-      [*] = ;                              (hdu2 = gc_obj_usage_shooter) or (hdu2 = gc_obj_usage_archer) or (hdu2 = gc_obj_usage_fasthorse) or
-      [*] = ;                              (hdu2 = gc_obj_usage_hardhorse) or (hdu2 = gc_obj_usage_horseshooter) then
-      [*] = ;                           begin
-      [*] = ;                              gIntegerList.Add(hdgo2);
-      [*] = ;                              hdheld := hdheld + 1;
-      [*] = ;                           end;
+      [*] = ;                           gIntegerList.Add(hdgo2);
+      [*] = ;                           hdheld := hdheld + 1;
       [*] = ;                        end;
       [*] = ;                     end;
-      [*] = ;                     if (hdheld > 0) then
-      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, True, False, True);
-      [*] = ;                     var hdsi : Integer;
-      [*] = ;                     for hdsi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;                  end;
+      [*] = ;                  if (hdheld > 0) then
+      [*] = ;                  _misc_SetUnitsListUnitState(gIntegerList, True, True, False, True);
+      [*] = ;                  var hdsi : Integer;
+      [*] = ;                  for hdsi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;                  begin
+      [*] = ;                     var hdsp : Pointer = gPlayer[plind].squads.Get(hdsi);
+      [*] = ;                     if (hdsp<>nil) then
       [*] = ;                     begin
-      [*] = ;                        var hdsp : Pointer = gPlayer[plind].squads.Get(hdsi);
-      [*] = ;                        if (hdsp<>nil) then
+      [*] = ;                        TSquad(hdsp).fSearchVictim := True;
+      [*] = ;                        TSquad(hdsp).fStandGround := False;
+      [*] = ;                        var hdsj : Integer;
+      [*] = ;                        for hdsj := 0 to TSquad(hdsp).GetCount-1 do
       [*] = ;                        begin
-      [*] = ;                           TSquad(hdsp).fSearchVictim := True;
-      [*] = ;                           TSquad(hdsp).fStandGround := False;
-      [*] = ;                           var hdsj : Integer;
-      [*] = ;                           for hdsj := 0 to TSquad(hdsp).GetCount-1 do
+      [*] = ;                           var hdsh : Integer = TSquad(hdsp).Get(hdsj);
+      [*] = ;                           var hdsu : Pointer = _unit_GetTObj(hdsh);
+      [*] = ;                           if (hdsu<>nil) then
+      [*] = ;                           if (not TObj(hdsu).bdead) then
       [*] = ;                           begin
-      [*] = ;                              var hdsh : Integer = TSquad(hdsp).Get(hdsj);
-      [*] = ;                              var hdsu : Pointer = _unit_GetTObj(hdsh);
-      [*] = ;                              if (hdsu<>nil) then
-      [*] = ;                              if (not TObj(hdsu).bdead) then
-      [*] = ;                              begin
-      [*] = ;                                 TObj(hdsu).bsearchenemy := True;
-      [*] = ;                                 TObj(hdsu).bstandground := False;
-      [*] = ;                              end;
+      [*] = ;                              TObj(hdsu).bsearchenemy := True;
+      [*] = ;                              TObj(hdsu).bstandground := False;
       [*] = ;                           end;
-      [*] = ;                           hdsqn := hdsqn + 1;
       [*] = ;                        end;
+      [*] = ;                        hdsqn := hdsqn + 1;
       [*] = ;                     end;
-      [*] = ;                     Log('bridge-human: DEFENCE ' + IntToStr(hden) + ' enemy soldiers within 4 cells of the town hall - released ' +
+      [*] = ;                  end;
+      [*] = ;                     if (hdfire) then
+      [*] = ;                     Log('bridge-human: DEFENCE at ' + IntToStr(Round(hdnow)) + ' s - ' + IntToStr(hden) + ' enemy soldiers within 4 cells of the town hall - released ' +
       [*] = ;                          IntToStr(hdheld) + ' held soldiers and ' + IntToStr(hdsqn) + ' squads to search victim');
       [*] = ;                  end;
-      [*] = ;               end
-      [*] = ;               else
-      [*] = ;               begin
-      [*] = ;                  if (ParserGetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind)) = 1) then
-      [*] = ;                  Log('bridge-human: DEFENCE over - ' + IntToStr(hden) + ' enemy soldiers within 4 cells');
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind), 0);
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;

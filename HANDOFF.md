@@ -1894,6 +1894,8 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 29.10 вечер (мак, переделка стока после balance_sink_vs_ai; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **2744**, `block_hstate.inc` **2501**, `block_gameloop.inc` 336 (verify_blocks; wc на единицу меньше), установленный `progress.inc` **5771** (+74 к 5697). Сток сажает на самый скудный по казне ресурс (`TOPUP sink resN … treasury food/wood/stone`), состояние отдаёт `tgt_food/tgt_wood/tgt_stone` и `sink_pea`; python-ключ `сток_излишек` (§170ф). Судья — контейнер `balance_sink2_vs_ai`.
 
+**ЧИСЛА УСТАНОВКИ НА 30.10 день (9) (мак, гистерезис рефлекса + TIME в логе; ПЕСОЧНИЦА, 6191 прошёл пульс в контейнере):** `block_hcmd.inc` **3043**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6215**.
+
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (7) (мак, рефлекс обороны по Чебышёву + команда DEFEND; ПЕСОЧНИЦА, 6179 прошёл пульс в контейнере):** `block_hcmd.inc` **3019**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6191**.
 
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (5) (мак, рефлекс обороны дома в hcmd; ПЕСОЧНИЦА, живьём не проверено):** `block_hcmd.inc` **3007**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6179**.

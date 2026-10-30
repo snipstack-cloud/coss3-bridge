@@ -2355,7 +2355,7 @@
       [*] = ;                     for hgk := hgw to hgcnt-1 do
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk), 0);
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', hgw);
-      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned: ' + IntToStr(hgdrop) + ' of ' + IntToStr(hgcnt) +
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned at ' + IntToStr(Round(hsnow)) + ' s: ' + IntToStr(hgdrop) + ' of ' + IntToStr(hgcnt) +
       [*] = ;                          ' dead handles dropped, ' + IntToStr(hgw) + ' left, foreign owner kept ' + IntToStr(hgforeign) + ' (pl ' + IntToStr(hgownpl) + ' vs ' + IntToStr(plind) + ')');
       [*] = ;                  end;
       [*] = ;                  // A group with nobody alive is not written at all: the model must
