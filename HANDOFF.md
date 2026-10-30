@@ -1896,6 +1896,8 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 30.10 вечер (мак, оборонительная ATTACK в блоке + DEFEND a2 + TIME над выключателем; ПЕСОЧНИЦА, 6215 прошёл пульс в контейнере):** `block_hcmd.inc` **3143**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6315**.
 
+**ЧИСЛА УСТАНОВКИ НА 30.10 вечер-4 (мак, лог оборонительной ATTACK «T of Ho holding soldiers outside squads taken (H holding in all)», счётчик hadefo; ПЕСОЧНИЦА, 3143/6315 прошли пульс в контейнерах):** `block_hcmd.inc` **3146**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6318**.
+
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (9) (мак, гистерезис рефлекса + TIME в логе; ПЕСОЧНИЦА, 6191 прошёл пульс в контейнере):** `block_hcmd.inc` **3043**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6215**.
 
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (7) (мак, рефлекс обороны по Чебышёву + команда DEFEND; ПЕСОЧНИЦА, 6179 прошёл пульс в контейнере):** `block_hcmd.inc` **3019**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6191**.

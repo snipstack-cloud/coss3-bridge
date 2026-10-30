@@ -1605,6 +1605,7 @@
       [*] = ;            // DEFENSIVE ATTACK counters (list item 2) live here too, reset per order below.
       [*] = ;            var hadefn : Boolean;
       [*] = ;            var hadefe, hadeft : Integer;
+      [*] = ;            var hadefo : Integer;   // holding men OUTSIDE squads and idle: what the second pass can take at most
       [*] = ;            gTmpIntList.Clear;
       [*] = ;            for haoi := 0 to haon-1 do
       [*] = ;            begin
@@ -1762,6 +1763,7 @@
       [*] = ;                     begin
       [*] = ;                        hatake2 := False;
       [*] = ;                        haheldn := haheldn + 1;
+      [*] = ;                        if (TObj(hapo).squad < 0) then hadefo := hadefo + 1;
       [*] = ;                     end;
       [*] = ;                     // Already taken by an earlier order of THIS tick - skip.
       [*] = ;                     if (hatake2) and (gTmpIntList.GetCount > 0) then
@@ -1918,6 +1920,7 @@
       [*] = ;            // pass, same filters as above minus the hold refusal), their hold released before the move exactly as ALL
       [*] = ;            // does. Switch atkdef<p> in br_hdef (DEFEND a2), default 1; 0 = as before. Said aloud either way.
       [*] = ;            hadefn := False;
+      [*] = ;            hadefo := 0;
       [*] = ;            hadefe := 0;
       [*] = ;            hadeft := 0;
       [*] = ;            if (hafound) and (haheldn > 0) and (not haall) and (not haretreat) and (not haengage) and (not haface) and (not hakite) and (hamode <> 'move') then
@@ -1996,7 +1999,7 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;               Log('bridge-human: ' + hamw + ' home defence - target ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + ' within 5 cells of the town hall, ' +
-      [*] = ;                   IntToStr(hadefe) + ' enemy soldiers within 2 cells of it: ' + IntToStr(hadeft) + ' of ' + IntToStr(haheldn) + ' holding soldiers taken, hold released');
+      [*] = ;                   IntToStr(hadefe) + ' enemy soldiers within 2 cells of it: ' + IntToStr(hadeft) + ' of ' + IntToStr(hadefo) + ' holding soldiers outside squads taken (' + IntToStr(haheldn) + ' holding in all), hold released');
       [*] = ;            end
       [*] = ;            else
       [*] = ;            // Said BEFORE the order goes out: the number refused for holding explains a

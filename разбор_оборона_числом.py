@@ -2,7 +2,7 @@
 """Пункт 2 (оборонительная ATTACK блока) — прямая мера по копии прогона, предложена Windows 30.10 вечер (13):
 не «хотя бы одна строка home defence с T > 0», а ДОЛЯ: из тактов, где держащие > 0 И его бойцов ≥ 5 не дальше 5 клеток
 от ратуши (обстановка), в скольких python послал счётную ATTACK в клетку (решение) и в скольких блок открыл ворота
-(строка «home defence … T of H taken») или отказал («attack skipped H holding»). Плюс T/H/K по каждой строке ворот и
+(строка «home defence … T of H taken») или отказал («attack skipped H holding»). Плюс T/Ho/H/K по каждой строке ворот (Ho — держащие вне отрядов и праздные, hcmd 3146+; взято = T = Ho > 0) и
 сколько держащих стояло, пока его бойцы были у ратуши. Размен — не мера (разброс внутри плеча 0,19…2,12 > разницы плеч).
 
     python3 разбор_оборона_числом.py ~/coss3-results/2026-10-30/attack_defence_vs_ai/1-1d03b2e [...]
@@ -102,10 +102,12 @@ def разбор(кат):
     print(f"ворота открылись («home defence»): {len(ворота)}; отказ «attack skipped» при обстановке: {len(отказ_при)} из {len(отказ)} всего")
     for t, s in sorted(ворота):
         m = re.search(r"(\d+) enemy soldiers within 2 cells of it: (\d+) of (\d+) holding", s)
+        mo = re.search(r"of (\d+) holding soldiers outside squads taken \((\d+) holding in all\)", s)   # hcmd 3146+
         k = _в_окне(t, пол, r"держащих у дома \d+")
         km = re.search(r"держащих у дома (\d+)", k[-1]) if k else None
         atk = _в_окне(t, блок, r"^ATTACK \d+ target", окно=1)
-        print(f"  {t} с: его у цели {m.group(1) if m else '?'}, T={m.group(2) if m else '?'} из H={m.group(3) if m else '?'}, "
+        print(f"  {t} с: его у цели {m.group(1) if m else '?'}, T={m.group(2) if m else '?'} из "
+              + (f"Ho={mo.group(1)} вне отрядов (H={mo.group(2)} всего)" if mo else f"H={m.group(3) if m else '?'}") + ", "
               f"K (python, держащих у дома)={km.group(1) if km else 'нет строки'}, {atk[0][:24] if atk else 'ATTACK ?'}")
     for t, s in sorted(отказ_при)[:6]:
         print(f"  {t} с (при обстановке, ворота закрыты): {s[:90]}")
