@@ -56,4 +56,7 @@ def выходы(доп, en):
           f"(в) all только у ATTACK в клетку у дома без who/group: {[c.get('all') for c in в]} «{w}»")
 в2, w2 = С._оборона_всем([dict(c) for c in из], dict(st, my_held=0))
 проверить(not any(c.get("all") for c in в2) and w2 == "", "(в) держащих нет — ничего не меняется")
+# (г) рефлекс блока включён (defend_on 1) — FACE с hold снимается, строка есть
+в3, w3 = С._оборона_всем([{"cmd": "FACE", "count": 0, "group": 92, "face": [1, 1], "hold": 1}, {"cmd": "BALANCE", "role": "wood", "total": 5}], dict(st, defend_on=1, defend_n=40))
+проверить(all(c.get("cmd") != "FACE" for c in в3) and "рефлекс обороны блока" in w3, f"(г) при defend_on FACE/hold снят: {[c.get('cmd') for c in в3]} «{w3}»")
 print(f"ошибок: {ошибок}"); raise SystemExit(1 if ошибок else 0)

@@ -2255,7 +2255,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     "centers", "mills", "smiths", "ba17", "my_stores", "houses",
     "mines_gold", "mines_iron", "mines_coal", "building_now",
     "mil_inf", "mil_shooters", "mil_cav", "mil_away", "mil_near", "mil_far",
-    "mil_hurt", "my_freewar", "my_held", "my_insquad", "my_agressors", "my_farm", "my_farmused",
+    "mil_hurt", "my_freewar", "my_held", "my_insquad", "defend_on", "defend_n", "my_agressors", "my_farm", "my_farmused",
     "tgt_food", "tgt_wood", "tgt_stone", "sink_pea",
     "wave_sent", "wave_n", "en_at_base", "en_near_dist",
     "p1_army", "p1_inf", "p1_shoot", "p1_cav", "p1_peasants", "p1_ba17",

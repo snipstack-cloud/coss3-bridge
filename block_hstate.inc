@@ -695,6 +695,13 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_held',      hsheld);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_insquad',   hsinsq);
+      [*] = ;         // HOME DEFENCE REFLEX of the command block (30.10): on/off and how many enemy soldiers it saw within 4 cells.
+      [*] = ;         var hsdf : Integer = ParserSelectByKey('br_hdef');
+      [*] = ;         if (hsdf <> 0) then
+      [*] = ;         begin
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'defend_on', ParserGetIntValueByKeyByHandle(hsdf, 'on' + IntToStr(plind)));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'defend_n', ParserGetIntValueByKeyByHandle(hsdf, 'n' + IntToStr(plind)));
+      [*] = ;         end;
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_x', hscx);
       [*] = ;         ParserSetFloatValueByKeyByHandle(hsp, 'my_z', hscz);
       [*] = ;         // --- WHICH FIGHTERS THIS NATION CAN HIRE ----------------------------
