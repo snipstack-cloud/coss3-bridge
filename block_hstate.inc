@@ -609,6 +609,12 @@
       [*] = ;         var hssqf : Integer = -1;
       [*] = ;         var hssqh : Integer = 0;   // block task No3 (29.10): does the largest squad hunt (fSearchVictim)
       [*] = ;         var hssqg : Integer = 0;   // ... and does it stand its ground (fStandGround)
+      [*] = ;         // BLOCK LIST ITEM 3 (30.10 night): EVERY squad, not only the largest - 'uid,men,formation,cx,cy,hold,hunt,holdmode'
+      [*] = ;         // per squad, ';' between, 'none' when there is none; cell = minimap cell (width/16) of the squad centre.
+      [*] = ;         var hssql : String = '';
+      [*] = ;         var hssqln : Integer = 0;
+      [*] = ;         var hssqmw : Integer = GetMapWidth;
+      [*] = ;         var hssqmh : Integer = GetMapHeight;
       [*] = ;         for hssqi := 0 to hssq-1 do
       [*] = ;         begin
       [*] = ;            var hspsq : Pointer = gPlayer[plind].squads.Get(hssqi);
@@ -622,8 +628,31 @@
       [*] = ;               hssqg := 0;
       [*] = ;               if (TSquad(hspsq).fStandGround) then hssqg := 1;
       [*] = ;            end;
+      [*] = ;            if (hspsq<>nil) then
+      [*] = ;            if (hssqln < 16) then
+      [*] = ;            begin
+      [*] = ;               var hssqcx : Integer = floor((TSquad(hspsq).fCurX + (hssqmw div 2)) * 16 / hssqmw);
+      [*] = ;               var hssqcy : Integer = floor((TSquad(hspsq).fCurZ + (hssqmh div 2)) * 16 / hssqmh);
+      [*] = ;               var hssqfs : String = '-';
+      [*] = ;               if (TSquad(hspsq).fFormation >= 0) then hssqfs := gFormation[TSquad(hspsq).fFormation].sid;
+      [*] = ;               var hssqg2 : Integer = 0;
+      [*] = ;               if (TSquad(hspsq).fStandGround) then hssqg2 := 1;
+      [*] = ;               var hssqh2 : Integer = 0;
+      [*] = ;               if (TSquad(hspsq).fSearchVictim) then hssqh2 := 1;
+      [*] = ;               var hssqm2 : Integer = 0;
+      [*] = ;               if (TSquad(hspsq).fHoldMode) then hssqm2 := 1;
+      [*] = ;               if (hssqln > 0) then
+      [*] = ;               hssql := hssql + ';';
+      [*] = ;               hssql := hssql + IntToStr(TSquad(hspsq).fUID) + ',' + IntToStr(TSquad(hspsq).GetCount) + ',' + hssqfs + ',' +
+      [*] = ;                    IntToStr(hssqcx) + ',' + IntToStr(hssqcy) + ',' + IntToStr(hssqg2) + ',' + IntToStr(hssqh2) + ',' + IntToStr(hssqm2);
+      [*] = ;               hssqln := hssqln + 1;
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squads',      hssq);
+      [*] = ;         if (hssql = '') then
+      [*] = ;         hssql := 'none';
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'squads_list', hssql);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squads_list_n', hssqln);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_units', hssqu);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hunt',  hssqh);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hold',  hssqg);

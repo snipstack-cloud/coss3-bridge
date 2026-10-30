@@ -13914,6 +13914,16 @@ hcmd 3043, progress 6215. Задание 3+3 копии.
 
 Метка `verified` не двигалась: отставание 8 коммитов с `.inc`. Ферма пуста.
 
+## 30.10 ночь-2 (мак): пункт 3 — все отряды в состоянии (squads_list), hstate 2637 / progress 6347
+
+В проходе по `gPlayer[plind].squads` (где искался самый большой) hstate теперь пишет `squads_list` =
+«uid,men,formation,cx,cy,hold,hunt,holdmode;…» (до 16 отрядов, `-` без формы, `none` пусто) и `squads_list_n`. Клетка —
+миникарта/16 от fCurX/fCurZ (TSquad в lib/classes.script: fUID, GetCount, fFormation, fCurX/fCurZ, fStandGround,
+fSearchVictim, fHoldMode). Python: `отряды_из_состояния`, `_отряды_строкой` (строка после «строй: …» в запросе), поле в
+снимке трассы, мок с тремя отрядами, `selftest_отряды.py` (5). Батарея 168 ОК. verify ОК: hstate 2608 → 2637, hcmd 3146
+(тот же, сброс hadefo перенесён), progress.inc 6347. Идея-проверка `squads_list_smoke` ×1 на стратегии defence_reflex
+(отрядов 1 → FORMATION после 660 с). Задание винде в ПЛАН «ночь (20)».
+
 ## 30.10 ночь (мак): серия 19d1a68 — пункт 2 ЗАКРЫТ (171 of 171), Ho чинится
 
 Три копии 19d1a68 (судья вне отряда, отрядов 0): FORMATION ноль, my_insquad 0, my_held до 151/171. Копия 3 на 874 с: ворота
