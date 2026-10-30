@@ -93,6 +93,18 @@
       [*] = ;         var hswc : Integer = 0;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
       [*] = ;         var hsheld, hsinsq : Integer;   // block task No2 (29.10): holding outside squads / inside squads
+      [*] = ;         // LIST ITEM 3 (30.10 night): squad centres from the MEMBERS. TSquad.fCurX/fCurZ are filled only by the
+      [*] = ;         // economic AI (progresseconomicai.inc), which never runs for the human slot - the smoke copy showed cell 8,8
+      [*] = ;         // (the map centre) for a squad standing at home. Sums by TObj.squad (= TSquad.fIndex, lib/squad.script:46).
+      [*] = ;         var hssqsx, hssqsz : array [0..15] of Float;
+      [*] = ;         var hssqsn : array [0..15] of Integer;
+      [*] = ;         var hssqk : Integer;
+      [*] = ;         for hssqk := 0 to 15 do
+      [*] = ;         begin
+      [*] = ;            hssqsx[hssqk] := 0;
+      [*] = ;            hssqsz[hssqk] := 0;
+      [*] = ;            hssqsn[hssqk] := 0;
+      [*] = ;         end;
       [*] = ;         var hsoffn, hsdrumn : Integer;
       [*] = ;         var hscen, hsmill, hssmith, hsba, hsstore, hshouse : Integer;
       [*] = ;         var hsmg, hsmi, hsmc, hstow, hsmark, hsacad : Integer;
@@ -379,6 +391,13 @@
       [*] = ;                        if (TObj(hspo).squad >= 0) then
       [*] = ;                        begin
       [*] = ;                           hsinsq := hsinsq + 1;
+      [*] = ;                           var hssqix : Integer = TObj(hspo).squad;
+      [*] = ;                           if (hssqix <= 15) then
+      [*] = ;                           begin
+      [*] = ;                              hssqsx[hssqix] := hssqsx[hssqix] + GetGameObjectPositionXByHandle(hsgo);
+      [*] = ;                              hssqsz[hssqix] := hssqsz[hssqix] + GetGameObjectPositionZByHandle(hsgo);
+      [*] = ;                              hssqsn[hssqix] := hssqsn[hssqix] + 1;
+      [*] = ;                           end;
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        if (TObj(hspo).bstandground) then
@@ -631,8 +650,17 @@
       [*] = ;            if (hspsq<>nil) then
       [*] = ;            if (hssqln < 16) then
       [*] = ;            begin
-      [*] = ;               var hssqcx : Integer = floor((TSquad(hspsq).fCurX + (hssqmw div 2)) * 16 / hssqmw);
-      [*] = ;               var hssqcy : Integer = floor((TSquad(hspsq).fCurZ + (hssqmh div 2)) * 16 / hssqmh);
+      [*] = ;               var hssqfi : Integer = TSquad(hspsq).fIndex;
+      [*] = ;               var hssqpx : Float = TSquad(hspsq).fCurX;
+      [*] = ;               var hssqpz : Float = TSquad(hspsq).fCurZ;
+      [*] = ;               if (hssqfi >= 0) and (hssqfi <= 15) then
+      [*] = ;               if (hssqsn[hssqfi] > 0) then
+      [*] = ;               begin
+      [*] = ;                  hssqpx := hssqsx[hssqfi] / hssqsn[hssqfi];
+      [*] = ;                  hssqpz := hssqsz[hssqfi] / hssqsn[hssqfi];
+      [*] = ;               end;
+      [*] = ;               var hssqcx : Integer = floor((hssqpx + (hssqmw div 2)) * 16 / hssqmw);
+      [*] = ;               var hssqcy : Integer = floor((hssqpz + (hssqmh div 2)) * 16 / hssqmh);
       [*] = ;               var hssqfs : String = '-';
       [*] = ;               if (TSquad(hspsq).fFormation >= 0) then hssqfs := gFormation[TSquad(hspsq).fFormation].sid;
       [*] = ;               var hssqg2 : Integer = 0;
