@@ -40,7 +40,7 @@
       [*] = ;         var hscid : Integer = gPlayer[plind].cid;
       [*] = ;         var hsph : Integer = GetPlayerHandleByIndex(plind);
       [*] = ;         // Group-roll scalars live HERE, not in the nested begin (17.09 lesson: a number declared in a nested block does not accumulate).
-      [*] = ;         var hgw, hgdrop : Integer;
+      [*] = ;         var hgw, hgdrop, hgforeign, hgownpl : Integer;
       [*] = ;         var hgkeep : Boolean;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'plind',    plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'gametime', Round(hsnow));
@@ -2269,6 +2269,8 @@
       [*] = ;                  hgmode := ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_m');
       [*] = ;                  hgw := 0;
       [*] = ;                  hgdrop := 0;
+      [*] = ;                  hgforeign := 0;
+      [*] = ;                  hgownpl := -1;
       [*] = ;                  for hgk := 0 to hgcnt-1 do
       [*] = ;                  begin
       [*] = ;                     var hgh : Integer = ParserGetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk));
@@ -2278,8 +2280,15 @@
       [*] = ;                        var hgp : Pointer = _unit_GetTObj(hgh);
       [*] = ;                        if (hgp<>nil) then
       [*] = ;                        if (not TObj(hgp).bdead) then
-      [*] = ;                        if (GetPlayerIndexByHandle(GetGameObjectPlayerHandleByHandle(hgh)) = plind) then
       [*] = ;                        begin
+      [*] = ;                           // OWNER IS DIAGNOSTIC ONLY (30.10, Poland game): the index test dropped 77 of 77 LIVE men of a fresh wave on the
+      [*] = ;                           // human-slot bot (plind 1), while in containers (plind 0) it passed; the roll then had nobody and the python lost the
+      [*] = ;                           // wave. Dead and nil handles are still dropped - that is the freeze guard; a foreign owner is counted and logged.
+      [*] = ;                           if (hgownpl < 0) then
+      [*] = ;                           if (GetPlayerIndexByHandle(GetGameObjectPlayerHandleByHandle(hgh)) <> plind) then
+      [*] = ;                           hgownpl := GetPlayerIndexByHandle(GetGameObjectPlayerHandleByHandle(hgh));
+      [*] = ;                           if (GetPlayerIndexByHandle(GetGameObjectPlayerHandleByHandle(hgh)) <> plind) then
+      [*] = ;                           hgforeign := hgforeign + 1;
       [*] = ;                           hgkeep := True;
       [*] = ;                           var hgu : Integer = gObjProp[TObj(hgp).cid][TObj(hgp).id].usage;
       [*] = ;                           hgliv := hgliv + 1;
@@ -2340,7 +2349,7 @@
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_h' + IntToStr(hgk), 0);
       [*] = ;                     ParserSetIntValueByKeyByHandle(hggp, 'g' + IntToStr(hgid) + '_n', hgw);
       [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgid) + ' roll cleaned: ' + IntToStr(hgdrop) + ' of ' + IntToStr(hgcnt) +
-      [*] = ;                          ' dead or foreign handles dropped, ' + IntToStr(hgw) + ' left');
+      [*] = ;                          ' dead handles dropped, ' + IntToStr(hgw) + ' left, foreign owner kept ' + IntToStr(hgforeign) + ' (pl ' + IntToStr(hgownpl) + ' vs ' + IntToStr(plind) + ')');
       [*] = ;                  end;
       [*] = ;                  // A group with nobody alive is not written at all: the model must
       [*] = ;                  // not order a group that no longer exists.
