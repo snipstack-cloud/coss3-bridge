@@ -2584,6 +2584,10 @@
       [*] = ;         for hsui := 0 to gc_country_maxupgradecount-1 do
       [*] = ;         begin
       [*] = ;            var hsus : String = gCountry[hscid].upgrade[hsui].id;
+      [*] = ;            // 'null' is the engine's empty upgrade (_country_AddUpgrade(country, 'null', ...), country.script); cut to
+      [*] = ;            // 'l' it went out as a free upgrade 'l=f0g0i0' (31.10, live snapshot). Skipped since hstate 2669.
+      [*] = ;            var hsunull : Boolean = (hsus = 'null');
+      [*] = ;            if (not hsunull) then
       [*] = ;            if (StrLength(hsus) > 3) then
       [*] = ;            begin
       [*] = ;               var hsun : String = SubStr(hsus, 4, StrLength(hsus)-3);
