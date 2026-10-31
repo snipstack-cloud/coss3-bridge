@@ -1910,6 +1910,8 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 31.10 вечер (мак, строка `wave pick … D dead skipped`, поля `my_busy`/`my_free_nosq`; ПЕСОЧНИЦА):** `block_hcmd.inc` **3160**, `block_hstate.inc` **2698**, `block_gameloop.inc` **373**, установленный `progress.inc` **6422**.
 
+**ЧИСЛА УСТАНОВКИ НА 31.10 ночь (мак, зеркала строк лога в состоянии: `pick_*`, `hdef_*`, `def_rel_*`; ПЕСОЧНИЦА; 3160/2698/373 и 6422 отыграли живую партию):** `block_hcmd.inc` **3186**, `block_hstate.inc` **2711**, `block_gameloop.inc` **373**, установленный `progress.inc` **6461**.
+
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (9) (мак, гистерезис рефлекса + TIME в логе; ПЕСОЧНИЦА, 6191 прошёл пульс в контейнере):** `block_hcmd.inc` **3043**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6215**.
 
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (7) (мак, рефлекс обороны по Чебышёву + команда DEFEND; ПЕСОЧНИЦА, 6179 прошёл пульс в контейнере):** `block_hcmd.inc` **3019**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6191**.

@@ -2292,6 +2292,8 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # None, и ноль читался как «игра не сделала», а не «прибор не донёс».
     "squads_list", "squads_list_n",
     "my_dead", "p1_dead", "my_busy", "my_free_nosq",
+    "pick_t", "pick_alive", "pick_dead", "pick_refused", "hdef_t", "hdef_taken", "hdef_outside", "hdef_enemy",
+    "def_rel_t", "def_rel_h", "def_rel_s",
 )
 
 
@@ -11187,6 +11189,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "squads_list", "squads_list_n",          # пункт 3 (30.10 ночь): все отряды строкой блока
                         "my_dead", "p1_dead",                    # 31.10: трупы в списках объектов (блок их больше не считает)
                         "my_busy", "my_free_nosq",               # 31.10 (винда): вне отрядов с приказом / праздные — четыре слагаемых армии
+                        "pick_t", "pick_alive", "pick_dead", "pick_refused",      # 31.10: зеркала строк лога в состоянии
+                        "hdef_t", "hdef_taken", "hdef_outside", "hdef_enemy", "def_rel_t", "def_rel_h", "def_rel_s",
                         "can_pea", "can_inf", "famine", "en_near_dist",
                         # Где стоит свой кулак и своя волна: без этого по трассе
                         # не видно, что армия стояла врозь, когда пришёл враг.

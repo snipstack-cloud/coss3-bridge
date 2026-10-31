@@ -1785,6 +1785,16 @@
       [*] = ;            // WAVE PICK SAID ALOUD (31.10, Windows: 'roll cleaned' prints only when something was dropped, so a working
       [*] = ;            // filter would be proven by silence - and silence has other causes). Alive taken by the first pass, corpses met.
       [*] = ;            Log('bridge-human: wave pick at ' + IntToStr(Round(GetGameTime)) + ' s: ' + IntToStr(gIntegerList.GetCount) + ' alive taken, ' + IntToStr(hadead) + ' dead skipped, ' + IntToStr(haheldn) + ' holding refused');
+      [*] = ;            // MIRRORED INTO THE STATE (31.10, Windows: on Windows the game writes no log with bridge lines; in the container there is no
+      [*] = ;            // battle - a measure named by a log line is judged nowhere). Last pick: time, alive, dead, refused -> hstate pick_*.
+      [*] = ;            var hapkp : Integer = ParserSelectByKey('br_hdef');
+      [*] = ;            if (hapkp <> 0) then
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hapkp, 'pkt' + IntToStr(plind), Round(GetGameTime));
+      [*] = ;               ParserSetIntValueByKeyByHandle(hapkp, 'pka' + IntToStr(plind), gIntegerList.GetCount);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hapkp, 'pkd' + IntToStr(plind), hadead);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hapkp, 'pkr' + IntToStr(plind), haheldn);
+      [*] = ;            end;
       [*] = ;            // Where to go. The model chooses: peasants (the objective), base, or army.
       [*] = ;            var hatx, hatz : Float;
       [*] = ;            // THE REMEMBERED COMPOSITION of group hagid. The selection loop above
@@ -2012,6 +2022,15 @@
       [*] = ;               end;
       [*] = ;               Log('bridge-human: ' + hamw + ' home defence - target ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + ' within 5 cells of the town hall, ' +
       [*] = ;                   IntToStr(hadefe) + ' enemy soldiers within 2 cells of it: ' + IntToStr(hadeft) + ' of ' + IntToStr(hadefo) + ' holding soldiers outside squads taken (' + IntToStr(haheldn) + ' holding in all), hold released');
+      [*] = ;               // mirrored into the state (31.10): last defensive gate -> hstate hdef_t / hdef_taken / hdef_outside / hdef_enemy
+      [*] = ;               var hadmp : Integer = ParserSelectByKey('br_hdef');   // own handle: hadefp lives in another begin..end
+      [*] = ;               if (hadmp <> 0) then
+      [*] = ;               begin
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hadmp, 'hdt' + IntToStr(plind), Round(GetGameTime));
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hadmp, 'hdk' + IntToStr(plind), hadeft);
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hadmp, 'hdo' + IntToStr(plind), hadefo);
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hadmp, 'hde' + IntToStr(plind), hadefe);
+      [*] = ;               end;
       [*] = ;            end
       [*] = ;            else
       [*] = ;            // Said BEFORE the order goes out: the number refused for holding explains a
@@ -3151,6 +3170,13 @@
       [*] = ;                     if (hdfire) then
       [*] = ;                     Log('bridge-human: DEFENCE at ' + IntToStr(Round(hdnow)) + ' s - ' + IntToStr(hden) + ' enemy soldiers within 4 cells of the town hall - released ' +
       [*] = ;                          IntToStr(hdheld) + ' held soldiers and ' + IntToStr(hdsqn) + ' squads to search victim');
+      [*] = ;                     // mirrored into the state (31.10): last DEFENCE release -> hstate def_rel_t / def_rel_h / def_rel_s
+      [*] = ;                     if (hdfire) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drt' + IntToStr(plind), Round(hdnow));
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drh' + IntToStr(plind), hdheld);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drs' + IntToStr(plind), hdsqn);
+      [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
