@@ -2291,7 +2291,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # (копия 1 серии, последний такт: `1,141,LINE120,3,3,1,0,1`). Снимок отдавал
     # None, и ноль читался как «игра не сделала», а не «прибор не донёс».
     "squads_list", "squads_list_n",
-    "my_dead", "p1_dead", "my_busy", "my_free_nosq",
+    "my_dead", "p1_dead", "my_busy", "my_free_nosq", "my_held_idle", "en_near_cells", "en_home4",
     "pick_t", "pick_alive", "pick_dead", "pick_refused", "hdef_t", "hdef_taken", "hdef_outside", "hdef_enemy",
     "def_rel_t", "def_rel_h", "def_rel_s",
 )
@@ -2440,6 +2440,7 @@ def писать_снимок(a, st: dict, когда: dict) -> None:
             continue
         _хвост = _к.split("_", 1)[1]
         if _хвост in ("upg_done", "fighters", "squads", "squad_units",
+                      "squads_list", "squads_list_n",          # 1.11 (пункт 7): его отряды списком
                       "squads_form", "squads_form_hold", "squad_form",
                       "squad_form_units", "squad_dmg", "squad_def",
                       "squad_hdmg", "squad_hdef", "squad_hold",
@@ -4413,12 +4414,12 @@ def contract_via(контракт: dict) -> tuple:
     return (int(v[0]), int(v[1])) if isinstance(v, (list, tuple)) else (int(v["cx"]), int(v["cy"]))
 
 
-def отряды_из_состояния(st: dict) -> list:
+def отряды_из_состояния(st: dict, ключ: str = "squads_list") -> list:
     """Пункт 3 списка правок блока (30.10 ночь): ВСЕ отряды из `squads_list` блока (hstate 2637+), а не только самый
     большой из `squad_*`. Строка блока: «uid,men,formation,cx,cy,hold,hunt,holdmode;…», 'none' — нет отрядов.
     Возвращает список словарей {uid, n, form, cx, cy, hold, hunt, holdmode}; короткие и битые записи пропускаются
     (строку пишет наш же блок, чужого формата тут быть не может; селфтест (в) это и проверяет)."""
-    сырое = str(st.get("squads_list") or "").strip()
+    сырое = str(st.get(ключ) or "").strip()
     if not сырое or сырое == "none":
         return []
     из = []
@@ -4434,10 +4435,10 @@ def отряды_из_состояния(st: dict) -> list:
     return из
 
 
-def _отряды_строкой(st: dict) -> str:
+def _отряды_строкой(st: dict, ключ: str = "squads_list", кто: str = "отряды") -> str:
     """Строка для запроса модели/критика: «отряды 3: #12 LINE120 130 чел. в (3,7) держит строй; #15 — 24 чел. в (5,8) охотится».
     Пусто, если поля нет (старый блок) или отрядов нет."""
-    отр = отряды_из_состояния(st)
+    отр = отряды_из_состояния(st, ключ)
     if not отр:
         return ""
     куски = []
@@ -4451,7 +4452,7 @@ def _отряды_строкой(st: dict) -> str:
             сост.append("охотится")
         куски.append(f"#{о['uid']} {о['form'] or 'без строя'} {о['n']} чел. в ({о['cx']},{о['cy']})"
                      + (" " + ", ".join(сост) if сост else " идёт"))
-    return f"отряды {len(отр)}: " + "; ".join(куски)
+    return f"{кто} {len(отр)}: " + "; ".join(куски)
 
 
 def _истина(з) -> bool:
@@ -7519,6 +7520,13 @@ def situation(st: dict, mp: dict, history: list[str], hints: str,
                     if _зн is not None:
                         _хвост += f", {_сл} {_чис(_зн)}"
                 _стр.append(f"  сила врага: {_ва} ({_вражьи}){_хвост}")
+        # ПУНКТЫ 6–7 списка улучшений (1.11): его отряды списком и ближайший его БОЕЦ в клетках от ратуши (en_near_dist мерил до здания)
+        _его_отр = _отряды_строкой(st, "p1_squads_list", "его отряды") if st.get("p1_squads_list") else ""
+        if _его_отр:
+            _стр.append("  " + _его_отр)
+        _енк = st.get("en_near_cells")
+        if _енк is not None and int(float(_енк)) >= 0:
+            _стр.append(f"  его ближайший боец в {int(float(_енк))} кл. от твоей ратуши; в 4 клетках от неё его бойцов {_чис(st.get('en_home4'))}")
         # РИСК ФЛАНГА. 16.09 я записал его как «считать нечем» — игрок поправил:
         # карта открыта, мини-карта есть, и по ней видно, кто из врага стоит
         # ближе к НАШЕЙ базе, чем к своей. Это и есть угроза во фланг и в тыл,
@@ -11210,6 +11218,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "squads_list", "squads_list_n",          # пункт 3 (30.10 ночь): все отряды строкой блока
                         "my_dead", "p1_dead",                    # 31.10: трупы в списках объектов (блок их больше не считает)
                         "my_busy", "my_free_nosq",               # 31.10 (винда): вне отрядов с приказом / праздные — четыре слагаемых армии
+                        "my_held_idle", "en_near_cells", "en_home4", "p1_squads_list", "p1_squads_list_n",   # 1.11: пункты 5–7
                         "pick_t", "pick_alive", "pick_dead", "pick_refused",      # 31.10: зеркала строк лога в состоянии
                         "hdef_t", "hdef_taken", "hdef_outside", "hdef_enemy", "def_rel_t", "def_rel_h", "def_rel_s",
                         "can_pea", "can_inf", "famine", "en_near_dist",

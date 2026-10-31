@@ -94,6 +94,7 @@
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
       [*] = ;         var hsheld, hsinsq : Integer;   // block task No2 (29.10): holding outside squads / inside squads
       [*] = ;         var hsbusy, hsfreen : Integer;  // 31.10 (Windows): outside squads, not holding - busy (an order) / idle; with my_held and my_insquad they add up to the army
+      [*] = ;         var hsheldi : Integer;          // LIST ITEM 5 (1.11): holding outside squads AND idle - exactly what the defensive ATTACK can take (my_held counts the fighting ones too)
       [*] = ;         // LIST ITEM 3 (30.10 night): squad centres from the MEMBERS. TSquad.fCurX/fCurZ are filled only by the
       [*] = ;         // economic AI (progresseconomicai.inc), which never runs for the human slot - the smoke copy showed cell 8,8
       [*] = ;         // (the map centre) for a squad standing at home. Sums by TObj.squad (= TSquad.fIndex, lib/squad.script:46).
@@ -410,6 +411,8 @@
       [*] = ;                        if (TObj(hspo).bstandground) then
       [*] = ;                        begin
       [*] = ;                           hsheld := hsheld + 1;
+      [*] = ;                           if (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                           hsheldi := hsheldi + 1;
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        if (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
@@ -770,6 +773,7 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_held',      hsheld);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_insquad',   hsinsq);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_busy',      hsbusy);     // 31.10: alive, outside squads, not holding, with an order (marching/fighting)
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_held_idle', hsheldi);    // 1.11 (item 5): holding outside squads and idle - the upper bound of 'Ho' in the defensive ATTACK
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_free_nosq', hsfreen);    // 31.10: alive, outside squads, not holding, idle (my_freewar also counts idle squad men)
       [*] = ;         // HOME DEFENCE REFLEX of the command block (30.10): on/off and how many enemy soldiers it saw within 4 cells.
       [*] = ;         var hsdf : Integer = ParserSelectByKey('br_hdef');
@@ -1401,6 +1405,13 @@
       [*] = ;         var hmh : Integer = GetMapHeight;
       [*] = ;         var hmhw : Integer = hmw div 2;
       [*] = ;         var hmhh : Integer = hmh div 2;
+      [*] = ;         // LIST ITEM 6 (1.11): his nearest SOLDIER to our town hall in minimap cells (Chebyshev; -1 = none seen) and how many
+      [*] = ;         // of his soldiers stand within 4 cells - the reflex radius - counted every second for everybody, reflex on or off.
+      [*] = ;         // en_near_dist measured the distance to his nearest BUILDING (31.10, Windows) and was useless as 'enemy close'.
+      [*] = ;         var hsenbc : Integer = -1;
+      [*] = ;         var hsenh4 : Integer = 0;
+      [*] = ;         var hsmycx : Integer = floor((hscx + hmhw) * cHmGrid / hmw);
+      [*] = ;         var hsmycy : Integer = floor((hscz + hmhh) * cHmGrid / hmh);
       [*] = ;         var hspl, hsbest : Integer;
       [*] = ;         var hsbestd : Float = 1000000;
       [*] = ;         hsbest := -1;
@@ -1442,6 +1453,16 @@
       [*] = ;            // counters above - a Float sum here is an untested form.
       [*] = ;            var hsymvn, hsymvb, hsymx, hsymz : Integer;
       [*] = ;            var hsedead : Integer = 0;   // 31.10: his dead objects in the list
+      [*] = ;            // LIST ITEM 7 (1.11): his squads one by one, centre from the MEMBERS (TSquad.fCurX is zero without the economic AI)
+      [*] = ;            var hsesx, hsesz : array [0..15] of Float;
+      [*] = ;            var hsesn : array [0..15] of Integer;
+      [*] = ;            var hsesk : Integer;
+      [*] = ;            for hsesk := 0 to 15 do
+      [*] = ;            begin
+      [*] = ;               hsesx[hsesk] := 0;
+      [*] = ;               hsesz[hsesk] := 0;
+      [*] = ;               hsesn[hsesk] := 0;
+      [*] = ;            end;
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
@@ -1482,10 +1503,21 @@
       [*] = ;                  hsegun := hsegun + 1;
       [*] = ;                  if (hsefight) then
       [*] = ;                  hsemil := hsemil + 1;
+      [*] = ;                  if (hsefight) and (TObj(hsep).squad >= 0) and (TObj(hsep).squad <= 15) then
+      [*] = ;                  begin
+      [*] = ;                     hsesx[TObj(hsep).squad] := hsesx[TObj(hsep).squad] + GetGameObjectPositionXByHandle(hseg);
+      [*] = ;                     hsesz[TObj(hsep).squad] := hsesz[TObj(hsep).squad] + GetGameObjectPositionZByHandle(hseg);
+      [*] = ;                     hsesn[TObj(hsep).squad] := hsesn[TObj(hsep).squad] + 1;
+      [*] = ;                  end;
       [*] = ;                  if (hsenemy) and (hsefight) then
       [*] = ;                  begin
       [*] = ;                     var hmux : Integer = floor((GetGameObjectPositionXByHandle(hseg)+hmhw)*cHmGrid/hmw);
       [*] = ;                     var hmuy : Integer = floor((GetGameObjectPositionZByHandle(hseg)+hmhh)*cHmGrid/hmh);
+      [*] = ;                     var hsedx : Integer = Round(Abs(hmux - hsmycx));
+      [*] = ;                     var hsedy : Integer = Round(Abs(hmuy - hsmycy));
+      [*] = ;                     if (hsedx < hsedy) then hsedx := hsedy;
+      [*] = ;                     if (hsenbc < 0) or (hsedx < hsenbc) then hsenbc := hsedx;
+      [*] = ;                     if (hsedx <= 4) then hsenh4 := hsenh4 + 1;
       [*] = ;                     if (hmux>=0) and (hmux<cHmGrid) and (hmuy>=0) and (hmuy<cHmGrid) then
       [*] = ;                     begin
       [*] = ;                        hmforce[hmux][hmuy] := hmforce[hmux][hmuy] + 1;
@@ -1837,9 +1869,39 @@
       [*] = ;            var hsysqn : Integer = gPlayer[hspl].squads.GetCount;
       [*] = ;            var hsysqu, hsysqi, hsysqh, hsysqfn, hsysqfh, hsysqbb, hsysqbu : Integer;
       [*] = ;            var hsysqf : Integer = -1;
+      [*] = ;            var hsysql : String = '';
+      [*] = ;            var hsysqln : Integer = 0;
       [*] = ;            for hsysqi := 0 to hsysqn-1 do
       [*] = ;            begin
       [*] = ;               var hsypsq : Pointer = gPlayer[hspl].squads.Get(hsysqi);
+      [*] = ;               if (hsypsq<>nil) then
+      [*] = ;               if (hsysqln < 16) then
+      [*] = ;               begin
+      [*] = ;                  var hsyfi : Integer = TSquad(hsypsq).fIndex;
+      [*] = ;                  var hsypx : Float = TSquad(hsypsq).fCurX;
+      [*] = ;                  var hsypz : Float = TSquad(hsypsq).fCurZ;
+      [*] = ;                  if (hsyfi >= 0) and (hsyfi <= 15) then
+      [*] = ;                  if (hsesn[hsyfi] > 0) then
+      [*] = ;                  begin
+      [*] = ;                     hsypx := hsesx[hsyfi] / hsesn[hsyfi];
+      [*] = ;                     hsypz := hsesz[hsyfi] / hsesn[hsyfi];
+      [*] = ;                  end;
+      [*] = ;                  var hsyscx : Integer = floor((hsypx + hmhw) * cHmGrid / hmw);
+      [*] = ;                  var hsyscy : Integer = floor((hsypz + hmhh) * cHmGrid / hmh);
+      [*] = ;                  var hsyfs : String = '-';
+      [*] = ;                  if (TSquad(hsypsq).fFormation >= 0) then hsyfs := gFormation[TSquad(hsypsq).fFormation].sid;
+      [*] = ;                  var hsyg2 : Integer = 0;
+      [*] = ;                  if (TSquad(hsypsq).fStandGround) then hsyg2 := 1;
+      [*] = ;                  var hsyh2 : Integer = 0;
+      [*] = ;                  if (TSquad(hsypsq).fSearchVictim) then hsyh2 := 1;
+      [*] = ;                  var hsym2 : Integer = 0;
+      [*] = ;                  if (TSquad(hsypsq).fHoldMode) then hsym2 := 1;
+      [*] = ;                  if (hsysqln > 0) then
+      [*] = ;                  hsysql := hsysql + ';';
+      [*] = ;                  hsysql := hsysql + IntToStr(TSquad(hsypsq).fUID) + ',' + IntToStr(TSquad(hsypsq).GetCount) + ',' + hsyfs + ',' +
+      [*] = ;                       IntToStr(hsyscx) + ',' + IntToStr(hsyscy) + ',' + IntToStr(hsyg2) + ',' + IntToStr(hsyh2) + ',' + IntToStr(hsym2);
+      [*] = ;                  hsysqln := hsysqln + 1;
+      [*] = ;               end;
       [*] = ;               if (hsypsq<>nil) then
       [*] = ;               begin
       [*] = ;                  if (TSquad(hsypsq).fHoldMode) then
@@ -1867,6 +1929,10 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads', hsysqn);
+      [*] = ;            if (hsysql = '') then
+      [*] = ;            hsysql := 'none';
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads_list', hsysql);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads_list_n', hsysqln);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_dead', hsedead);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_units', hsysqu);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_hold', hsysqh);
@@ -1891,6 +1957,8 @@
       [*] = ;         end;
       [*] = ;         if (hsbest >= 0) then
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_dist', Round(hsbestd));
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_near_cells', hsenbc);   // 1.11 (item 6): his nearest soldier, minimap cells from our town hall, -1 none
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'en_home4', hsenh4);        // 1.11 (item 6): his soldiers within 4 cells of our town hall
       [*] = ;         // Buildings of every player, binned into cells. The engine keeps a
       [*] = ;         // ready list per player, which is cheaper than walking all objects.
       [*] = ;         for hmpl := 0 to gc_MaxPlayerCount-1 do

@@ -836,6 +836,7 @@ class Мир:
              "p0_squad_units": 36 if self.t > 400 else 0,
              "p0_squads_list": ("7,36,-,4,4,0,1,0;8,15,LINE15,3,3,1,0,1;9,9,-,6,5,0,0,0" if self.t > 400 else "none"),
              "p0_squads_list_n": 3 if self.t > 400 else 0,
+             "my_held_idle": 0, "en_near_cells": -1, "en_home4": 0,   # 1.11: пункты 5–6 (мок: врага у дома нет)
              "p0_squad_hold": 0,
              "p0_squads_form": 1 if self.t > 400 else 0,
              "p0_squads_form_hold": 1 if self.t > 400 and not self.набег() else 0,
