@@ -13916,6 +13916,9 @@ hcmd 3043, progress 6215. Задание 3+3 копии.
 
 ## 1.11-4 (мак): список улучшений, пункты 5–7 — my_held_idle, en_near_cells/en_home4, p<n>_squads_list (hstate 2779 / 6680)
 
+Судья взят копией 1-7f65a75: en_near_cells и en_home4 равны счёту по ecells во всех 167 тактах, p1_squads_list_n =
+p1_squads во всех, my_held_idle ≤ my_held (3 такта расхождения на 1–2 идущих). Пункты 5–7 закрыты. В списке остались 4, 8, 9–11.
+
 hstate: hsheldi (держит и праздный) → my_held_idle; в проходе по чужим — Чебышёв от клетки его бойца до клетки ратуши
 (hsmycx/hsmycy из hscx/hscz, посчитанных в своём проходе) → en_near_cells (мин., -1) и en_home4 (≤ 4 клеток); суммы позиций по
 TObj.squad у его бойцов (массивы на игрока) → центр отряда в p<n>_squads_list (тот же формат, что squads_list) и
