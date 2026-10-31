@@ -1607,6 +1607,7 @@
       [*] = ;            var hadefe, hadeft : Integer;
       [*] = ;            var hadefo : Integer;   // holding men OUTSIDE squads and idle: what the second pass can take at most
       [*] = ;            var hadead : Integer;   // corpses met in the first pass (31.10): said aloud, silence is not a proof
+      [*] = ;            var hagkeep, hagtot : Integer;   // merge (item 2): remembered men kept / total roll
       [*] = ;            gTmpIntList.Clear;
       [*] = ;            for haoi := 0 to haon-1 do
       [*] = ;            begin
@@ -1691,6 +1692,12 @@
       [*] = ;         // ours is sent AS A SQUAD to the same target (_player_SetSquadPosition - the squad keeps
       [*] = ;         // its shape and bonus), hold released the way lib/unit.script does it. Missing key: as before.
       [*] = ;         var haall : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'all') <> 0);
+      [*] = ;         // LIST ITEM 2 (31.10): merge=1 - the remembered roll of the group STAYS and the new men are added to it, the order
+      [*] = ;         // goes to the new men only (a counted MOVE used to REPLACE the roll, and the standing men fell out of the group);
+      [*] = ;         // arrive=1 - a MOVE sets hold (fStandGround) when the men have ARRIVED, checked every second below, instead of
+      [*] = ;         // a FACE hold 20 s later from python that lost the one order slot of the tick. Missing keys: as before.
+      [*] = ;         var hamerge : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'merge') <> 0);
+      [*] = ;         var haarrive : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'arrive') <> 0);
       [*] = ;         var hasqn : Integer = 0;
       [*] = ;         var hasqm : Integer = 0;
       [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
@@ -1716,6 +1723,8 @@
       [*] = ;            // a new order regroups the wave and it stalls - learned the hard way.
       [*] = ;            hadefo := 0;   // reset BEFORE the first pass that counts it (30.10 evening: reset stood after it, Ho printed 0 at 171 taken)
       [*] = ;            hadead := 0;
+      [*] = ;            hagkeep := 0;
+      [*] = ;            hagtot := 0;
       [*] = ;            gIntegerList.Clear;
       [*] = ;            for hak := 0 to han-1 do
       [*] = ;            if (gIntegerList.GetCount < hawant) then
@@ -2065,9 +2074,42 @@
       [*] = ;                  var hagsp : Integer = ParserSelectByKey('br_hgrp');
       [*] = ;                  if (hagsp = 0) then
       [*] = ;                  hagsp := ParserCreate('br_hgrp');
-      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n', gIntegerList.GetCount);
+      [*] = ;                  hagtot := gIntegerList.GetCount;
+      [*] = ;                  if (hamerge) then
+      [*] = ;                  begin
+      [*] = ;                     // MERGE: read the old roll first (all of it), then write - writing while reading would clobber unread keys
+      [*] = ;                     var hagon : Integer = ParserGetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n');
+      [*] = ;                     var hagts : Integer = gTmpIntList.GetCount;
+      [*] = ;                     var hagk2 : Integer;
+      [*] = ;                     for hagk2 := 0 to hagon-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hagoh : Integer = ParserGetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hagk2));
+      [*] = ;                        var hagop : Pointer = _unit_GetTObj(hagoh);
+      [*] = ;                        if (hagoh <> 0) and (hagop <> nil) then
+      [*] = ;                        if (not TObj(hagop).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           var hagdup : Boolean = False;
+      [*] = ;                           var hagk3 : Integer;
+      [*] = ;                           for hagk3 := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                           if (gIntegerList.Get(hagk3) = hagoh) then hagdup := True;
+      [*] = ;                           if (not hagdup) then
+      [*] = ;                           begin
+      [*] = ;                              gTmpIntList.Add(hagoh);
+      [*] = ;                              hagkeep := hagkeep + 1;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     for hagk2 := 0 to hagkeep-1 do
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(gIntegerList.GetCount + hagk2), gTmpIntList.Get(hagts + hagk2));
+      [*] = ;                     hagtot := gIntegerList.GetCount + hagkeep;
+      [*] = ;                  end;
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_n', hagtot);
       [*] = ;                  for hak := 0 to gIntegerList.GetCount-1 do
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagsp, 'g' + IntToStr(hagid) + '_h' + IntToStr(hak), gIntegerList.Get(hak));
+      [*] = ;                  if (hamerge) then
+      [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' roll merged: ' + IntToStr(hagkeep) + ' kept + ' +
+      [*] = ;                      IntToStr(gIntegerList.GetCount) + ' new = ' + IntToStr(hagtot))
+      [*] = ;                  else
       [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' made of ' +
       [*] = ;                      IntToStr(gIntegerList.GetCount) + ' soldiers');
       [*] = ;               end;
@@ -2086,6 +2128,7 @@
       [*] = ;                  // and gets any other order is RELEASED, and that has to be said aloud -
       [*] = ;                  // otherwise the reader cannot tell a formation on duty from one that walked.
       [*] = ;                  var hagmwas : Integer = ParserGetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m');
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_ap', 0);   // a new order cancels a pending hold-on-arrival; re-armed below if this one asks
       [*] = ;                  var hagm : Integer = 0;
       [*] = ;                  if (hamode = 'move') then hagm := 1;
       [*] = ;                  if (haretreat) then hagm := 2;
@@ -2101,6 +2144,7 @@
       [*] = ;                     ParserSetIntValueByKeyByHandle(hakrp, 'g' + IntToStr(hagid) + '_on', 0);
       [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' kite released by ' + hamw);
       [*] = ;                  end;
+      [*] = ;                  if (hamerge) and (hagmwas = 4) then hagm := 4;   // merge: the standing men were not ordered, their hold stands
       [*] = ;                  if (hagmwas = 4) and (hagm <> 4) then
       [*] = ;                  Log('bridge-human: GROUP ' + IntToStr(hagid) + ' hold released by ' +
       [*] = ;                      hamw + ' (mode ' + IntToStr(hagmwas) + ' -> ' + IntToStr(hagm) + ')');
@@ -2323,6 +2367,27 @@
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_default);
       [*] = ;                  Log('bridge-human: MOVE ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
       [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + haddir);
+      [*] = ;                  if (haarrive) and (hagid > 0) and (hamode = 'move') then
+      [*] = ;                  begin
+      [*] = ;                     var hagap : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;                     if (hagap <> 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hagap, 'g' + IntToStr(hagid) + '_ap', 1);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(hagap, 'g' + IntToStr(hagid) + '_ax', hatx);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(hagap, 'g' + IntToStr(hagid) + '_az', hatz);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(hagap, 'g' + IntToStr(hagid) + '_at', GetGameTime);
+      [*] = ;                        var hagsl : Integer = -1;
+      [*] = ;                        var hagk4 : Integer;
+      [*] = ;                        for hagk4 := 0 to 7 do
+      [*] = ;                        if (ParserGetIntValueByKeyByHandle(hagap, 'hp' + IntToStr(hagk4)) = hagid) then hagsl := hagk4;
+      [*] = ;                        if (hagsl < 0) then
+      [*] = ;                        for hagk4 := 0 to 7 do
+      [*] = ;                        if (hagsl < 0) and (ParserGetIntValueByKeyByHandle(hagap, 'hp' + IntToStr(hagk4)) = 0) then hagsl := hagk4;
+      [*] = ;                        if (hagsl >= 0) then
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hagap, 'hp' + IntToStr(hagsl), hagid);
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hagid) + ' hold on arrival armed at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                     end;
+      [*] = ;                  end;
       [*] = ;                  if (haretreat) then
       [*] = ;                  Log('bridge-human: RETREAT ' + IntToStr(gIntegerList.GetCount) +
       [*] = ;                      ' far soldiers walk home [field>' + IntToStr(hafr) + ' cell from ' + IntToStr(hafbx) + ',' + IntToStr(hafby) + ']');
@@ -3176,6 +3241,71 @@
       [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drt' + IntToStr(plind), Round(hdnow));
       [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drh' + IntToStr(plind), hdheld);
       [*] = ;                        ParserSetIntValueByKeyByHandle(hdp, 'drs' + IntToStr(plind), hdsqn);
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;      end;
+      [*] = ;      // HOLD ON ARRIVAL (31.10, list item 2): groups armed by MOVE arrive=1 are checked once a game second; when 4 of 5 alive
+      [*] = ;      // remembered men stand idle within a cell of the target the hold is set (same call as FACE hold) and the group is mode 4.
+      [*] = ;      // Not arrived in 180 s, or nobody alive - dropped, aloud.
+      [*] = ;      var hgaidle : Integer = 0;
+      [*] = ;      if (hdtick) then
+      [*] = ;      begin
+      [*] = ;         var hgap : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;         if (hgap <> 0) then
+      [*] = ;         begin
+      [*] = ;            var hgai : Integer;
+      [*] = ;            for hgai := 0 to 7 do
+      [*] = ;            begin
+      [*] = ;               var hgag : Integer = ParserGetIntValueByKeyByHandle(hgap, 'hp' + IntToStr(hgai));
+      [*] = ;               if (hgag > 0) then
+      [*] = ;               begin
+      [*] = ;                  var hgas : String = 'g' + IntToStr(hgag);
+      [*] = ;                  if (ParserGetIntValueByKeyByHandle(hgap, hgas + '_ap') <> 1) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hgap, 'hp' + IntToStr(hgai), 0);
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  begin
+      [*] = ;                     var hgax : Float = ParserGetFloatValueByKeyByHandle(hgap, hgas + '_ax');
+      [*] = ;                     var hgaz : Float = ParserGetFloatValueByKeyByHandle(hgap, hgas + '_az');
+      [*] = ;                     var hgat : Float = ParserGetFloatValueByKeyByHandle(hgap, hgas + '_at');
+      [*] = ;                     var hgan : Integer = ParserGetIntValueByKeyByHandle(hgap, hgas + '_n');
+      [*] = ;                     var hgacell : Float = GetMapWidth / 16;
+      [*] = ;                     hgaidle := 0;
+      [*] = ;                     gIntegerList.Clear;
+      [*] = ;                     var hgak : Integer;
+      [*] = ;                     for hgak := 0 to hgan-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hgah : Integer = ParserGetIntValueByKeyByHandle(hgap, hgas + '_h' + IntToStr(hgak));
+      [*] = ;                        var hgahp : Pointer = _unit_GetTObj(hgah);
+      [*] = ;                        if (hgah <> 0) and (hgahp <> nil) then
+      [*] = ;                        if (not TObj(hgahp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           gIntegerList.Add(hgah);
+      [*] = ;                           if (TObj(hgahp).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                           if (VectorDistance(GetGameObjectPositionXByHandle(hgah), 0, GetGameObjectPositionZByHandle(hgah), hgax, 0, hgaz) <= hgacell) then
+      [*] = ;                           hgaidle := hgaidle + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (gIntegerList.GetCount > 0) and (hgaidle * 5 >= gIntegerList.GetCount * 4) then
+      [*] = ;                     begin
+      [*] = ;                        _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, hgas + '_ap', 0);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, hgas + '_m', 4);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, 'hp' + IntToStr(hgai), 0);
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hgag) + ' arrived at ' + FloatToStr(hgax) + ',' + FloatToStr(hgaz) + ': hold set on ' +
+      [*] = ;                            IntToStr(gIntegerList.GetCount) + ' men (idle near ' + IntToStr(hgaidle) + ')');
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     if (hdnow - hgat > 180.0) or (gIntegerList.GetCount = 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, hgas + '_ap', 0);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, 'hp' + IntToStr(hgai), 0);
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hgag) + ' hold on arrival dropped: not arrived in 180 s (alive ' +
+      [*] = ;                            IntToStr(gIntegerList.GetCount) + ', idle near ' + IntToStr(hgaidle) + ')');
       [*] = ;                     end;
       [*] = ;                  end;
       [*] = ;               end;

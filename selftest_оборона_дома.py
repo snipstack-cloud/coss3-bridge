@@ -112,4 +112,20 @@ import llm_policy as LP
 к7 = LP._держащие_в_потолок(s13, None, "cell", бл)
 проверить(к1 == 24 and к2 == 0 and к3 == 0 and к4 == 0 and к5 == 0 and к6 == 0 and к7 == 0,
           f"(к) держащие в потолок ATTACK: у дома с ключом {к1}; дальше 5 клеток {к2}, не cell {к3}, ключ 0 {к4}, без ключа {к5}, держащих 0 {к6}, без стратегии {к7}")
+# (л) пункт 2 списка улучшений блока: ключ стойка_слияние → MOVE группой 91 несёт merge 1 и arrive 1; без ключа — нет
+С14 = стратегия({"стойка_дома": 120, "стойка_дома_от": 20, "стойка_слияние": 1}); st14 = dict(КЕЙС[0]); st14.update({"my_freewar": 50, "defend_on": 0, "en_base": [3, 3, 7]})
+из14, _ = С14._стойка_дома([], st14, 100.0)
+из15, _ = стратегия({"стойка_дома": 120, "стойка_дома_от": 20})._стойка_дома([], dict(st14), 100.0)
+проверить(bool(из14) and из14[0].get("merge") == 1 and из14[0].get("arrive") == 1 and bool(из15) and "merge" not in из15[0] and "arrive" not in из15[0],
+          f"(л) стойка_слияние: {[(c.get('cmd'), c.get('merge'), c.get('arrive')) for c in из14]} / без ключа {[(c.get('cmd'), c.get('merge')) for c in из15]}")
+# (м) ключи доезжают через ответ() до команд и через coss3_bridge._приказ до файла приказа
+АВ._ТЕКУЩИЙ.update({"а": None, "t": None, "ответ": None}); о14 = стратегия({"стойка_дома": 120, "без_атаки_до": 720, "стойка_слияние": 1}).ответ(copy.deepcopy(st14))
+мв = [c for c in о14["commands"] if c.get("cmd") == "MOVE" and c.get("group") == 91]
+проверить(bool(мв) and мв[0].get("merge") == 1 and мв[0].get("arrive") == 1, f"(м) ответ(): MOVE 91 с merge/arrive: {[(c.get('merge'), c.get('arrive')) for c in мв]}")
+import coss3_bridge as CB
+_б = CB.Bridge.__new__(CB.Bridge)
+пр = CB.Bridge._приказ(_б, 9999, "cell", "move", 4, 4, "", 91, 0, None, None, None, None, None, None, 1, 1)
+пр0 = CB.Bridge._приказ(_б, 9999, "cell", "move", 4, 4, "", 91, 0, None, None, None, None, None, None, None, None)
+проверить(пр is not None and пр.get("merge") == 1 and пр.get("arrive") == 1 and пр0 is not None and "merge" not in пр0 and "arrive" not in пр0,
+          f"(м′) _приказ: с флагами {({k: пр.get(k) for k in ('merge', 'arrive', 'mode', 'group')} if пр else None)}, без — ключей нет")
 print(f"ошибок: {ошибок}"); raise SystemExit(1 if ошибок else 0)
