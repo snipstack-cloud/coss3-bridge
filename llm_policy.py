@@ -2291,6 +2291,8 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # `obuild` (тип center) и деля на `map_w`/16 руками. Поле в снимке делает
     # любую меру «близко ли враг к дому» считаемой задним числом по архиву.
     "my_cx", "my_cy",
+    # 1.11 (селфтест снимка): всё мерное из трассы обязано быть и здесь
+    "my_army_cx", "my_army_cy", "my_army_n", "squad_form", "squad_hdmg", "squad_hdef", "upg_doing",
     # СПИСОК ОТРЯДОВ — В СНИМОК (31.10, серия defence_full_vs_ai). Поле завели
     # 30.10 и провели в состояние, в запрос модели и в ТРАССУ (список на
     # :11174), а в снимок — нет: у него свой список, этот. Цена ошибки ровно
@@ -11227,6 +11229,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "my_dead", "p1_dead",                    # 31.10: трупы в списках объектов (блок их больше не считает)
                         "my_busy", "my_free_nosq",               # 31.10 (винда): вне отрядов с приказом / праздные — четыре слагаемых армии
                         "my_held_idle", "en_near_cells", "en_home4", "p1_squads_list", "p1_squads_list_n",   # 1.11: пункты 5–7
+                        "defend_on", "defend_n", "en_at_base", "my_agressors",   # 1.11: были в снимке, не было в трассе
                         "pick_t", "pick_alive", "pick_dead", "pick_refused",      # 31.10: зеркала строк лога в состоянии
                         "hdef_t", "hdef_taken", "hdef_outside", "hdef_enemy", "def_rel_t", "def_rel_h", "def_rel_s",
                         "can_pea", "can_inf", "famine", "en_near_dist",

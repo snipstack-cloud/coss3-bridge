@@ -30,7 +30,7 @@ def разбор(кат):
         n += 1
         held, idle = int(st.get("my_held") or 0), int(st.get("my_held_idle") or 0)
         if idle > held: b5 += 1
-        if int(st.get("mil_hurt") or 0) == 0 and idle != held: n5 += 1
+        if int(st.get("mil_hurt") or 0) == 0 and int(st.get("my_busy") or 0) == 0 and idle != held: n5 += 1
         cx, cy = st.get("my_cx"), st.get("my_cy")
         if cx is not None:
             cells = [(int(c[0]), int(c[1]), int(c[2])) for c in (st.get("ecells") or []) if int(c[2]) > 0]
@@ -48,7 +48,7 @@ def разбор(кат):
             n7 += 1
             if int(ps) != int(pl): b7 += 1
     print(f"### {os.path.basename(os.path.dirname(кат))}/{os.path.basename(кат)}: тактов с полями {n}")
-    print(f"(5) my_held_idle > my_held: {b5} тактов; при mil_hurt 0 не равно my_held: {n5} тактов")
+    print(f"(5) my_held_idle > my_held: {b5} тактов; при mil_hurt 0 и my_busy 0 не равно my_held: {n5} тактов")
     print(f"(6) en_near_cells ≠ счёт по ecells: {b6} из {n6} (полных ecells); en_home4 ≠ сумма ecells в 4 кл.: {b6h}; примеры {прим}")
     print(f"(7) p1_squads_list_n ≠ p1_squads: {b7} из {n7}")
     посл = [r for r in seg if (r.get("state") or {}).get("p1_squads_list") not in (None, "none")]
