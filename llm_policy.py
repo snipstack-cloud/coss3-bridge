@@ -9359,7 +9359,7 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                 _оф = _чис(st.get("my_officers")) if st else 1
                 _бар = _чис(st.get("my_drummers")) if st else 1
                 if _оф > 0 and _бар > 0:
-                    cmds.append(formation())
+                    cmds.append(formation(1 if _истина(item.get("hold")) else 0))   # пункт 3 (1.11): стойка наследуется отрядом
                 else:
                     брак.append(
                         f"FORMATION: нужны ОБА — офицер и барабанщик, у тебя "

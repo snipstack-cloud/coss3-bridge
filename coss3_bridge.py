@@ -196,13 +196,17 @@ def seed(сколько: int = 1) -> Command:
     return Command("SEED", int(max(1, сколько)))
 
 
-def formation() -> Command:
+def formation(hold: int = 0) -> Command:
     """Собрать отряд со строем из свободной пехоты, офицера и барабанщика.
 
     Без доводов: какой строй доступен, решает тип офицера, и выбирает игра —
     самый компактный, как это делает нативный ИИ.
+
+    `hold` (пункт 3 списка улучшений блока, 1.11): 1 — если большинство собранных
+    держали строй, отряд получает стойку (`fStandGround`) сразу при сборке; 0 — как
+    было (31.10: FORMATION вбирал 100 держащих, и стойка отряда была 0 до следующего FACE).
     """
-    return Command("FORMATION")
+    return Command("FORMATION", 1 if hold else 0)
 
 
 def defend(on: int = 1, atk: int = -1) -> Command:

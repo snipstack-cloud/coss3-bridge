@@ -13914,6 +13914,15 @@ hcmd 3043, progress 6215. Задание 3+3 копии.
 
 Метка `verified` не двигалась: отставание 8 коммитов с `.inc`. Ферма пуста.
 
+## 1.11-2 (мак): список улучшений, пункт 3 — FORMATION наследует стойку (hcmd 3337 / 6612)
+
+Блок: в ветке FORMATION перед _player_CreateSquad считаются держащие (bstandground) среди gIntegerList; после сборки при a1=1 и
+держащих ≥ половины — TSquad(hfsq).fStandGround := True (как в пути FACE hold для отрядов), лог «built of N men, M held ground -
+squad holds / squad free». Python: coss3_bridge.formation(hold) → a1; парсер FORMATION читает item.get("hold"); sim/поиск_стратегии
+при ключе `отряд_стойка` шлёт FORMATION с hold 1 (нет/0 — как было); файл _рефлекс — 1. Селфтест selftest_отряд_стойка (3).
+Идея formation_hold_smoke ×1: hold отряда в squads_list 1 на первом такте после FORMATION, без FACE/arrived. Мера (3) пункта 2
+переписана на my_held + my_insquad (винда, 1.11).
+
 ## 1.11 (мак): список улучшений, пункт 2 — merge состава группы и hold по приходу (hcmd 3316 / 6591)
 
 Судья взят копией 1-d947644: roll merged 70+52=122 и 3+177=180, arrived через 15/12 с с hold на 122/180, my_held и hold

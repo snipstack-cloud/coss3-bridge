@@ -1236,6 +1236,10 @@
       [*] = ;               end;
       [*] = ;               if (hccmd = 'FORMATION') then
       [*] = ;               begin
+      [*] = ;                  // LIST ITEM 3 (1.11): a1=1 - the squad inherits the stand of the men it is built from (31.10: FORMATION took 100
+      [*] = ;                  // holding men, my_held 100 -> 0, squad_hold 0 until the next FACE). Counted at creation time, set the same
+      [*] = ;                  // way the FACE hold path sets it on squads (TSquad.fStandGround). a1 missing or 0 - as before.
+      [*] = ;                  var hfheld : Integer = 0;
       [*] = ;                  // A formation is the last term of the readiness the player
       [*] = ;                  // named, and the only one the bridge could not touch at all.
       [*] = ;                  // The engine gives the bonus ONLY to an officer squad: both an
@@ -1399,6 +1403,14 @@
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     begin
+      [*] = ;                        hfheld := 0;
+      [*] = ;                        for hck := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hfhp : Pointer = _unit_GetTObj(gIntegerList.Get(hck));
+      [*] = ;                           if (hfhp <> nil) then
+      [*] = ;                           if (TObj(hfhp).bstandground) then
+      [*] = ;                           hfheld := hfheld + 1;
+      [*] = ;                        end;
       [*] = ;                        var hfsq : Pointer = _player_CreateSquad(hcph, hfform, hfoff,
       [*] = ;                             hfdrum, gIntegerList, True, True);
       [*] = ;                        if (hfsq = nil) then
@@ -1418,8 +1430,17 @@
       [*] = ;                           // progresseconomicai.inc:1110.
       [*] = ;                           _player_SetSquadFormation(hcph, TSquad(hfsq).fIndex,
       [*] = ;                                hfform, True, False);
+      [*] = ;                           var hfhw : String = '';
+      [*] = ;                           if (hca1 = 1) and (hfheld * 2 >= gIntegerList.GetCount) and (hfheld > 0) then
+      [*] = ;                           begin
+      [*] = ;                              TSquad(hfsq).fStandGround := True;
+      [*] = ;                              hfhw := ', ' + IntToStr(hfheld) + ' held ground - squad holds';
+      [*] = ;                           end
+      [*] = ;                           else
+      [*] = ;                           if (hca1 = 1) then
+      [*] = ;                           hfhw := ', ' + IntToStr(hfheld) + ' held ground - squad free';
       [*] = ;                           Log('bridge-human: FORMATION ' + gFormation[hfform].sid +
-      [*] = ;                                ' built of ' + IntToStr(gIntegerList.GetCount) + ' men');
+      [*] = ;                                ' built of ' + IntToStr(gIntegerList.GetCount) + ' men' + hfhw);
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
