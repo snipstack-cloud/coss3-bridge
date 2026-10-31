@@ -93,6 +93,7 @@
       [*] = ;         var hswc : Integer = 0;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
       [*] = ;         var hsheld, hsinsq : Integer;   // block task No2 (29.10): holding outside squads / inside squads
+      [*] = ;         var hsbusy, hsfreen : Integer;  // 31.10 (Windows): outside squads, not holding - busy (an order) / idle; with my_held and my_insquad they add up to the army
       [*] = ;         // LIST ITEM 3 (30.10 night): squad centres from the MEMBERS. TSquad.fCurX/fCurZ are filled only by the
       [*] = ;         // economic AI (progresseconomicai.inc), which never runs for the human slot - the smoke copy showed cell 8,8
       [*] = ;         // (the map centre) for a squad standing at home. Sums by TObj.squad (= TSquad.fIndex, lib/squad.script:46).
@@ -409,6 +410,15 @@
       [*] = ;                        if (TObj(hspo).bstandground) then
       [*] = ;                        begin
       [*] = ;                           hsheld := hsheld + 1;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        if (TObj(hspo).orders[0].itype = gc_obj_order_type_none) then
+      [*] = ;                        begin
+      [*] = ;                           hsfreen := hsfreen + 1;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           hsbusy := hsbusy + 1;
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
@@ -759,6 +769,8 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_freewar',   hsfree);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_held',      hsheld);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_insquad',   hsinsq);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_busy',      hsbusy);     // 31.10: alive, outside squads, not holding, with an order (marching/fighting)
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_free_nosq', hsfreen);    // 31.10: alive, outside squads, not holding, idle (my_freewar also counts idle squad men)
       [*] = ;         // HOME DEFENCE REFLEX of the command block (30.10): on/off and how many enemy soldiers it saw within 4 cells.
       [*] = ;         var hsdf : Integer = ParserSelectByKey('br_hdef');
       [*] = ;         if (hsdf <> 0) then

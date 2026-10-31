@@ -1606,6 +1606,7 @@
       [*] = ;            var hadefn : Boolean;
       [*] = ;            var hadefe, hadeft : Integer;
       [*] = ;            var hadefo : Integer;   // holding men OUTSIDE squads and idle: what the second pass can take at most
+      [*] = ;            var hadead : Integer;   // corpses met in the first pass (31.10): said aloud, silence is not a proof
       [*] = ;            gTmpIntList.Clear;
       [*] = ;            for haoi := 0 to haon-1 do
       [*] = ;            begin
@@ -1714,12 +1715,16 @@
       [*] = ;            // Idle soldiers only: a unit already marching is left alone, otherwise
       [*] = ;            // a new order regroups the wave and it stalls - learned the hard way.
       [*] = ;            hadefo := 0;   // reset BEFORE the first pass that counts it (30.10 evening: reset stood after it, Ho printed 0 at 171 taken)
+      [*] = ;            hadead := 0;
       [*] = ;            gIntegerList.Clear;
       [*] = ;            for hak := 0 to han-1 do
       [*] = ;            if (gIntegerList.GetCount < hawant) then
       [*] = ;            begin
       [*] = ;               var hago : Integer = GetGameObjectHandleByIndex(hak, haph);
       [*] = ;               var hapo : Pointer = _unit_GetTObj(hago);
+      [*] = ;               if (hapo<>nil) then
+      [*] = ;               if (TObj(hapo).bdead) then
+      [*] = ;               hadead := hadead + 1;
       [*] = ;               if (hapo<>nil) then
       [*] = ;               // CORPSES STAY IN THE PLAYER'S OBJECT LIST (31.10, 76 'roll cleaned' lines, 16 with >= 50% dead a second after the pick): dead men are not ours to count or to order. Wave pick.
       [*] = ;               if (not TObj(hapo).bdead) then
@@ -1777,6 +1782,9 @@
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
+      [*] = ;            // WAVE PICK SAID ALOUD (31.10, Windows: 'roll cleaned' prints only when something was dropped, so a working
+      [*] = ;            // filter would be proven by silence - and silence has other causes). Alive taken by the first pass, corpses met.
+      [*] = ;            Log('bridge-human: wave pick at ' + IntToStr(Round(GetGameTime)) + ' s: ' + IntToStr(gIntegerList.GetCount) + ' alive taken, ' + IntToStr(hadead) + ' dead skipped, ' + IntToStr(haheldn) + ' holding refused');
       [*] = ;            // Where to go. The model chooses: peasants (the objective), base, or army.
       [*] = ;            var hatx, hatz : Float;
       [*] = ;            // THE REMEMBERED COMPOSITION of group hagid. The selection loop above
