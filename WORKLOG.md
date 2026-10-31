@@ -13916,6 +13916,10 @@ hcmd 3043, progress 6215. Задание 3+3 копии.
 
 ## 1.11-2 (мак): список улучшений, пункт 3 — FORMATION наследует стойку (hcmd 3337 / 6612)
 
+Судья взят копией 1-4ca248b: «built of 120 men, 124 held ground - squad holds», hold отряда 1 на первом такте после
+сборки без FACE, my_held + my_insquad 124 → 145, стойка после сборки работает (arrived 772 → squad_hold 1 до FACE). Пункт 3
+закрыт. Метка verified → 385dddb (винда, 1.11).
+
 Блок: в ветке FORMATION перед _player_CreateSquad считаются держащие (bstandground) среди gIntegerList; после сборки при a1=1 и
 держащих ≥ половины — TSquad(hfsq).fStandGround := True (как в пути FACE hold для отрядов), лог «built of N men, M held ground -
 squad holds / squad free». Python: coss3_bridge.formation(hold) → a1; парсер FORMATION читает item.get("hold"); sim/поиск_стратегии
