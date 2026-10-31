@@ -6900,8 +6900,14 @@ python install_bridge.py "C:\Program Files (x86)\Steam\steamapps\common\Cossacks
 
 ```powershell
 python send.py --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --new --res 0 --peace 0 --ai 3 --nation net --balloon 2 --cannons 1 --capture 3 --market 2 --century18 1
-python llm_policy.py --human --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --hints hints_human.txt --model "@preset/coss3-bot" --every 20 --ban market,ba18 --episodes 3
+python llm_policy.py --human --dir "C:\Program Files (x86)\Steam\steamapps\common\Cossacks 3" --hints hints_human.txt --model "@preset/coss3-bot" --every 20 --ban market,ba18 --episodes 3 --stall 300
 ```
+
+**`--stall 300` ДОБАВЛЕН 31.10 И ОБЯЗАТЕЛЕН ДЛЯ ЖИВОЙ ИГРЫ.** Умолчание 30 с, а симуляция идёт только в
+АКТИВНОМ окне: любое переключение игрока (хоть сообщение в чат) замирает состояние, и политика объявляет
+партию оборванной. Так умерли живая партия 23.09 на 8:38 и живая партия 31.10 на 2:15 — второй раз по той же
+причине, потому что команда здесь шла без ключа, хотя его собственная справка об этом предупреждает.
+`против_игрока.py` ставит `--stall 180` сам; страдает только ручная команда.
 
 **ПЯТЬ ПОСЛЕДНИХ КЛЮЧЕЙ `send.py` ОБЯЗАТЕЛЬНЫ, И ДО 20.09 ИХ ЗДЕСЬ НЕ БЫЛО.**
 `--market 2 --century18 1` закрывают асимметрию, найденную игроком 20.09:
