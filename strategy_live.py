@@ -3066,6 +3066,27 @@ def _переброс(из: list, st: dict, п: dict, стр, отдано) -> l
     return [c for _, c in итог]
 
 
+def _железо_нужно(п: dict, st: dict) -> bool:
+    """Ключ `шахта_железа` (31.10, вопрос игрока «бот Польшей против Польши»): нет/1 — как было, шахта железа закладывается
+    после казармы безусловно; 0 — не закладывать; 2 — ПО ЦЕНЕ ИЗ СОСТОЯНИЯ: закладывать, только если пика (`infantry17` в
+    `fighters`) стоит железа > 0. Нидерландам (пика 20 железа) ключ 2 ничего не меняет; польской пике (0 железа по live-ценам
+    29.10) шахта и 5–8 человек в ней не нужны. Нет поля `fighters` — как было (True)."""
+    try:
+        к = п.get("шахта_железа", None)
+        к = int(float(к)) if к is not None else 1
+    except (TypeError, ValueError):
+        к = 1
+    if к == 0:
+        return False
+    if к != 2:
+        return True
+    б = _разбор_бойцов(st.get("fighters"))
+    пика = б.get("infantry17")
+    if not пика:
+        return True
+    return int(пика.get("iron", 0) or 0) > 0
+
+
 def привести(сырые: list, st: dict, п: dict, стр, пропущено, отдано) -> list:
     """Команды стратегии → то, что уходит в игру за такт (3.10, §57; общее для симулятора и моста).
 
@@ -3173,7 +3194,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
             for _r in _план:
                 _план[_r] += float(_ац.get(_r) or 0)
         _шц = _цена_здания(st, "minegold") or {"wood": 100, "stone": 100}
-        _шахт = max(0, int(п.get("шахт_золота", 2)) - int(_чс("mines_gold"))) + (1 if _чс("mines_iron") < 1 and _чс("ba17") >= 1 else 0)
+        _шахт = max(0, int(п.get("шахт_золота", 2)) - int(_чс("mines_gold"))) + (1 if _чс("mines_iron") < 1 and _чс("ba17") >= 1 and _железо_нужно(п, st) else 0)
         for _r in _план:
             _план[_r] += _шахт * float(_шц.get(_r) or 0)
     # §170з (24.10, партия Д13 на блоке №2 — винда: «бюджет камня надо считать с ценой академии, иначе задание №2 и
@@ -3622,7 +3643,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
     if раньше and хватает_каз:
         закладка = ("ba17", int(ч("ba17")) + 1)
         отдано["BUILD ba17 раньше шахт"] += 1
-    elif ч("ba17") >= 1 and ч("mines_iron") < 1 and есть_дер_кам:
+    elif ч("ba17") >= 1 and ч("mines_iron") < 1 and есть_дер_кам and _железо_нужно(п, st):
         закладка = ("mineiron", 1)
     elif (ч("mines_gold") < int(п.get("шахт_золота", 2)) and ч("on_gold") >= 5 * ч("mines_gold") - 1
           and есть_дер_кам and резерв_ок and not _каз_близко):
@@ -3722,7 +3743,7 @@ def привести(сырые: list, st: dict, п: dict, стр, пропущ�
         хотят = []
         if закладка:
             хотят.append(закладка[0])
-        if ч("ba17") >= 1 and ч("mines_iron") < 1 and "mineiron" not in хотят:
+        if ч("ba17") >= 1 and ч("mines_iron") < 1 and "mineiron" not in хотят and _железо_нужно(п, st):
             хотят.append("mineiron")
         if (ч("mines_gold") < int(п.get("шахт_золота", 2)) and ч("on_gold") >= 5 * ч("mines_gold") - 1
                 and резерв_ок and "minegold" not in хотят):

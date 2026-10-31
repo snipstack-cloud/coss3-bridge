@@ -124,6 +124,7 @@ class Дебют:
         self.железо_людей = int(железо_людей or 99)   # 20.10: строителей на шахту железа (они же в ней останутся)
         self.дерево, self.камень = дерево, камень     # §170и: None — модульные ДЕРЕВО_ДЕБЮТА/КАМЕНЬ_ДЕБЮТА в момент такта
         self.mine = mine
+        self.шахта_железа = None   # 31.10: ключ стратегии `шахта_железа` (нет/1 как было, 0 нет, 2 по цене пики из fighters); ставит llm_policy
         self.food = food
         self.train_gt = -100
         self.добыча_gt = None
@@ -161,6 +162,24 @@ class Дебют:
                 f"{_int(st, 'wood')}, золото {_int(st, 'gold')}, железо {_int(st, 'iron')}. "
                 f"Дальше решаешь ты: бить, копить или держать дом")
 
+    def _железо_нужно(self, st) -> bool:
+        """Ключ `шахта_железа` (31.10): нет/1 — как было; 0 — шахту не закладывать; 2 — только если пика (`infantry17`
+        в `fighters`) стоит железа > 0 (польской пике не нужно). Без поля `fighters` — как было."""
+        к = self.шахта_железа
+        try:
+            к = int(float(к)) if к is not None else 1
+        except (TypeError, ValueError):
+            к = 1
+        if к == 0:
+            return False
+        if к != 2:
+            return True
+        import re as _re
+        m = _re.search(r"infantry17=[^ ]*?iron(\d+)", str(st.get("fighters") or ""))
+        if not m:
+            return True
+        return int(m.group(1)) > 0
+
     def такт(self, st: dict, gt: int) -> tuple[list, list[str]]:
         """Команды на этот такт и что о них сказать в лог."""
         готово = {роль: _int(st, ключ) for роль, ключ in ЦЕПОЧКА}
@@ -197,7 +216,7 @@ class Дебют:
                 and "mill" not in идут and _int(st, "wood") >= 30 and _int(st, "stone") >= 150):
             закладка = ("mill", 4)
         # --- шахта железа после казармы, когда добыто на неё ---
-        if (закладка is None and self.mine and готово["ba17"] >= 1
+        if (закладка is None and self.mine and self._железо_нужно(st) and готово["ba17"] >= 1
                 and _int(st, "mines_iron") < 1 and "mineiron" not in идут
                 and _int(st, "wood") >= 100 and _int(st, "stone") >= 100):
             закладка = ("mineiron", self.железо_людей)
