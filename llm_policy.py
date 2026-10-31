@@ -2291,6 +2291,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # (копия 1 серии, последний такт: `1,141,LINE120,3,3,1,0,1`). Снимок отдавал
     # None, и ноль читался как «игра не сделала», а не «прибор не донёс».
     "squads_list", "squads_list_n",
+    "my_dead", "p1_dead",
 )
 
 
@@ -11184,6 +11185,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "squads", "squad_units", "squad_hunt", "squad_hold", "squad_form",
                         "squad_dmg", "squad_def", "squad_hdmg", "squad_hdef",
                         "squads_list", "squads_list_n",          # пункт 3 (30.10 ночь): все отряды строкой блока
+                        "my_dead", "p1_dead",                    # 31.10: трупы в списках объектов (блок их больше не считает)
                         "can_pea", "can_inf", "famine", "en_near_dist",
                         # Где стоит свой кулак и своя волна: без этого по трассе
                         # не видно, что армия стояла врозь, когда пришёл враг.

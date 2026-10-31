@@ -125,11 +125,17 @@
       [*] = ;         var hspeaid : Integer = -1;
       [*] = ;         var hsk : Integer;
       [*] = ;         var hscount : Integer = GetPlayerGameObjectsCountByHandle(hsph);
+      [*] = ;         var hsdead : Integer = 0;   // 31.10: dead objects of ours still in the list - counted apart, excluded from everything below
       [*] = ;         for hsk := 0 to hscount-1 do
       [*] = ;         begin
       [*] = ;            var hsgo : Integer = GetGameObjectHandleByIndex(hsk, hsph);
       [*] = ;            var hspo : Pointer = _unit_GetTObj(hsgo);
       [*] = ;            if (hspo<>nil) then
+      [*] = ;            if (TObj(hspo).bdead) then
+      [*] = ;            hsdead := hsdead + 1;
+      [*] = ;            if (hspo<>nil) then
+      [*] = ;            // CORPSES STAY IN THE PLAYER'S OBJECT LIST (31.10, 76 'roll cleaned' lines, 16 with >= 50% dead a second after the pick): dead men are not ours to count or to order. Own objects pass.
+      [*] = ;            if (not TObj(hspo).bdead) then
       [*] = ;            begin
       [*] = ;               var hsuc : Integer = TObj(hspo).cid;
       [*] = ;               var hsui : Integer = TObj(hspo).id;
@@ -528,6 +534,7 @@
       [*] = ;         hswave := ParserGetIntValueByKeyByHandle(hswp, 'sent');
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wave_sent', hswave);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'objects',   hscount);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_dead',   hsdead);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'peasants',  hspea);
       [*] = ;         // No town centre yet means no position, and en_near_dist is measured
       [*] = ;         // from hscx/hscz - without this fallback the distance to the enemy
@@ -1409,11 +1416,17 @@
       [*] = ;            // point within 60 of OUR town centre. Integers only, like the
       [*] = ;            // counters above - a Float sum here is an untested form.
       [*] = ;            var hsymvn, hsymvb, hsymx, hsymz : Integer;
+      [*] = ;            var hsedead : Integer = 0;   // 31.10: his dead objects in the list
       [*] = ;            for hsj := 0 to hsec-1 do
       [*] = ;            begin
       [*] = ;               var hseg : Integer = GetGameObjectHandleByIndex(hsj, hseph);
       [*] = ;               var hsep : Pointer = _unit_GetTObj(hseg);
       [*] = ;               if (hsep<>nil) then
+      [*] = ;               if (TObj(hsep).bdead) then
+      [*] = ;               hsedead := hsedead + 1;
+      [*] = ;               if (hsep<>nil) then
+      [*] = ;               // enemy pass (31.10): corpses are not his army, not his peasants, not a camp
+      [*] = ;               if (not TObj(hsep).bdead) then
       [*] = ;               begin
       [*] = ;                  var hseu : Integer = gObjProp[TObj(hsep).cid][TObj(hsep).id].usage;
       [*] = ;                  if (hseu = gc_obj_usage_peasant) then
@@ -1829,6 +1842,7 @@
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads', hsysqn);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_dead', hsedead);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_units', hsysqu);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squad_hold', hsysqh);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'p' + IntToStr(hspl) + '_squads_form', hsysqfn);

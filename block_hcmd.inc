@@ -1721,6 +1721,8 @@
       [*] = ;               var hago : Integer = GetGameObjectHandleByIndex(hak, haph);
       [*] = ;               var hapo : Pointer = _unit_GetTObj(hago);
       [*] = ;               if (hapo<>nil) then
+      [*] = ;               // CORPSES STAY IN THE PLAYER'S OBJECT LIST (31.10, 76 'roll cleaned' lines, 16 with >= 50% dead a second after the pick): dead men are not ours to count or to order. Wave pick.
+      [*] = ;               if (not TObj(hapo).bdead) then
       [*] = ;               begin
       [*] = ;                  var hau : Integer = gObjProp[TObj(hapo).cid][TObj(hapo).id].usage;
       [*] = ;                  if (not gObjProp[TObj(hapo).cid][TObj(hapo).id].bbuilding) then
@@ -1818,6 +1820,8 @@
       [*] = ;                  var haeg : Integer = GetGameObjectHandleByIndex(haj, haeph);
       [*] = ;                  var haep : Pointer = _unit_GetTObj(haeg);
       [*] = ;                  if (haep<>nil) then
+      [*] = ;                  // dead enemies are not 'enemy soldiers within 2 cells' (31.10)
+      [*] = ;                  if (not TObj(haep).bdead) then
       [*] = ;                  begin
       [*] = ;                     var haeu : Integer = gObjProp[TObj(haep).cid][TObj(haep).id].usage;
       [*] = ;                     var haeb : Boolean = gObjProp[TObj(haep).cid][TObj(haep).id].bbuilding;
@@ -2535,6 +2539,8 @@
       [*] = ;               var htgo : Integer = GetGameObjectHandleByIndex(htk, htph);
       [*] = ;               var htpo : Pointer = _unit_GetTObj(htgo);
       [*] = ;               if (htpo<>nil) then
+      [*] = ;               // TOPUP: dead peasants are not idle hands (31.10)
+      [*] = ;               if (not TObj(htpo).bdead) then
       [*] = ;               begin
       [*] = ;                  var htrole : Integer = gObjProp[TObj(htpo).cid][TObj(htpo).id].airole;
       [*] = ;                  if (htrole = gc_ai_unit_center) and (not hthall) then
