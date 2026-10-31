@@ -45,9 +45,77 @@ def _num(x):
             return None
 
 
+def _арг(вызов: str, текст: str):
+    """Аргументы первого вызова `вызов(...)` в тексте списком строк (без вложенных скобок в аргументах) или None."""
+    m = re.search(re.escape(вызов) + r"\(([^)]*)\)", текст)
+    return [a.strip() for a in m.group(1).split(",")] if m else None
+
+
+def _поля(текст: str) -> dict:
+    """Поля юнита из куска тела; аргумент `default` поле не меняет (так пишут поправки наций)."""
+    d = {}
+    hp = re.search(r"objbase\.maxhp\s*:=\s*([^;]+);", текст)
+    if hp and _num(hp.group(1)) is not None:
+        d["hp"] = _num(hp.group(1))
+    w = _арг("SetObjBaseWeapon", текст)
+    if w and len(w) >= 10:
+        k = ВИД.get(w[9].replace("gc_obj_weapon_kind_", ""))
+        if k is not None:
+            d["wkind"] = k
+        for key, idx, scale in (("atk", 3, 1), ("pause", 4, 3.125), ("rmax", 6, 1 / 0.53333)):
+            v = _num(w[idx]) if w[idx] != "default" else None
+            if v is not None:
+                d[key] = int(round(v * scale))
+    pr = _арг("SetObjBasePrice", текст)
+    if pr and len(pr) >= 7:
+        vals = [_num(x) for x in pr[1:7]]
+        if all(v is not None for v in vals):
+            d["цена"] = dict(zip(("food", "wood", "stone", "gold", "iron", "coal"), vals))
+    pt = _арг("SetObjBaseProtection", текст)
+    if pt and len(pt) >= 7:
+        vals = [_num(x) if x != "default" else None for x in pt[1:7]]
+        for key, v in zip(("dpike", "dsword", "dbullet", None, "darrow"), vals):
+            if key and v is not None:
+                d[key] = v
+    sb = _арг("SetObjBaseSearchBuildVisionScore", текст)
+    if sb and len(sb) >= 6 and sb[3] != "default" and _num(sb[3]) is not None:
+        d["найм_с"] = round(_num(sb[3]) * 0.03125, 2)        # кадры -> секунды (_misc_FramesToTime: 32 кадра в секунду)
+    return d
+
+
+def _ветки_нации(тело: str):
+    """`case nation of 'pol' : begin … end; …` -> (тело без этих ветвей, {нация: текст ветви}). Движок берёт нацию из трёх последних
+    букв sid (`nation := SubStr(sid, StrLength(sid)-2, 3)`), так что ветка 'pol' меняет только 'pikemanpol' и ему подобных."""
+    i = тело.find("case nation of")
+    if i < 0:
+        return тело, {}
+    tok = re.compile(r"\b(begin|case|end)\b")
+    j, depth = i + len("case nation of"), 1
+    while depth > 0:
+        mm = tok.search(тело, j)
+        if not mm:
+            break
+        depth += -1 if mm.group(1) == "end" else 1
+        j = mm.end()
+    блок = тело[i:j]
+    ветви = {}
+    for m in re.finditer(r"((?:'[a-z0-9_]+'\s*,\s*)*'[a-z0-9_]+')\s*:\s*begin\b", блок):
+        k, depth = m.end(), 1
+        while depth > 0:
+            mm = tok.search(блок, k)
+            if not mm:
+                break
+            depth += -1 if mm.group(1) == "end" else 1
+            k = mm.end()
+        for нац in re.findall(r"'([a-z0-9_]+)'", m.group(1)):
+            ветви[нац] = блок[m.end():k]
+    return тело[:i] + тело[j:], ветви
+
+
 def юниты_из_скрипта(игра=ИГРА) -> dict:
-    """{sid: {hp, atk, wkind, pause(сотые), rmax(сотые тайла), dpike, dsword, dbullet, darrow, цена{...}}} — ветки case по порядку файла,
-    поздняя перекрывает раннюю (у наций свои значения ниже общих)."""
+    """{sid: {hp, atk, wkind, pause(сотые), rmax(сотые тайла), dpike, dsword, dbullet, darrow, цена{...}, найм_с}} — ветки case по
+    порядку файла, поздняя перекрывает раннюю; поверх — поправки `case nation of` по суффиксу sid (до 1.11 они терялись, и
+    польская пика выходила с бронёй 3/2/4 и ценой 25/3/20 вместо 0/0/0 и 25 еды + 1 золото)."""
     u = open(os.path.join(игра, "data/scripts/lib/unit.script"), encoding="latin-1").read()
     pat = re.compile(r"\n\s*((?:'[a-z0-9_]+'\s*,\s*)*'[a-z0-9_]+')\s*:\s*begin\b")
     tok = re.compile(r"\b(begin|end)\b")
@@ -61,31 +129,13 @@ def юниты_из_скрипта(игра=ИГРА) -> dict:
                 break
             depth += 1 if mm.group(1) == "begin" else -1
             i = mm.end()
-        body = u[m.end():i]
-        hp = re.search(r"objbase\.maxhp\s*:=\s*([^;]+);", body)
-        w = re.search(r"SetObjBaseWeapon\(objprop,\s*objbase,\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*(gc_obj_weapon_kind_\w+)", body)
-        pr = re.search(r"SetObjBasePrice\(objbase,\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\)", body)
-        pt = re.search(r"SetObjBaseProtection\(objbase,\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\)", body)
+        основа, ветви = _ветки_нации(u[m.end():i])
+        общее = _поля(основа)
         for s in sids:
             d = units.setdefault(s, {})
-            if hp and _num(hp.group(1)) is not None:
-                d["hp"] = _num(hp.group(1))
-            if w:
-                k = ВИД.get(w.group(8).replace("gc_obj_weapon_kind_", ""))
-                if k is not None:
-                    d["wkind"] = k
-                for key, idx, scale in (("atk", 2, 1), ("pause", 3, 3.125), ("rmax", 5, 1 / 0.53333)):
-                    v = _num(w.group(idx))
-                    if v is not None:
-                        d[key] = int(round(v * scale))
-            if pr:
-                vals = [_num(pr.group(i)) for i in range(1, 7)]
-                if all(v is not None for v in vals):
-                    d["цена"] = dict(zip(("food", "wood", "stone", "gold", "iron", "coal"), vals))
-            if pt:
-                vals = [_num(pt.group(i)) for i in range(1, 7)]
-                if all(v is not None for v in vals):
-                    d.update(dpike=vals[0], dsword=vals[1], dbullet=vals[2], darrow=vals[4])
+            d.update(общее)
+            if s[-3:] in ветви:
+                d.update(_поля(ветви[s[-3:]]))
     for d in units.values():
         for k in ("dpike", "dsword", "dbullet", "darrow"):
             d.setdefault(k, 0)
