@@ -247,6 +247,26 @@ ${IDEA}
         log "    Поле ref применяет только ./docker/exp.py; при docker run задавай"
         log "    -e COSS3_BRIDGE_REF=${IDEA_REF} сам, иначе опыт идёт НЕ НА ТОЙ версии."
     fi
+    # УСЛОВИЯ ПАРТИИ ИЗ ИДЕИ (1.11): поле `условия = NATION=pol NATION2=pol AI=3` секции. `poland_vs_poland_ai/ступени1`
+    # сыгран Нидерландами: нация была только в тексте `что`, а `coss3.env` прошивает COSS3_MATCH_NATION=net. Поле идеи
+    # перебивает окружение (идея — это и есть условия опыта) и говорит об этом вслух. Имена — хвост COSS3_MATCH_*.
+    IDEA_MATCH=$(python3 - "$INI" "$COSS3_EXPERIMENT" <<'PYM'
+import configparser, sys
+c = configparser.ConfigParser(interpolation=None, strict=False)
+c.read(sys.argv[1], encoding="utf-8")
+print(c.get(sys.argv[2], "условия", fallback="").strip())
+PYM
+)
+    for pair in $IDEA_MATCH; do
+        k=${pair%%=*}; v=${pair#*=}
+        case "$k" in
+            RES|PEACE|AI|NATION|NATION2|BALLOON|CANNONS|CAPTURE) ;;
+            *) die "идея: в поле условия неизвестное имя «${k}» (можно RES PEACE AI NATION NATION2 BALLOON CANNONS CAPTURE)" ;;
+        esac
+        idea_old=$(eval "printf '%s' \"\${COSS3_MATCH_${k}:-}\"")
+        export "COSS3_MATCH_${k}=${v}"
+        log "  условие идеи: COSS3_MATCH_${k}=${v} (окружение было «${idea_old:-—}»)"
+    done
     if [ -n "${COSS3_EXTRA_FLAGS:-}" ]; then
         # Явно заданное перебивает файл, но молча этого делать нельзя: отчёт
         # ссылался бы на идею, а игра шла бы с другими флагами.
