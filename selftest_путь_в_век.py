@@ -77,5 +77,14 @@ print("    ", why)
 из, why = С._путь_в_век([], снимок(upg_shown="bar.pikemanpol.1.1=f500g50i0"))
 проверить("cen.1 нет" in why, f"cen.1 нет в списке — сказано: {why}")
 
+П = стратегия({"век_с": 600, "век_перевес": 1.5})
+из, why = П._путь_в_век([{"cmd": "TRAIN", "role": "infantry17", "total": -1}], снимок(mil_inf=450, mil_shooters=50, p1_army=300,
+                                                                                     ba_queues="1:pikeman:inf,2:pikeman:inf"))
+проверить(("TRAIN", "infantry17", 0) in [(c["cmd"], c.get("role"), c.get("total")) for c in из]
+          and ("TRAIN", "infantry17", -1) not in [(c["cmd"], c.get("role"), c.get("total")) for c in из],
+          f"перевес 500 ≥ 1,5 × 300 — найм пик на паузе: {why}")
+из, _ = П._путь_в_век([{"cmd": "TRAIN", "role": "infantry17", "total": -1}], снимок(mil_inf=300, mil_shooters=50, p1_army=300))
+проверить(("TRAIN", "infantry17", -1) in [(c["cmd"], c.get("role"), c.get("total")) for c in из], "перевеса нет — найм идёт")
+
 print(f"\n{'ВСЁ ОК' if not ошибок else f'ОШИБОК: {ошибок}'}")
 sys.exit(1 if ошибок else 0)

@@ -2467,6 +2467,20 @@ class ЖиваяСтратегия:
                 if снято:
                     self.реестр.мера["век: прокачек снято"] += len(снято)
                     речь.append("копим: снято UPGRADE " + ",".join(str(x) for x in снято))
+            # ПАУЗА НАЙМА ПРИ ПЕРЕВЕСЕ (1.11, century_pol/2-ban: армия 445–539 пик, размен 2,67, а еды 4–6 тысяч с 15 до 23 мин при
+            # нужных 30 000 — прокорм армии ~50 еды/с; cen.1 только на 29:45, ba2 не успела). Ключ `век_перевес` K (0 — как было): пока
+            # cen.1 не начат, его армия видна и наших бойцов ≥ K × его, заказы пик снимаются и бесконечный снимается `TRAIN
+            # infantry17 0` (не чаще раза в 30 с). Перевес упал ниже K — найм возвращается сам (ярус 1 поддерживает очередь).
+            _пер = float(п.get("век_перевес", 0) or 0)
+            _наша = ч("mil_inf") + ч("mil_shooters") + ч("mil_cav")
+            _его = ч("p1_army")
+            if _пер > 0 and _его > 0 and _наша >= _пер * _его and ч("food") < нужно["food"] and "cen.1" not in идёт:
+                из = [c for c in из if not (c.get("cmd") == "TRAIN" and c.get("role") in ("infantry17", 23) and int(c.get("total") or 0) != 0)]
+                if "pikeman" in str(st.get("ba_queues") or "") and t - float(getattr(self, "_век_пики_сняты", -1000)) >= 30:
+                    новые.append({"cmd": "TRAIN", "role": "infantry17", "total": 0})
+                    self._век_пики_сняты = t
+                self.реестр.мера["век: найм на паузе"] += 1
+                речь.append(f"найм пик на паузе: наших {_наша:.0f} ≥ {_пер:g} × его {_его:.0f}")
             if есть("temple", True) and есть("artdepo", True) and "cen.1" not in идёт:
                 новые.append({"cmd": "UPGRADE", "role": "cen.1"})
                 нехватка = [f"{r} {ч(r):.0f}/{v:.0f}" for r, v in ц.items() if v and ч(r) < v]
