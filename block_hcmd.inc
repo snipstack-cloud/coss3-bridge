@@ -1942,7 +1942,15 @@
       [*] = ;                     var haeb : Boolean = gObjProp[TObj(haep).cid][TObj(haep).id].bbuilding;
       [*] = ;                     var hatake : Boolean = False;
       [*] = ;                     if (hatrg = 'peasants') and (haeu = gc_obj_usage_peasant) then hatake := True;
-      [*] = ;                     if (hatrg <> 'peasants') and (haeb) then hatake := True;
+      [*] = ;                     if (hatrg <> 'peasants') and (hatrg <> 'wall') and (haeb) then hatake := True;
+      [*] = ;                     // TARGET 'wall' (1.11, player's word 'point the army's attack at the palisade'):
+      [*] = ;                     // ONLY walls, and the HANDLE is remembered - a wall must be attacked as an OBJECT,
+      [*] = ;                     // because a position order is a move and a sealed palisade has no path through it.
+      [*] = ;                     // Done in THIS loop on purpose: a separate loop of mine set the handle and the
+      [*] = ;                     // position came from here anyway - two paths for one answer, and the handle stayed 0.
+      [*] = ;                     if (hatrg = 'wall') then
+      [*] = ;                     if (haeu = gc_obj_usage_weakwall) or (haeu = gc_obj_usage_hardwall) then
+      [*] = ;                     hatake := True;
       [*] = ;                     if (hatake) then
       [*] = ;                     begin
       [*] = ;                        var haex : Float = GetGameObjectPositionXByHandle(haeg);
@@ -1954,6 +1962,8 @@
       [*] = ;                           hatx := haex;
       [*] = ;                           hatz := haez;
       [*] = ;                           hafound := True;
+      [*] = ;                           if (hatrg = 'wall') then
+      [*] = ;                           hawallh := haeg;
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
@@ -1965,64 +1975,6 @@
       [*] = ;            // nearest such thing'; taking the fist around, or massing it away from the
       [*] = ;            // base, was impossible, and the map stayed mute: 0 cells named in 644 ticks.
       [*] = ;            // The cell resolves to the CENTRE of its square, else the squad walks to a corner.
-      [*] = ;            // TARGET 'wall' (1.11): python names the CELL whose weakest link it wants broken (it has the
-      [*] = ;            // whole wall map with hp per cell in ewalls); the block finds the wall OBJECT nearest to that
-      [*] = ;            // cell centre and remembers its handle for the order below. Walls are buildings, and usage
-      [*] = ;            // tells them apart: gc_obj_usage_weakwall = 13 is the wooden palisade, 12 the stone one
-      [*] = ;            // (same pair block_hstate uses to build ewalls).
-      [*] = ;            if (hatrg = 'wall') then
-      [*] = ;            begin
-      [*] = ;               var hawn : Integer = 16;
-      [*] = ;               var hawcx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cx');
-      [*] = ;               var hawcy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cy');
-      [*] = ;               if (hawcx < 0) then hawcx := 0;
-      [*] = ;               if (hawcy < 0) then hawcy := 0;
-      [*] = ;               if (hawcx > hawn-1) then hawcx := hawn-1;
-      [*] = ;               if (hawcy > hawn-1) then hawcy := hawn-1;
-      [*] = ;               var hawmw : Integer = GetMapWidth;
-      [*] = ;               var hawmh : Integer = GetMapHeight;
-      [*] = ;               var hawx : Float = (hawcx + 0.5) * hawmw / hawn - hawmw div 2;
-      [*] = ;               var hawz : Float = (hawcy + 0.5) * hawmh / hawn - hawmh div 2;
-      [*] = ;               var hawbest : Float = 1000000.0;
-      [*] = ;               var hawpl : Integer;
-      [*] = ;               for hawpl := 0 to gc_MaxPlayerCount-1 do
-      [*] = ;               begin
-      [*] = ;                  if (gPlayer[hawpl].bexists) and (hawpl <> plind) then
-      [*] = ;                  if ((gPlayer[plind].enemyPlMask and gPlayer[hawpl].myPlMask) <> 0) then
-      [*] = ;                  begin
-      [*] = ;                     var hawph : Integer = GetPlayerHandleByIndex(hawpl);
-      [*] = ;                     var hawon : Integer = GetPlayerGameObjectsCountByHandle(hawph);
-      [*] = ;                     var hawj : Integer;
-      [*] = ;                     for hawj := 0 to hawon-1 do
-      [*] = ;                     begin
-      [*] = ;                        var hawg : Integer = GetGameObjectHandleByIndex(hawj, hawph);
-      [*] = ;                        var hawp : Pointer = _unit_GetTObj(hawg);
-      [*] = ;                        if (hawp<>nil) then
-      [*] = ;                        if (not TObj(hawp).bdead) then
-      [*] = ;                        begin
-      [*] = ;                           var hawu : Integer = gObjProp[TObj(hawp).cid][TObj(hawp).id].usage;
-      [*] = ;                           if (hawu = gc_obj_usage_weakwall) or (hawu = gc_obj_usage_hardwall) then
-      [*] = ;                           begin
-      [*] = ;                              var hawex : Float = GetGameObjectPositionXByHandle(hawg);
-      [*] = ;                              var hawez : Float = GetGameObjectPositionZByHandle(hawg);
-      [*] = ;                              var hawd : Float = VectorDistance(hawex, 0, hawez, hawx, 0, hawz);
-      [*] = ;                              if (hawd < hawbest) then
-      [*] = ;                              begin
-      [*] = ;                                 hawbest := hawd;
-      [*] = ;                                 hatx := hawex;
-      [*] = ;                                 hatz := hawez;
-      [*] = ;                                 hawallh := hawg;
-      [*] = ;                                 hafound := True;
-      [*] = ;                              end;
-      [*] = ;                           end;
-      [*] = ;                        end;
-      [*] = ;                     end;
-      [*] = ;                  end;
-      [*] = ;               end;
-      [*] = ;               if (not hafound) then
-      [*] = ;               Log('bridge-human: ATTACK wall - NO WALL OBJECT found near cell ' + IntToStr(hawcx) + ',' + IntToStr(hawcy));
-      [*] = ;            end
-      [*] = ;            else
       [*] = ;            if (hatrg = 'cell') then
       [*] = ;            begin
       [*] = ;               var hacn : Integer = 16;   // cHmGrid in the state block; grids must match
