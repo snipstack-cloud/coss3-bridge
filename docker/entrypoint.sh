@@ -712,6 +712,14 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
     # set +e на время вызова: политика возвращает 2, когда партия прошла без
     # цели, и это НЕ ошибка. С `set -e` такой код обрывал бы скрипт до разбора.
     set +e
+    # ЗАПРЕТ ПОЛИТИКЕ ИДЁТ ЗА НАСТРОЙКОЙ ВЕКА (1.11, century_pol/net): --ban market,ba18 шёл всем безусловно, и при
+    # CENTURY18=0 игра век открывала, а политика казарму века запрещала сама — 103 отказа «ba18: запрещено настройками».
+    # Два выключателя, повернули один. Теперь ba18 запрещена политике только при запрещённом веке.
+    POLICY_BAN="market,ba18"
+    if [ "${COSS3_MATCH_CENTURY18:-1}" != "1" ]; then
+        POLICY_BAN="market"
+        log "век разрешён (century18=${COSS3_MATCH_CENTURY18}): политике запрещён только market, ba18 открыта"
+    fi
     # shellcheck disable=SC2086
     # -u к тому же PYTHONUNBUFFERED: переменную окружения легко потерять при
     # ручном запуске, а ключ виден прямо в команде.
@@ -722,7 +730,7 @@ if [ "$COSS3_RUN_POLICY" = "1" ]; then
         --every "$COSS3_EVERY" \
         --wave-min "$COSS3_WAVE_MIN" \
         --episodes "$COSS3_EPISODES" \
-        --ban market,ba18 \
+        --ban "$POLICY_BAN" \
         --botlog "$COSS3_IO/coss3_bot.jsonl" \
         --snaplog "$COSS3_IO/coss3_snap.jsonl" \
         --log "$COSS3_IO/coss3_llm.log" \
