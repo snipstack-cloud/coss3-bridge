@@ -807,6 +807,45 @@ class Bridge:
         except OSError:
             pass
 
+    # ОТКРЫТИЕ БЛОКОМ (1.11, слово игрока: «мне 2-3 секунды на ратушу и мельницу, у бота это занимает время»). Пускатель
+    # и контейнер запускают python только ПОСЛЕ NEW и квитанции, и первый приказ уходил на 13-14-й секунде. Файл кладётся
+    # ДО NEW обычной пачкой команд; блок команд забирает его на первом тике партии сам (нет файла приказов, время < 10 с,
+    # своей ратуши нет) и удаляет. Пачка: бригада 12 — ратуша, мельница; вторая стройка берёт оставшихся шестерых.
+    ОТКРЫТИЕ = (builders(12), build("center", 1), build("mill", 1))
+
+    @property
+    def open_path(self) -> str:
+        return os.path.join(self.save_dir, f"coss3_open_P{self.plind}.dat")
+
+    def write_opening(self, команды=None) -> str:
+        """Положить файл открытия; вернуть путь. Перезаписывает прежний (он мог остаться от несыгранной партии)."""
+        cmds = list(команды or self.ОТКРЫТИЕ)
+        values: dict[str, object] = {"count": len(cmds)}
+        for i, c in enumerate(cmds):
+            values[f"{i}_cmd"] = c.cmd
+            values[f"{i}_a1"] = c.a1
+            values[f"{i}_a2"] = c.a2
+            if c.upg:
+                values[f"{i}_upg"] = c.upg
+        text = dump_parser_file("br_cmd", values)
+        fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="latin-1") as f:
+                f.write(text)
+            os.replace(tmp, self.open_path)
+        except BaseException:
+            os.path.exists(tmp) and os.unlink(tmp)
+            raise
+        return self.open_path
+
+    def clear_opening(self) -> bool:
+        """Убрать файл открытия, если блок его не забрал. True — файл лежал (то есть НЕ был забран)."""
+        try:
+            os.unlink(self.open_path)
+            return True
+        except OSError:
+            return False
+
     ЦЕЛИ_АТАКИ = ("peasants", "base", "army", "cell", "group")
     # MOVE ходит туда же, куда ATTACK, плюс домой. 'home' — единственная цель,
     # которой не нужен враг: это наша собственная ратуша.

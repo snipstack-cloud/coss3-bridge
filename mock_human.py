@@ -405,6 +405,15 @@ class Мир:
     # --- команды ---
     def команды(self):
         путь = os.path.join(self.d, f"coss3_cmd_P{self.plind}.dat")
+        # ОТКРЫТИЕ (1.11), как блок: нет файла приказов, время < 10 с, ратуши нет — берём coss3_open_P<n>.dat и удаляем
+        открытие = os.path.join(self.d, f"coss3_open_P{self.plind}.dat")
+        if not os.path.exists(путь) and self.t < 10 and os.path.exists(открытие):
+            if (getattr(self, "здания", None) or {}).get("center", 0):
+                os.unlink(открытие)
+                print(f"mock-human: OPENING skipped for P{self.plind} - a town hall already stands, file removed", flush=True)
+                return
+            print(f"mock-human: OPENING at {self.t:.1f} s for P{self.plind}", flush=True)
+            путь = открытие
         if not os.path.exists(путь):
             return
         пары = {}

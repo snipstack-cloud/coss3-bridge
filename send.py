@@ -317,6 +317,9 @@ def main() -> int:
                          "что --nation (перенесено с idea/russia-noattack 29.10)")
     ap.add_argument("--new", nargs="?", type=int, const=0, default=None,
                     metavar="SEED", help="переиграть игру, можно с сидом")
+    ap.add_argument("--open", type=int, default=None, metavar="СЛОТ",
+                    help="с --new: положить файл открытия coss3_open_P<СЛОТ>.dat ДО партии — блок команд сам ставит "
+                         "ратушу и мельницу на первом тике (1.11), не дожидаясь python")
     a = ap.parse_args()
 
     d = os.path.expandvars(a.dir)
@@ -343,6 +346,8 @@ def main() -> int:
         clear_stale(d)
         br = Bridge(d, 0)                      # ctl-файл один на игру, слот не важен
         br.clear_ack()
+        if a.new is not None and a.open is not None:
+            print(f"файл открытия для P{a.open}: {Bridge(d, a.open).write_opening()} — ратуша и мельница на первом тике блоком")
         cmd = "END" if a.end else "NEW"
         seed = a.new or 0
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,

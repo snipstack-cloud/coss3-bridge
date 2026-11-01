@@ -12881,6 +12881,8 @@ def main() -> int:
                          "за то же время больше партий, а значит больше вопросов")
     ap.add_argument("--episodes", type=int, default=1,
                     help="сколько партий отыграть подряд, начиная каждую заново")
+    ap.add_argument("--no-open", action="store_true", dest="no_open",
+                    help="с --new: НЕ класть файл открытия (ратуша и мельница блоком на первом тике, 1.11) — как было")
     ap.add_argument("--new", action="store_true",
                     help="начать новую партию сразу при запуске, не подхватывать текущую")
     ap.add_argument("--allow-restart", action="store_true",
@@ -13756,6 +13758,9 @@ def main() -> int:
     for номер in range(1, a.episodes + 1):
         if a.new or номер > 1:
             print(f"\n=== эпизод {номер} из {a.episodes}: начинаю новую партию ===")
+            # ОТКРЫТИЕ БЛОКОМ (1.11): ратуша и мельница на первом тике партии, а не когда python увидит первое состояние
+            if a.human and not getattr(a, "no_open", False):
+                print(f"файл открытия: {br.write_opening()} — ратуша и мельница на первом тике блоком")
             if not ep.start(0, 0):
                 print("новую партию начать не удалось")
                 return 1
@@ -13798,6 +13803,9 @@ def main() -> int:
             plind = n
             br = Bridge(d, plind)
             ep.br = br
+            if a.human and not getattr(a, "no_open", False) and br.clear_opening():
+                print("ВНИМАНИЕ: файл открытия блок НЕ забрал — убран; дебют пойдёт из python, как было "
+                      "(в игре блок команд старше 1.11?)")
         итог = одна_партия(a, client, br, plind, номер)
         # ПУСТАЯ ПАРТИЯ — не партия. 17.09 на серии base14 кончились деньги у
         # провайдера (402), модель замолчала, движок засчитал поражение за

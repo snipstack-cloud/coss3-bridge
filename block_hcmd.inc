@@ -26,14 +26,52 @@
       [*] = ;         Log('bridge-human: log enabled, human-slot bot is live for P' + IntToStr(plind));
       [*] = ;      end;
       [*] = ;      var hcpath : String = '@@OUT@@coss3_cmd_P' + IntToStr(plind) + '.dat';
-      [*] = ;      if IsFileExists(hcpath) then
+      [*] = ;      // OPENING (1.11, mac, player's word): the player places the town hall and the mill 2-3 s after load; the bot did it at
+      [*] = ;      // 13-14 s, because the launcher starts python only after NEW is acked and game time runs. Python now leaves
+      [*] = ;      // coss3_open_P<n>.dat BEFORE NEW - an ordinary command batch (BUILDERS 12, BUILD center, BUILD mill) - and this block
+      [*] = ;      // takes it on the first tick of the game: no command file pending, game time under 10 s, no town hall of ours yet.
+      [*] = ;      // Used once and deleted, aloud. A town hall already standing (a start with buildings) - the file is removed unused.
+      [*] = ;      var hopath : String = '@@OUT@@coss3_open_P' + IntToStr(plind) + '.dat';
+      [*] = ;      var hcopen : Boolean = False;
+      [*] = ;      if (not IsFileExists(hcpath)) and (GetGameTime < 10) then
+      [*] = ;      if IsFileExists(hopath) then
+      [*] = ;      begin
+      [*] = ;         var hoph : Integer = GetPlayerHandleByIndex(plind);
+      [*] = ;         var hon : Integer = GetPlayerGameObjectsCountByHandle(hoph);
+      [*] = ;         var hocen : Boolean = False;
+      [*] = ;         var hok : Integer;
+      [*] = ;         for hok := 0 to hon-1 do
+      [*] = ;         begin
+      [*] = ;            var hopo : Pointer = _unit_GetTObj(GetGameObjectHandleByIndex(hok, hoph));
+      [*] = ;            if (hopo<>nil) then
+      [*] = ;            if (gObjProp[TObj(hopo).cid][TObj(hopo).id].airole = gc_ai_unit_center) then hocen := True;
+      [*] = ;         end;
+      [*] = ;         if (hocen) then
+      [*] = ;         begin
+      [*] = ;            DeleteFileStream(hopath);
+      [*] = ;            Log('bridge-human: OPENING skipped for P' + IntToStr(plind) + ' - a town hall already stands, file removed');
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         hcopen := True;
+      [*] = ;      end;
+      [*] = ;      if (IsFileExists(hcpath)) or (hcopen) then
       [*] = ;      begin
       [*] = ;         var hch : Integer = ParserSelectByKey('br_hcmd');
       [*] = ;         if (hch = 0) then
       [*] = ;         hch := ParserCreate('br_hcmd');
       [*] = ;         ParserClearByHandle(hch);
-      [*] = ;         var hcok : Boolean = ParserLoadFromFileByHandle(hch, hcpath);
-      [*] = ;         DeleteFileStream(hcpath);
+      [*] = ;         var hcok : Boolean = False;
+      [*] = ;         if (hcopen) then
+      [*] = ;         begin
+      [*] = ;            hcok := ParserLoadFromFileByHandle(hch, hopath);
+      [*] = ;            DeleteFileStream(hopath);
+      [*] = ;            Log('bridge-human: OPENING at ' + FloatToStr(GetGameTime) + ' s for P' + IntToStr(plind) + ' from coss3_open_P' + IntToStr(plind) + '.dat');
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         begin
+      [*] = ;            hcok := ParserLoadFromFileByHandle(hch, hcpath);
+      [*] = ;            DeleteFileStream(hcpath);
+      [*] = ;         end;
       [*] = ;         if (hcok) then
       [*] = ;         begin
       [*] = ;            // A new batch of commands - the old failure reason has been read.

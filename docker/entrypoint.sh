@@ -531,7 +531,11 @@ else
     fi
     cd /opt/bridge
     # shellcheck disable=SC2086
-    python3 send.py --dir "$COSS3_GAME" --new $NEWARGS 2>&1 | sed 's/^/    /' || true
+    # ОТКРЫТИЕ БЛОКОМ (1.11): ратуша и мельница на первом тике партии, а не на 9-14-й секунде, когда поднимется python.
+    # Бот в контейнере — слот 0. COSS3_OPEN=0 — как было.
+    OPENARG=""
+    [ "${COSS3_OPEN:-1}" = "1" ] && OPENARG="--open 0"
+    python3 send.py --dir "$COSS3_GAME" --new $NEWARGS $OPENARG 2>&1 | sed 's/^/    /' || true
     cd "$COSS3_GAME"
     for _ in $(seq 1 "${COSS3_NEW_TIMEOUT:-90}"); do
         state_ready && break
