@@ -77,6 +77,14 @@ print("    ", why)
 из, why = С._путь_в_век([], снимок(upg_shown="bar.pikemanpol.1.1=f500g50i0"))
 проверить("cen.1 нет" in why, f"cen.1 нет в списке — сказано: {why}")
 
+Х = стратегия({"век_с": 600, "век_хоз_акад": 1})
+из, why = Х._путь_в_век([{"cmd": "UPGRADE", "role": "aca.1"}, {"cmd": "UPGRADE", "role": "aca.13"}, {"cmd": "UPGRADE", "role": "aca.12"}],
+                        снимок(upg_done="mil.1,aca.25,bla.1,aca.4"))
+роли = [(c["cmd"], c.get("role")) for c in из]
+проверить(("UPGRADE", "aca.1") in роли and ("UPGRADE", "aca.13") not in роли and ("UPGRADE", "aca.12") not in роли,
+          f"век_хоз_акад: aca.1 (еда) оставлена, aca.12/13 (пуля) сняты: {роли}")
+проверить(all(("UPGRADE", а) in роли for а in ("aca.2", "aca.3", "aca.8", "aca.23")) and ("UPGRADE", "aca.4") not in роли,
+          "хозяйственные академии просятся сами, купленная aca.4 — нет")
 П = стратегия({"век_с": 600, "век_перевес": 1.5})
 из, why = П._путь_в_век([{"cmd": "TRAIN", "role": "infantry17", "total": -1}], снимок(mil_inf=450, mil_shooters=50, p1_army=300,
                                                                                      ba_queues="1:pikeman:inf,2:pikeman:inf"))
