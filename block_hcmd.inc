@@ -1522,6 +1522,8 @@
       [*] = ;                     if (hupart = 'bar') then hurole := gc_ai_unit_ba17;
       [*] = ;                     if (hupart = 'sta') then hurole := gc_ai_unit_stable;
       [*] = ;                     if (hupart = 'aca') then hurole := gc_ai_unit_academi;
+      [*] = ;                     // 1.11: the 18th-century barracks researches its own steps (bar.* -> ba2.*).
+      [*] = ;                     if (hupart = 'ba2') then hurole := gc_ai_unit_ba18;
       [*] = ;                     gIntegerList.Clear;
       [*] = ;                     if (hurole >= 0) then
       [*] = ;                     for hck := 0 to hcobjn-1 do
@@ -1688,10 +1690,24 @@
       [*] = ;         // die there.
       [*] = ;         var hawho : String = ParserGetValueByKeyByHandle(hah, hapre + 'who');
       [*] = ;         var hawrole : Integer = -1;
+      [*] = ;         // 1.11 (18th century, word of the player): a kind of the 17th century takes its
+      [*] = ;         // 18th-century twin too (hawrole2), so 'infantry17' still means 'our pikes' after
+      [*] = ;         // cen.1 and every python rule keeps working; the new names select one kind alone.
+      [*] = ;         var hawrole2 : Integer = -1;
       [*] = ;         if (hawho = 'infantry17') then hawrole := gc_ai_unit_infantry17;
+      [*] = ;         if (hawho = 'infantry17') then hawrole2 := gc_ai_unit_pikeman18;
       [*] = ;         if (hawho = 'musk17') then hawrole := gc_ai_unit_musk17;
+      [*] = ;         if (hawho = 'musk17') then hawrole2 := gc_ai_unit_musk18;
       [*] = ;         if (hawho = 'uniq_inf17') then hawrole := gc_ai_unit_uniq_inf17;
       [*] = ;         if (hawho = 'dragoon17') then hawrole := gc_ai_unit_dragoon17;
+      [*] = ;         if (hawho = 'dragoon17') then hawrole2 := gc_ai_unit_dragun18;
+      [*] = ;         if (hawho = 'pikeman18') then hawrole := gc_ai_unit_pikeman18;
+      [*] = ;         if (hawho = 'musk18') then hawrole := gc_ai_unit_musk18;
+      [*] = ;         if (hawho = 'dragun18') then hawrole := gc_ai_unit_dragun18;
+      [*] = ;         if (hawho = 'reitar') then hawrole := gc_ai_unit_reitar;
+      [*] = ;         if (hawho = 'uniq_cav17') then hawrole := gc_ai_unit_uniq_cav17;
+      [*] = ;         if (hawho = 'cuirassier') then hawrole := gc_ai_unit_cuirassier;
+      [*] = ;         if (hawho = 'hussar') then hawrole := gc_ai_unit_hussar;
       [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
       [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
       [*] = ;         // the field, wounded or not - and walks them home in default mode.
@@ -1832,7 +1848,7 @@
       [*] = ;                     // questions are separate, and mixing them would hide which one
       [*] = ;                     // refused the man.
       [*] = ;                     if (hatake2) and (hawrole >= 0) then
-      [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) then
+      [*] = ;                     if (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole) and (gObjProp[TObj(hapo).cid][TObj(hapo).id].airole <> hawrole2) then
       [*] = ;                     hatake2 := False;
       [*] = ;                     // ALL: men of a squad go as squads (below), holding men outside squads go with the wave
       [*] = ;                     if (hatake2) and (haall) and (TObj(hapo).squad >= 0) then
@@ -2079,7 +2095,7 @@
       [*] = ;                     var hadfu : Integer = gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].usage;
       [*] = ;                     var hadftk : Boolean = (hadfu <> gc_obj_usage_peasant) and (hadfu <> gc_obj_usage_none);
       [*] = ;                     if (hadftk) and (hawrole >= 0) then
-      [*] = ;                     if (gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].airole <> hawrole) then
+      [*] = ;                     if (gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].airole <> hawrole) and (gObjProp[TObj(hadfpo).cid][TObj(hadfpo).id].airole <> hawrole2) then
       [*] = ;                     hadftk := False;
       [*] = ;                     if (hadftk) and (gTmpIntList.GetCount > 0) then
       [*] = ;                     for hatk := 0 to gTmpIntList.GetCount-1 do

@@ -742,6 +742,7 @@ class Мир:
              # зданий нет вовсе — строка «none-built» (на ней 21.09 ветка
              # hire-wait падала: int('none-built')).
              "ba_queues": self.очереди_зданий(),
+             "ba18_queues": "",      # 1.11: очереди казармы века (блок пишет отдельным ключом); мок века не строит
              "my_towers": 0, "ba18": 0, "stables": 0,
              "markets": 0, "academies": 0,
              "building_now": len(self.стройки),

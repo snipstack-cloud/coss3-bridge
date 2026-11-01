@@ -38,12 +38,15 @@ ROLE = {
     "lineship": 42, "ferry": 43, "uniq_inf17": 44, "uniq_inf18": 45,
     "uniq_cav17": 46, "uniq_cav18": 47, "hussar": 48, "dragoon17": 49,
     "officer18": 50, "drummer18": 51, "light_dip": 52, "round_dip": 53,
+    "pikeman18": 54,      # 1.11: dmscript.global gc_ai_unit_pikeman18 = 54 (пика XVIII века из ba2)
 }
 
 # BUILD во вставке принимает только эти роли (жёсткий список в .inc)
 BUILDABLE = {"center", "mill", "ba17", "ba18", "stable", "smith", "academi",
              "market", "house", "minegold", "mineiron", "minecoal",
-             "store", "tower"}
+             "store", "tower",
+             # 1.11 (XVIII век разрешён на турнире): cen.1 требует академию, церковь и депо (country.script:3438)
+             "temple", "artdepo"}
 
 # UPGRADE во вставке принимает только эти имена (жёсткий список в .inc)
 # ИМЕНА КОМПЬЮТЕРНОГО СЛОТА. На человеческом не работают ни одно: там имена

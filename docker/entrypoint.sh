@@ -260,8 +260,8 @@ PYM
     for pair in $IDEA_MATCH; do
         k=${pair%%=*}; v=${pair#*=}
         case "$k" in
-            RES|PEACE|AI|NATION|NATION2|BALLOON|CANNONS|CAPTURE) ;;
-            *) die "идея: в поле условия неизвестное имя «${k}» (можно RES PEACE AI NATION NATION2 BALLOON CANNONS CAPTURE)" ;;
+            RES|PEACE|AI|NATION|NATION2|BALLOON|CANNONS|CAPTURE|CENTURY18|MARKET|MAPSIZE) ;;
+            *) die "идея: в поле условия неизвестное имя «${k}» (можно RES PEACE AI NATION NATION2 BALLOON CANNONS CAPTURE CENTURY18 MARKET MAPSIZE)" ;;
         esac
         idea_old=$(eval "printf '%s' \"\${COSS3_MATCH_${k}:-}\"")
         export "COSS3_MATCH_${k}=${v}"

@@ -2387,6 +2387,93 @@ class ЖиваяСтратегия:
         self.реестр.мера["оборона всем"] += n
         return из, f"§170ж оборона всем: держащих {держат:.0f} — ATTACK у дома с all ({n})"
 
+    # Цены зданий пути в век [код] `sim/параметры.json` (unit.script): церковь tem, депо art; `ba2` — в `build_cost` нет
+    ВЕК_ЗДАНИЯ = {"temple": {"wood": 1000, "stone": 1200, "iron": 500}, "artdepo": {"wood": 100, "stone": 1000, "coal": 1400}}
+
+    def _путь_в_век(self, из: list, st: dict) -> tuple:
+        """ПУТЬ В XVIII ВЕК (1.11, слово игрока: век на турнире разрешён, партия может идти дольше 15 минут — «к этому нужно быть
+        готовым»). `cen.1` требует академию, церковь и депо (`country.script:3438`), стоит у Нидерландов 33 000 еды / 4800 золота /
+        1800 железа / 1800 угля, у Польши 30 000 / 4800 / 2200 / 2200; казарма века `ba2` (пика XVIII века — 1,25 с, 30 еды, без
+        железа, 48 в минуту) закладывается только ПОСЛЕ него (`century18` в требовании, `country.script:2937`), стройка ~8,7 мин при
+        20 строителях. Расчёт 1.11 (`sim/век_казарма_конюшня.py`): одна `ba2` даёт 35–53 «пик в минуту» против 13–20 у казармы XVII века.
+        Ключ `век_с` T (0 — как было): с секунды T
+          * до `cen.1`: академия, церковь, депо (по одному); угольная шахта, если угля меньше нужного, и на ней `век_угля` (6);
+            шахта железа, если железа меньше нужного, и на ней `век_железа` (5); при готовых церкви и депо — UPGRADE cen.1 каждый
+            такт, пока не начат (блок сам проверяет цену и говорит «не хватает»);
+          * `век_копить` (1): пока `cen.1` не начат, прочие UPGRADE снимаются — еда копится на 30 000 (найм идёт);
+          * после `cen.1`: `ba18` числом `век_ba2` (1), в ней бесконечный TRAIN pikeman18.
+        Всё, что не сделано, — вслух в `why`: чего ждём и сколько не хватает. Судья — контейнер с `CENTURY18=0` на горизонте 1800."""
+        п = self.п
+        с = float(п.get("век_с", 0) or 0)
+        t = float(st.get("gametime") or 0)
+        if с <= 0 or t < с:
+            return из, ""
+        import combat_math as _CM
+        import coss3_map as _КМ
+
+        def ч(k):
+            try:
+                return float(st.get(k) or 0)
+            except (TypeError, ValueError):
+                return 0.0
+        здания = _список(st, "obuild", _КМ.наши_здания)
+
+        def есть(тип, готово=False):
+            return sum(1 for b in здания if b.get("тип") == тип and (b.get("готово") or not готово))
+        взято = {x.strip() for x in str(st.get("upg_done") or "").split(",") if x.strip()}
+        идёт = {x.strip() for x in str(st.get("upg_doing") or "").split(",") if x.strip()}
+        цены = _CM.цены_апгрейдов(st.get("upg_avail")) or _CM.цены_апгрейдов(st.get("upg_shown"))
+        речь = []
+        if "cen.1" not in взято:
+            if "cen.1" not in цены and "cen.1" not in идёт:
+                self.реестр.мера["век: cen.1 нет в списке"] += 1
+                return из, "ВЕК: cen.1 нет среди доступных прокачек (век закрыт настройкой century18 или у нации его нет)"
+            ц = цены.get("cen.1") or {}
+            нужно = {"food": ц.get("food", 0), "gold": ц.get("gold", 0), "iron": ц.get("iron", 0) + (0 if есть("temple") else 500),
+                     "coal": ц.get("coal", 0) + (0 if есть("artdepo") else 1400)}
+            новые = []
+            if ч("academies") < 1:
+                новые.append({"cmd": "BUILD", "role": "academi", "total": 1})
+            if not есть("temple"):
+                новые.append({"cmd": "BUILD", "role": "temple", "total": 1})
+            if not есть("artdepo") and ч("academies") >= 1:
+                новые.append({"cmd": "BUILD", "role": "artdepo", "total": 1})
+            for рес, шахта, счёт, ключ, умолч in (("coal", "minecoal", "mines_coal", "век_угля", 6), ("iron", "mineiron", "mines_iron", "век_железа", 5)):
+                if ч(рес) >= нужно[рес]:
+                    continue
+                if ч(счёт) < 1:
+                    новые.append({"cmd": "BUILD", "role": шахта, "total": 1})
+                else:
+                    из = [c for c in из if not (c.get("cmd") == "BALANCE" and c.get("role") == рес)]
+                    новые.append({"cmd": "BALANCE", "role": рес, "total": int(п.get(ключ, умолч) or умолч), "_важно": True})
+                речь.append(f"{рес} {ч(рес):.0f}/{нужно[рес]:.0f}")
+            if int(п.get("век_копить", 1) or 0) and "cen.1" not in идёт:
+                снято = [c.get("upg") or c.get("role") for c in из if c.get("cmd") == "UPGRADE"]
+                из = [c for c in из if c.get("cmd") != "UPGRADE"]
+                if снято:
+                    self.реестр.мера["век: прокачек снято"] += len(снято)
+                    речь.append("копим: снято UPGRADE " + ",".join(str(x) for x in снято))
+            if есть("temple", True) and есть("artdepo", True) and "cen.1" not in идёт:
+                новые.append({"cmd": "UPGRADE", "role": "cen.1"})
+                нехватка = [f"{r} {ч(r):.0f}/{v:.0f}" for r, v in ц.items() if v and ч(r) < v]
+                речь.insert(0, "UPGRADE cen.1" + (f" — не хватает: {', '.join(нехватка)}" if нехватка else " — хватает"))
+            else:
+                речь.insert(0, "строим: " + ", ".join(f"{б} {'готова' if есть(б, True) else ('строится' if есть(б) else 'нет')}"
+                                                      for б in ("temple", "artdepo")))
+            self.реестр.мера["век: до cen.1"] += 1
+            return новые + из, "ВЕК (до cen.1): " + "; ".join(речь)
+        # век взят: казарма века и пика XVIII века
+        надо_ba2 = int(п.get("век_ba2", 1) or 1)
+        новые = []
+        if ч("ba18") < надо_ba2:
+            новые.append({"cmd": "BUILD", "role": "ba18", "total": надо_ba2})
+            речь.append(f"BUILD ba18 {надо_ba2} (есть {ч('ba18'):.0f})")
+        if ч("ba18") >= 1 and "pikeman18:inf" not in str(st.get("ba18_queues") or ""):
+            новые.append({"cmd": "TRAIN", "role": "pikeman18", "total": -1})
+            речь.append("TRAIN pikeman18 -1")
+        self.реестр.мера["век: после cen.1"] += 1
+        return новые + из, ("ВЕК взят: " + "; ".join(речь)) if речь else ""
+
     def _ратуша_своими(self, из: list, st: dict) -> tuple:
         """(б) КЛЕТКА РАТУШИ СВОИМИ (1.11, живая Польша 6680, ПЛАН 55). Наша армия 172–213 выиграла бой у его лагеря в соседней
         клетке (87 его против 3 наших), а его 20–23 пики стояли В КЛЕТКЕ РАТУШИ 683–730 с, где наших было 1–6, — 49 крестьян.
@@ -2766,6 +2853,9 @@ class ЖиваяСтратегия:
         из, _рс_why = self._ратуша_своими(из, st)         # (б) 1.11: последним из приказов движения — его в клетке ратуши
         if _рс_why:
             why += "; " + _рс_why
+        из, _век_why = self._путь_в_век(из, st)           # 1.11: XVIII век (ключ `век_с`)
+        if _век_why:
+            why += "; " + _век_why
         # ТОЛЬКО ЭТОГО ТАКТА (18.10, §163). `пропущено`/`отдано` у `Стратегии` копятся всю партию (так их читают
         # селфтесты и симулятор), а строка такта печатала НАКОПЛЕННОЕ: в Д7 «TRAIN peasant -1 (§147б: ждём mil.1) ×3»
         # стояло в 108 тактах с 4:13 до 13:16, хотя пауза §155 длилась 21 с (4:08 `TRAIN peasant 0` → 4:29 `-1` по

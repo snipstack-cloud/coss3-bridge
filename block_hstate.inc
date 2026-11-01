@@ -121,6 +121,8 @@
       [*] = ;         var hsbq : String;   // barracks queues: 1:pikeman:inf,2:none
       [*] = ;         var hsbn : Integer;  // barracks counter for the line above
       [*] = ;         var hsqn : Integer;  // stable counter: the stable has a queue too
+      [*] = ;         var hs2q : String;   // 1.11: queues of the 18th-century barracks (ba2), own key ba18_queues
+      [*] = ;         var hs2n : Integer;  // counter for the line above
       [*] = ;         // NB: 'hssn' is taken - stone_slots_near uses it below (line ~622),
       [*] = ;         // and a repeat in the same begin..end kills the whole Progress tick.
       [*] = ;         var hscx, hscz : Float;
@@ -170,6 +172,8 @@
       [*] = ;                     if (hsrole = gc_ai_unit_minegold) then hswn := 'minegold';
       [*] = ;                     if (hsrole = gc_ai_unit_mineiron) then hswn := 'mineiron';
       [*] = ;                     if (hsrole = gc_ai_unit_minecoal) then hswn := 'minecoal';
+      [*] = ;                     if (hsrole = gc_ai_unit_temple) then hswn := 'temple';
+      [*] = ;                     if (hsrole = gc_ai_unit_artdepo) then hswn := 'artdepo';
       [*] = ;                     // How many ACTUALLY build it and how far it has come. A player sees
       [*] = ;                     // both: he counts the workers around the site with his eyes, and the
       [*] = ;                     // bar shows readiness - for an unfinished building that bar IS hp
@@ -260,6 +264,27 @@
       [*] = ;                        end;
       [*] = ;                        if (hsbq <> '') then hsbq := hsbq + ',';
       [*] = ;                        hsbq := hsbq + 's' + IntToStr(hsqn) + ':' + hsswhat;
+      [*] = ;                     end;
+      [*] = ;                     if (hsrole = gc_ai_unit_ba18) then
+      [*] = ;                     begin
+      [*] = ;                        hs2n := hs2n + 1;
+      [*] = ;                        var hs2what : String = 'none';
+      [*] = ;                        var hs2k : Integer;
+      [*] = ;                        for hs2k := 0 to gc_obj_MaxOrderCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var hs2p : Pointer = TObj(hspo).orders[hs2k];
+      [*] = ;                           if (hs2p<>nil) then
+      [*] = ;                           if (TOrder(hs2p).itype = gc_obj_order_type_produce) then
+      [*] = ;                           begin
+      [*] = ;                              hs2what := gCountry[hscid].members[TOrder(hs2p).info.produceid];
+      [*] = ;                              if (TOrder(hs2p).info.amount = gc_obj_order_produce_infinite) then
+      [*] = ;                              hs2what := hs2what + ':inf'
+      [*] = ;                              else
+      [*] = ;                              hs2what := hs2what + ':' + IntToStr(TOrder(hs2p).info.amount);
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        if (hs2q <> '') then hs2q := hs2q + ',';
+      [*] = ;                        hs2q := hs2q + IntToStr(hs2n) + ':' + hs2what;
       [*] = ;                     end;
       [*] = ;                     if (hsrole = gc_ai_unit_ba17) then
       [*] = ;                     begin
@@ -821,8 +846,8 @@
       [*] = ;         // change, and the law must not keep counting a musketeer17. Whether the
       [*] = ;         // MODEL is told about them is decided in python by --c18-numbers: the field
       [*] = ;         // is the block's business, the request is a lever (28.09).
-      [*] = ;         var hsfr : array [0..8] of Integer;
-      [*] = ;         var hsfn : array [0..8] of String;
+      [*] = ;         var hsfr : array [0..12] of Integer;
+      [*] = ;         var hsfn : array [0..12] of String;
       [*] = ;         hsfr[0] := gc_ai_unit_infantry17;  hsfn[0] := 'infantry17';
       [*] = ;         hsfr[1] := gc_ai_unit_musk17;      hsfn[1] := 'musk17';
       [*] = ;         hsfr[2] := gc_ai_unit_uniq_inf17;  hsfn[2] := 'uniq_inf17';
@@ -832,10 +857,15 @@
       [*] = ;         hsfr[6] := gc_ai_unit_dragun18;    hsfn[6] := 'dragun18';
       [*] = ;         hsfr[7] := gc_ai_unit_uniq_inf18;  hsfn[7] := 'uniq_inf18';
       [*] = ;         hsfr[8] := gc_ai_unit_uniq_cav18;  hsfn[8] := 'uniq_cav18';
+      [*] = ;         // 1.11: the cavalry of the 17th and 18th century, so its numbers reach python (stable vs barracks).
+      [*] = ;         hsfr[9] := gc_ai_unit_reitar;      hsfn[9] := 'reitar';
+      [*] = ;         hsfr[10] := gc_ai_unit_uniq_cav17; hsfn[10] := 'uniq_cav17';
+      [*] = ;         hsfr[11] := gc_ai_unit_cuirassier; hsfn[11] := 'cuirassier';
+      [*] = ;         hsfr[12] := gc_ai_unit_hussar;     hsfn[12] := 'hussar';
       [*] = ;         var hsftxt : String = '';
       [*] = ;         var hsinfid : Integer = -1;   // id of the line infantry, for can_inf
       [*] = ;         var hsfi : Integer;
-      [*] = ;         for hsfi := 0 to 8 do
+      [*] = ;         for hsfi := 0 to 12 do
       [*] = ;         begin
       [*] = ;            var hsfid : Integer = -1;
       [*] = ;            var hsfj : Integer;
@@ -924,6 +954,7 @@
       [*] = ;         if (hsbq = '') then
       [*] = ;         hsbq := 'none-built';
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'ba_queues', hsbq);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'ba18_queues', hs2q);
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'fighters', hsftxt);
       [*] = ;         // WHY THE HIRING STOPPED, in the engine's own words. Below a food
       [*] = ;         // floor the game halts production SILENTLY, and the bridge kept
@@ -1798,8 +1829,8 @@
       [*] = ;            // pikeman18 54. Officer18 and drummer18 are NOT here on purpose: they are
       [*] = ;            // support, they stand outside p<n>_inf/_shoot/_cav, and the law needs
       [*] = ;            // attack and protection, which a drummer does not carry.
-      [*] = ;            var hsyfr : array [0..8] of Integer;
-      [*] = ;            var hsyfn : array [0..8] of String;
+      [*] = ;            var hsyfr : array [0..12] of Integer;
+      [*] = ;            var hsyfn : array [0..12] of String;
       [*] = ;            hsyfr[0] := gc_ai_unit_infantry17;  hsyfn[0] := 'infantry17';
       [*] = ;            hsyfr[1] := gc_ai_unit_musk17;      hsyfn[1] := 'musk17';
       [*] = ;            hsyfr[2] := gc_ai_unit_uniq_inf17;  hsyfn[2] := 'uniq_inf17';
@@ -1809,9 +1840,14 @@
       [*] = ;            hsyfr[6] := gc_ai_unit_dragun18;    hsyfn[6] := 'dragun18';
       [*] = ;            hsyfr[7] := gc_ai_unit_uniq_inf18;  hsyfn[7] := 'uniq_inf18';
       [*] = ;            hsyfr[8] := gc_ai_unit_uniq_cav18;  hsyfn[8] := 'uniq_cav18';
+      [*] = ;            // 1.11: the cavalry of the 17th and 18th century, so its numbers reach python (stable vs barracks).
+      [*] = ;            hsyfr[9] := gc_ai_unit_reitar;      hsyfn[9] := 'reitar';
+      [*] = ;            hsyfr[10] := gc_ai_unit_uniq_cav17; hsyfn[10] := 'uniq_cav17';
+      [*] = ;            hsyfr[11] := gc_ai_unit_cuirassier; hsyfn[11] := 'cuirassier';
+      [*] = ;            hsyfr[12] := gc_ai_unit_hussar;     hsyfn[12] := 'hussar';
       [*] = ;            var hsyftxt : String = '';
       [*] = ;            var hsyfi : Integer;
-      [*] = ;            for hsyfi := 0 to 8 do
+      [*] = ;            for hsyfi := 0 to 12 do
       [*] = ;            begin
       [*] = ;               var hsyfid : Integer = -1;
       [*] = ;               var hsyfj : Integer;

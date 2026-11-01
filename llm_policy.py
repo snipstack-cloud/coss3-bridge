@@ -8640,6 +8640,10 @@ def видимые_военные(st: dict) -> set[str]:
     "coalmine": "minecoal", "coal_mine": "minecoal", "mine_coal": "minecoal",
     "дом": "house", "housing": "house", "dwelling": "house",
     "stables": "stable", "конюшня": "stable",
+    "church": "temple", "церковь": "temple", "tem": "temple",
+    "depot": "artdepo", "депо": "artdepo", "artillery_depot": "artdepo", "art": "artdepo",
+    "казарма18": "ba18", "ba2": "ba18",
+    "pikeman18": "pikeman18", "пика18": "pikeman18", "musketeer18": "musk18",
     "peasant17": "peasant", "worker": "peasant", "крестьянин": "peasant",
     "villager": "peasant", "peaeng": "peasant",
 }
@@ -11222,7 +11226,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
-                        "map_open", "upg_done", "upg_doing", "train_now", "ba_queues", "food_ready",
+                        "map_open", "upg_done", "upg_doing", "train_now", "ba_queues", "ba18_queues", "food_ready",
                         # Сами сетки в трассу не кладём: 32 строки на такт это
                         # мегабайты за серию. Кладём метки — по ним видно, была
                         # ли карта в запросе и где стояла наша база.
