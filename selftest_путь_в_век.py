@@ -94,5 +94,18 @@ print("    ", why)
 из, _ = П._путь_в_век([{"cmd": "TRAIN", "role": "infantry17", "total": -1}], снимок(mil_inf=300, mil_shooters=50, p1_army=300))
 проверить(("TRAIN", "infantry17", -1) in [(c["cmd"], c.get("role"), c.get("total")) for c in из], "перевеса нет — найм идёт")
 
+# 1.11, century_eco_pol/1: «хватает» — cen.1 первым, прочие UPGRADE такта сняты
+Х2 = стратегия({"век_с": 600, "век_хоз_акад": 1})
+из, _ = Х2._путь_в_век([{"cmd": "UPGRADE", "role": "bar.pikemanpol.1.4"}],
+                       снимок(food=31000, gold=5000, iron=2300, coal=2300, upg_done="mil.1,aca.25,bla.1",
+                              obuild="center,1,1,1,1;academi,1,1,1,1;temple,1,1,1,1;artdepo,1,1,1,1"))
+у = [c.get("role") for c in из if c["cmd"] == "UPGRADE"]
+проверить(у == ["cen.1"], f"хватает — UPGRADE cen.1 первым и единственным: {у}")
+# 1.11, century_eco_net/1: после века — копим на ba2
+из, why = С._путь_в_век([{"cmd": "UPGRADE", "role": "aca.13"}, {"cmd": "UPGRADE", "role": "bar.pikeman.1.5"}],
+                        снимок(upg_done="mil.1,cen.1", gold=1500))
+у = [c.get("role") for c in из if c["cmd"] == "UPGRADE"]
+проверить(у == ["bar.pikeman.1.5"] and "копим на ba2" in why, f"век взят, на ba2 не хватает — aca.13 снята, ступень казармы идёт: {у}; {why}")
+
 print(f"\n{'ВСЁ ОК' if not ошибок else f'ОШИБОК: {ошибок}'}")
 sys.exit(1 if ошибок else 0)

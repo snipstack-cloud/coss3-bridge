@@ -2491,8 +2491,16 @@ class ЖиваяСтратегия:
                 self.реестр.мера["век: найм на паузе"] += 1
                 речь.append(f"найм пик на паузе: наших {_наша:.0f} ≥ {_пер:g} × его {_его:.0f}")
             if есть("temple", True) and есть("artdepo", True) and "cen.1" not in идёт:
-                новые.append({"cmd": "UPGRADE", "role": "cen.1"})
                 нехватка = [f"{r} {ч(r):.0f}/{v:.0f}" for r, v in ц.items() if v and ч(r) < v]
+                # 1.11, century_eco_pol/1: в 27:51 «хватает», а UPGRADE хозяйственной академии и ступени казарм стояли в списке РАНЬШЕ
+                # cen.1 — блок купил их первыми, к 28:06 золота 59, век не взят до конца при еде 40 222. Когда хватает — cen.1 ПЕРВЫМ,
+                # прочие UPGRADE этого такта снимаются.
+                if not нехватка:
+                    из = [c for c in из if c.get("cmd") != "UPGRADE"]
+                    новые = [c for c in новые if c.get("cmd") != "UPGRADE"]
+                    новые.insert(0, {"cmd": "UPGRADE", "role": "cen.1"})
+                else:
+                    новые.append({"cmd": "UPGRADE", "role": "cen.1"})
                 речь.insert(0, "UPGRADE cen.1" + (f" — не хватает: {', '.join(нехватка)}" if нехватка else " — хватает"))
             else:
                 речь.insert(0, "строим: " + ", ".join(f"{б} {'готова' if есть(б, True) else ('строится' if есть(б) else 'нет')}"
@@ -2505,6 +2513,17 @@ class ЖиваяСтратегия:
         if ч("ba18") < надо_ba2:
             новые.append({"cmd": "BUILD", "role": "ba18", "total": надо_ba2})
             речь.append(f"BUILD ba18 {надо_ba2} (есть {ч('ba18'):.0f})")
+            # 1.11, century_eco_net/1: век взят 26:47, а `ba2` (1700 дерева / 2950 камня / 4000 золота) ждала золото до ~29:00 —
+            # прокачки после века его съедали. Пока `ba2` не заложена, копилка держит и её цену: прочие UPGRADE снимаются, кроме
+            # ступеней казарм, мельницы и кузницы (как до века).
+            _ц2 = {"wood": 1700, "stone": 2950, "gold": 4000}
+            if int(п.get("век_копить", 1) or 0) and not any(b.get("тип") == "ba18" for b in здания) and any(ч(r) < v for r, v in _ц2.items()):
+                снято = [c.get("role") for c in из if c.get("cmd") == "UPGRADE"
+                         and not str(c.get("role") or c.get("upg") or "").startswith(("bar.", "ba2.", "mil.", "bla."))]
+                из = [c for c in из if not (c.get("cmd") == "UPGRADE"
+                                            and not str(c.get("role") or c.get("upg") or "").startswith(("bar.", "ba2.", "mil.", "bla.")))]
+                if снято:
+                    речь.append("копим на ba2: снято UPGRADE " + ",".join(str(x) for x in снято))
         if ч("ba18") >= 1 and "pikeman18:inf" not in str(st.get("ba18_queues") or ""):
             новые.append({"cmd": "TRAIN", "role": "pikeman18", "total": -1})
             речь.append("TRAIN pikeman18 -1")
