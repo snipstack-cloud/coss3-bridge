@@ -2387,6 +2387,35 @@ class ЖиваяСтратегия:
         self.реестр.мера["оборона всем"] += n
         return из, f"§170ж оборона всем: держащих {держат:.0f} — ATTACK у дома с all ({n})"
 
+    def _конюшня(self, из: list, st: dict) -> tuple:
+        """КОНЮШНЯ И КОННИЦА (1.11, слово игрока: сравнить тремя контейнерами «казарма века и её юниты / третья казарма / конюшня»).
+        Расчёт 1.11 (`sim/век_казарма_конюшня.py`): рейтар Нидерландов 300 hp — 5,6–6,3 пики, 2,5 в минуту; рейтар Польши
+        (`uniq_cav17`) 190 hp — 2,4–2,8 пики, 7,3 в минуту; конюшня 2500 дерева / 100 камня / 600 золота, нужна кузница.
+        Ключ `конюшня_с` T (0 — как было): с T — BUILD stable `конюшен` (1); в стоящей конюшне бесконечный TRAIN роли `конница`
+        (`reitar` — рейтар Нидерландов и крылатый гусар Польши, `uniq_cav17` — рейтар Польши; умолчание `reitar`), пока в её
+        очереди (`ba_queues` `s<n>:…`) нет бесконечного заказа. Конница идёт в общие приказы армии (`who` пусто — все рода)."""
+        п = self.п
+        с = float(п.get("конюшня_с", 0) or 0)
+        t = float(st.get("gametime") or 0)
+        if с <= 0 or t < с:
+            return из, ""
+        надо = int(п.get("конюшен", 1) or 1)
+        роль = str(п.get("конница", "reitar") or "reitar")
+        стоит = float(st.get("stables") or 0)
+        новые, речь = [], []
+        if стоит < надо:
+            новые.append({"cmd": "BUILD", "role": "stable", "total": надо})
+            цена = _цена_здания(st, "stable") or {"wood": 2500, "stone": 100, "gold": 600}
+            нехватка = [f"{r} {float(st.get(r) or 0):.0f}/{v:.0f}" for r, v in цена.items() if float(st.get(r) or 0) < v]
+            речь.append(f"BUILD stable {надо} (есть {стоит:.0f})" + (f", не хватает: {', '.join(нехватка)}" if нехватка else ""))
+        if стоит >= 1:
+            очереди = [к.strip() for к in str(st.get("ba_queues") or "").split(",") if к.strip().startswith("s")]
+            if not очереди or any(":none" in к or ":inf" not in к for к in очереди):
+                новые.append({"cmd": "TRAIN", "role": роль, "total": -1})
+                речь.append(f"TRAIN {роль} -1 (очереди конюшен: {', '.join(очереди) or 'нет'})")
+        self.реестр.мера["конюшня"] += 1
+        return новые + из, ("КОНЮШНЯ: " + "; ".join(речь)) if речь else ""
+
     # Цены зданий пути в век [код] `sim/параметры.json` (unit.script): церковь tem, депо art; `ba2` — в `build_cost` нет
     ВЕК_ЗДАНИЯ = {"temple": {"wood": 1000, "stone": 1200, "iron": 500}, "artdepo": {"wood": 100, "stone": 1000, "coal": 1400}}
 
@@ -2915,6 +2944,9 @@ class ЖиваяСтратегия:
         if (int(self.п.get("ратуш", 0) or 0) >= 2 and float(st.get("centers") or 0) >= 2 and float(st.get("food") or 0) >= 500
                 and not any(c.get("cmd") == "TRAIN" and c.get("role") == "peasant" for c in из)):
             из.append({"cmd": "TRAIN", "role": "peasant", "total": -1})
+        из, _кон_why = self._конюшня(из, st)              # 1.11: конюшня и конница (ключ `конюшня_с`)
+        if _кон_why:
+            why += "; " + _кон_why
         из, _век_why = self._путь_в_век(из, st)           # 1.11: XVIII век (ключ `век_с`)
         if _век_why:
             why += "; " + _век_why
