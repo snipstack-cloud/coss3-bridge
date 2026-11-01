@@ -1893,7 +1893,15 @@
       [*] = ;            // A wall must be ATTACKED AS AN OBJECT, and that needs a handle - which python cannot have.
       [*] = ;            // Declared at block level on purpose: a scalar declared inside a nested begin does not
       [*] = ;            // survive it (bought 17.09 by six army counters that read zero at 208 soldiers).
-      [*] = ;            var hawallh : Integer = 0;
+      [*] = ;            // NO INITIALISER HERE, and that was bought by the live game of 1.11. With
+      [*] = ;            // 'var hawallh : Integer = 0;' the handle never reached the order site: the order did go
+      [*] = ;            // out (log: ATTACK 1 target=wall at -2.5,4.5 - the position of the wall OBJECT itself),
+      [*] = ;            // yet 'if (hawallh > 0)' never fired. Right above stands 'var hatx, hatz : Float;' WITHOUT
+      [*] = ;            // an initialiser, and the very same assignments out of the nested loops do arrive. So the
+      [*] = ;            // initialiser looks replayed on entering the block while a plain write survives.
+      [*] = ;            // The zero is set as a STATEMENT, not as an initialiser.
+      [*] = ;            var hawallh : Integer;
+      [*] = ;            hawallh := 0;
       [*] = ;            // THE REMEMBERED COMPOSITION of group hagid. The selection loop above
       [*] = ;            // added nobody (its guard is count, and an order to a group has none),
       [*] = ;            // so the list is empty and we fill it from the parser.
