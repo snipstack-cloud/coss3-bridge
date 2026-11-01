@@ -44,11 +44,13 @@ def снимок(**к):
 из, why = С._путь_в_век([{"cmd": "UPGRADE", "role": "aca.4"}], снимок(gametime=500))
 проверить(not why and any(c.get("role") == "aca.4" for c in из), "до век_с — ничего")
 
-из, why = С._путь_в_век([{"cmd": "UPGRADE", "role": "aca.4"}, {"cmd": "BALANCE", "role": "food", "total": 20}], снимок())
+из, why = С._путь_в_век([{"cmd": "UPGRADE", "role": "aca.4"}, {"cmd": "UPGRADE", "role": "bar.pikemanpol.1.1"},
+                         {"cmd": "BALANCE", "role": "food", "total": 20}], снимок())
 роли = [(c["cmd"], c.get("role")) for c in из]
+проверить(("UPGRADE", "bar.pikemanpol.1.1") in роли, "ступень казармы НЕ снята — не отстать (century_net/1: 7 прокачек против 16 у ИИ)")
 проверить(("BUILD", "temple") in роли and ("BUILD", "artdepo") in роли, f"закладывает церковь и депо: {роли}")
 проверить(("BUILD", "minecoal") in роли and ("BUILD", "mineiron") in роли, "угля и железа меньше нужного — шахты угля и железа")
-проверить(not any(c["cmd"] == "UPGRADE" for c in из), "прочие UPGRADE сняты — копим")
+проверить(("UPGRADE", "aca.4") not in роли, "академическая прокачка снята — копим")
 проверить(("UPGRADE", "cen.1") not in роли, "cen.1 не просим, пока церковь и депо не готовы")
 print("    ", why)
 
@@ -57,6 +59,11 @@ print("    ", why)
 роли = [(c["cmd"], c.get("role"), c.get("total")) for c in из]
 проверить(("UPGRADE", "cen.1", None) in роли, f"церковь и депо готовы — UPGRADE cen.1: {роли}")
 проверить(("BALANCE", "coal", 6) in роли and ("BALANCE", "iron", 5) in роли, "на угле 6, на железе 5, пока их не хватает")
+из, _ = С._путь_в_век([], снимок(mines_coal=1, mines_iron=1, coal=500, iron=900, on_iron=5, on_coal=2,
+                                   obuild="center,1,1,1,1;academi,1,1,1,1;temple,1,1,1,1;artdepo,1,1,1,1"))
+роли = [(c["cmd"], c.get("role"), c.get("total")) for c in из]
+проверить(("BUILD", "mineiron", 2) in роли and ("BUILD", "minecoal", 2) not in роли,
+          f"шахта железа полна (5 на одной) и железа мало — вторая; угольная не полна — нет: {роли}")
 проверить("не хватает" in why and "food" in why, f"нехватка названа вслух: {why}")
 
 из, why = С._путь_в_век([], снимок(upg_done="mil.1,cen.1"))
