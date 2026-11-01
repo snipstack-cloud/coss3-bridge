@@ -640,11 +640,16 @@ def _ступени():
 
 
 def род_линейки(лин: str):
-    """Наш род по имени линейки ступени: `pikemanpol` → infantry17, `musketeerpol` → musk17. Чужие (серьдюк, янычар) — None."""
+    """Наш род по имени линейки ступени: `pikemanpol` → infantry17, `musketeerpol` → musk17, `pikeman18` → pikeman18,
+    `musketeer18` → musk18. Чужие (серьдюк, янычар) — None."""
     if лин in РОД_ЛИНЕЙКИ:
         return РОД_ЛИНЕЙКИ[лин]
+    # 1.11 (путь в век): линейки казармы века `ba2` — свои роли в `fighters` (pikeman18, musk18); `pikeman18swe` и т. п. — те же
+    for начало, род in (("pikeman18", "pikeman18"), ("musketeer18", "musk18")):
+        if лин.startswith(начало):
+            return род
     for начало, род in (("pikeman", "infantry17"), ("musketeer", "musk17")):
-        if лин.startswith(начало) and not лин.endswith("18"):
+        if лин.startswith(начало) and "18" not in лин:
             return род
     return None
 

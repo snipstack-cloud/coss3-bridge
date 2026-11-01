@@ -92,6 +92,7 @@
       [*] = ;         var hswi : Integer = 0;
       [*] = ;         var hswc : Integer = 0;
       [*] = ;         var hsinf, hsshoot, hscav, hsgun, hsfree : Integer;
+      [*] = ;         var hsp18, hsk18 : Integer;     // 1.11: our pikes / musketeers of the 18th century (usage does not tell the century)
       [*] = ;         var hsheld, hsinsq : Integer;   // block task No2 (29.10): holding outside squads / inside squads
       [*] = ;         var hsbusy, hsfreen : Integer;  // 31.10 (Windows): outside squads, not holding - busy (an order) / idle; with my_held and my_insquad they add up to the army
       [*] = ;         var hsheldi : Integer;          // LIST ITEM 5 (1.11): holding outside squads AND idle - exactly what the defensive ATTACK can take (my_held counts the fighting ones too)
@@ -389,6 +390,8 @@
       [*] = ;                     hsinf := hsinf + 1;
       [*] = ;                     if (hsusage = gc_obj_usage_shooter) or (hsusage = gc_obj_usage_archer) then
       [*] = ;                     hsshoot := hsshoot + 1;
+      [*] = ;                     if (hsrole = gc_ai_unit_pikeman18) then hsp18 := hsp18 + 1;
+      [*] = ;                     if (hsrole = gc_ai_unit_musk18) then hsk18 := hsk18 + 1;
       [*] = ;                     if (hsusage = gc_obj_usage_fasthorse) or (hsusage = gc_obj_usage_hardhorse) or
       [*] = ;                        (hsusage = gc_obj_usage_horseshooter) then
       [*] = ;                     hscav := hscav + 1;
@@ -648,6 +651,8 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'smiths',    hssmith);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'ba17',      hsba);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'ba18',      hsba18);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_pike18', hsp18);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_musk18', hsk18);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stables',   hsstab);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'my_stores', hsstore);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'houses',    hshouse);

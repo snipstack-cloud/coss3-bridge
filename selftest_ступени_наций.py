@@ -37,7 +37,7 @@ def проверка(имя, усл, что=""):
 проверка("линейки наций → род", all(CM.род_линейки(л) == "infantry17" for л in
                                      ("pikeman", "pikemanpol", "pikemanrus", "pikemantur", "pikemansco", "pikemanpor", "pikemanswi", "pikemanspa"))
          and all(CM.род_линейки(л) == "musk17" for л in ("musketeernet", "musketeerpol", "musketeeraus", "musketeer"))
-         and CM.род_линейки("pikeman18") is None)
+         and CM.род_линейки("pikeman18") == "pikeman18")
 # (4) оценщик видит ступени Польши на снимке
 st = {"gametime": 360, "food": 3000, "gold": 2000, "iron": 1000,
       "fighters": "infantry17=pikemanpol,hp90,atk8,wkind1,pause0,rmax206,dmgs0,dmgp0,dinit8,dpike0,dsword0,dbullet0,food25,gold1,iron0,coal0 "
@@ -55,6 +55,19 @@ import json
 нужно = {"pikeman", "pikemanpol", "pikemanrus", "pikemantur", "pikemansco", "pikemanpor", "pikemanswi", "pikemanspa",
          "musketeer", "musketeernet", "musketeerpol", "musketeeraus", "musketeerspa", "musketeersco"}
 проверка("в таблице есть все линейки пик и мушкетёров наций", нужно <= линейки, sorted(нужно - линейки))
+
+# (6) путь в век (1.11): линейки ba2 видны и считаются по бойцам века из `mil_pike18`
+проверка("линейки века → свои роли", CM.род_линейки("pikeman18") == "pikeman18" and CM.род_линейки("musketeer18pru") == "musk18"
+         and CM.род_линейки("dragoon18net") is None)
+st18 = {"gametime": 1300, "food": 30000, "gold": 9000, "iron": 3000, "mil_inf": 200, "mil_shooters": 20, "mil_pike18": 80,
+        "fighters": "infantry17=pikeman,hp90,atk11,wkind1,pause0,rmax188,dpike5,dsword2,dbullet4 "
+                    "pikeman18=pikeman18,hp85,atk9,wkind1,pause0,rmax188,dpike0,dsword0,dbullet0",
+        "p1_fighters": "infantry17=hp90,atk13,wkind1,pause0,rmax206,dpike8,dsword0,dbullet0",
+        "upg_avail": "ba2.pikeman18.2.1=f2000g800i0,bar.pikeman.1.4=f6700g1950i0", "p1_inf": 200, "p1_shoot": 0}
+к18 = {к["имя"]: к for к in P.оценить(st18)["кандидаты"]}
+проверка("ступень ba2 видна оценщику, считается на 80 пик века, а bar.* — на 120 пик XVII века",
+         к18.get("ba2.pikeman18.2.1", {}).get("наших") == 80 and к18.get("bar.pikeman.1.4", {}).get("наших") == 120,
+         {и: к["наших"] for и, к in к18.items()})
 
 print(f"\n{ок} из {ок + len(плохо)}")
 sys.exit(1 if плохо else 0)

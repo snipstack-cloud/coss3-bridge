@@ -1920,6 +1920,8 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 1.11 вечер (мак, ПУТЬ В XVIII ВЕК (76): ATTACK `who` бойцов века и конницы, UPGRADE `ba2`, конница в `fighters`, `ba18_queues`, temple/artdepo в `wip`; ПЕСОЧНИЦА, ЖДЁТ ПУЛЬСА):** `block_hcmd.inc` **3498**, `block_hstate.inc` **2815**, `block_gameloop.inc` **373**, установленный `progress.inc` **6877** (`wc` 6876). Перед ним живьём прошли 3482 / 2779 / 373, 6825.
 
+**ЧИСЛА УСТАНОВКИ НА 1.11 вечер-2 (мак, (79): поля `mil_pike18`/`mil_musk18` в hstate; ПЕСОЧНИЦА, ЖДЁТ ПУЛЬСА):** `block_hcmd.inc` **3498**, `block_hstate.inc` **2820**, `block_gameloop.inc` **373**, установленный `progress.inc` **6882** (`wc` 6881).
+
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (9) (мак, гистерезис рефлекса + TIME в логе; ПЕСОЧНИЦА, 6191 прошёл пульс в контейнере):** `block_hcmd.inc` **3043**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6215**.
 
 **ЧИСЛА УСТАНОВКИ НА 30.10 день (7) (мак, рефлекс обороны по Чебышёву + команда DEFEND; ПЕСОЧНИЦА, 6179 прошёл пульс в контейнере):** `block_hcmd.inc` **3019**, `block_hstate.inc` **2608**, `block_gameloop.inc` **373**, установленный `progress.inc` **6191**.
