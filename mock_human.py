@@ -333,6 +333,11 @@ class Мир:
         return ",".join(части)
     def тик(self, dt):
         self.t += dt
+        for _гр, _г in list(getattr(self, "группы", {}).items()):
+            if _г.get("отход_t") is not None and self.t >= _г["отход_t"]:
+                _г.pop("отход_t", None)
+                _г["режим"], _г["cx"], _г["cy"] = 2, -1, -1
+                print(f"mock-human: GROUP {_гр} retreat: {_г['n']} men walk home", flush=True)
         # Пока волна в поле, раз в пять игровых секунд у нас гибнет один — в той
         # клетке, где волна стоит (13,3 — база врага, как её ставит `в_пути`).
         if self.волна > 0 and self.t >= self.потери_срок:
@@ -611,6 +616,18 @@ class Мир:
                     есть["режим"] = режим
                 print(f"mock-human: GROUP {гр} order to "
                       f"{есть['n']} remembered soldiers", flush=True)
+            # ОТХОД РЕЗАКА (1.11): ATTACK группе с `ret` N — через N игровых секунд группа идёт домой (как блок, раз в
+            # секунду); любой другой приказ группе отход снимает. Упрощение мока: «домой» — клетка группы сбрасывается.
+            try:
+                _рет = int(float(пары.get("ret", 0) or 0))
+            except ValueError:
+                _рет = 0
+            if гр in self.группы:
+                if _рет > 0 and _реж == "":
+                    self.группы[гр]["отход_t"] = self.t + _рет
+                    print(f"mock-human: GROUP {гр} retreat armed: home in {_рет} s", flush=True)
+                else:
+                    self.группы[гр].pop("отход_t", None)
             if цель == "cell":
                 try:
                     self.группы[гр]["cx"] = int(пары.get("cx", -1))

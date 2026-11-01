@@ -1719,6 +1719,10 @@
       [*] = ;         // a FACE hold 20 s later from python that lost the one order slot of the tick. Missing keys: as before.
       [*] = ;         var hamerge : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'merge') <> 0);
       [*] = ;         var haarrive : Boolean = (ParserGetIntValueByKeyByHandle(hah, hapre + 'arrive') <> 0);
+      [*] = ;         // RAID RETREAT (1.11, mac, player's word): ret=N on a numbered ATTACK - N game seconds after the order the living of
+      [*] = ;         // the remembered roll walk home to the town hall (move mode default: a walk, not a hunt), checked once a game second
+      [*] = ;         // below. Any later order to the same group disarms it. Missing key or 0: as before.
+      [*] = ;         var haret : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'ret');
       [*] = ;         var hasqn : Integer = 0;
       [*] = ;         var hasqm : Integer = 0;
       [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
@@ -2150,6 +2154,7 @@
       [*] = ;                  // otherwise the reader cannot tell a formation on duty from one that walked.
       [*] = ;                  var hagmwas : Integer = ParserGetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_m');
       [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_ap', 0);   // a new order cancels a pending hold-on-arrival; re-armed below if this one asks
+      [*] = ;                  ParserSetIntValueByKeyByHandle(hagmp, 'g' + IntToStr(hagid) + '_rq', 0);   // and a pending raid retreat; re-armed below by ATTACK ret
       [*] = ;                  var hagm : Integer = 0;
       [*] = ;                  if (hamode = 'move') then hagm := 1;
       [*] = ;                  if (haretreat) then hagm := 2;
@@ -2441,6 +2446,30 @@
       [*] = ;                     if (hawp = 0) then
       [*] = ;                     hawp := ParserCreate('br_hwave');
       [*] = ;                     ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
+      [*] = ;                  end;
+      [*] = ;                  if (haret > 0) and (hagid > 0) and (not haengage) then
+      [*] = ;                  begin
+      [*] = ;                     var harap : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;                     if (harap = 0) then
+      [*] = ;                     harap := ParserCreate('br_hgrp');
+      [*] = ;                     var harsl : Integer = -1;
+      [*] = ;                     var hark : Integer;
+      [*] = ;                     for hark := 0 to 7 do
+      [*] = ;                     if (ParserGetIntValueByKeyByHandle(harap, 'rp' + IntToStr(hark)) = hagid) then harsl := hark;
+      [*] = ;                     if (harsl < 0) then
+      [*] = ;                     for hark := 0 to 7 do
+      [*] = ;                     if (harsl < 0) and (ParserGetIntValueByKeyByHandle(harap, 'rp' + IntToStr(hark)) = 0) then harsl := hark;
+      [*] = ;                     if (harsl >= 0) then
+      [*] = ;                     begin
+      [*] = ;                        ParserSetIntValueByKeyByHandle(harap, 'rp' + IntToStr(harsl), hagid);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rq', 1);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rt', GetGameTime + haret);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rx', hax);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rz', haz);
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hagid) + ' retreat armed: home in ' + IntToStr(haret) + ' s');
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' retreat NOT armed: all 8 retreat slots busy');
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;               // SQUAD BY GROUP NUMBER (29.10 evening, mac, block task No3). A numbered order goes through WriteMove with
@@ -3328,6 +3357,84 @@
       [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hgag) + ' hold on arrival dropped: not arrived in 180 s (alive ' +
       [*] = ;                            IntToStr(gIntegerList.GetCount) + ', idle near ' + IntToStr(hgaidle) + ')');
       [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
+      [*] = ;      end;
+      [*] = ;      // RAID RETREAT (1.11): groups armed by ATTACK ret=N; when the time is up the living of the remembered roll walk home
+      [*] = ;      // (move mode default - a walk, not a hunt; group mode 2), facing away from home. Nobody alive - dropped. Aloud either way.
+      [*] = ;      if (hdtick) then
+      [*] = ;      begin
+      [*] = ;         var hgrp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;         if (hgrp <> 0) then
+      [*] = ;         begin
+      [*] = ;            var hgri : Integer;
+      [*] = ;            for hgri := 0 to 7 do
+      [*] = ;            begin
+      [*] = ;               var hgrg : Integer = ParserGetIntValueByKeyByHandle(hgrp, 'rp' + IntToStr(hgri));
+      [*] = ;               if (hgrg > 0) then
+      [*] = ;               begin
+      [*] = ;                  var hgrs : String = 'g' + IntToStr(hgrg);
+      [*] = ;                  if (ParserGetIntValueByKeyByHandle(hgrp, hgrs + '_rq') <> 1) then
+      [*] = ;                  begin
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, 'rp' + IntToStr(hgri), 0);
+      [*] = ;                  end
+      [*] = ;                  else
+      [*] = ;                  if (hdnow >= ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rt')) then
+      [*] = ;                  begin
+      [*] = ;                     var hgrx : Float = ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rx');
+      [*] = ;                     var hgrz : Float = ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rz');
+      [*] = ;                     var hgrn : Integer = ParserGetIntValueByKeyByHandle(hgrp, hgrs + '_n');
+      [*] = ;                     var hgrsx : Float = 0;
+      [*] = ;                     var hgrsz : Float = 0;
+      [*] = ;                     gIntegerList.Clear;
+      [*] = ;                     var hgrk : Integer;
+      [*] = ;                     for hgrk := 0 to hgrn-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hgrh : Integer = ParserGetIntValueByKeyByHandle(hgrp, hgrs + '_h' + IntToStr(hgrk));
+      [*] = ;                        var hgrhp : Pointer = _unit_GetTObj(hgrh);
+      [*] = ;                        if (hgrh <> 0) and (hgrhp <> nil) then
+      [*] = ;                        if (not TObj(hgrhp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           gIntegerList.Add(hgrh);
+      [*] = ;                           hgrsx := hgrsx + GetGameObjectPositionXByHandle(hgrh);
+      [*] = ;                           hgrsz := hgrsz + GetGameObjectPositionZByHandle(hgrh);
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (gIntegerList.GetCount > 0) then
+      [*] = ;                     begin
+      [*] = ;                        // Facing: from the centre of the living towards home, normalised; degenerate (already home) keeps 0,1.
+      [*] = ;                        var hgrdx : Float = hgrx - hgrsx / gIntegerList.GetCount;
+      [*] = ;                        var hgrdz : Float = hgrz - hgrsz / gIntegerList.GetCount;
+      [*] = ;                        var hgrdy : Float = 0;
+      [*] = ;                        var hgrdl : Float = VectorLength(hgrdx, hgrdy, hgrdz);
+      [*] = ;                        if (hgrdl < 1) then
+      [*] = ;                        begin
+      [*] = ;                           hgrdx := 0;
+      [*] = ;                           hgrdz := 1;
+      [*] = ;                        end
+      [*] = ;                        else
+      [*] = ;                        begin
+      [*] = ;                           hgrdx := hgrdx / hgrdl;
+      [*] = ;                           hgrdz := hgrdz / hgrdl;
+      [*] = ;                        end;
+      [*] = ;                        var hgrph : Integer = GetPlayerHandleByIndex(plind);
+      [*] = ;                        var hgrgr : Integer = _misc_GetOrCreateGroupByName(hgrph, 'coss3_grp_' + IntToStr(hgrg));
+      [*] = ;                        GroupClearGameObjectsByHandle(hgrgr);
+      [*] = ;                        for hgrk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                        GroupAddGameObjectByHandle(hgrgr, gIntegerList.Get(hgrk));
+      [*] = ;                        _group_Initialize(hgrgr, nil);
+      [*] = ;                        _player_SetGroupPosition(hgrph, hgrgr, -1, hgrx, hgrz, hgrx, hgrz, hgrdx, hgrdz,
+      [*] = ;                             False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                        ParserSetIntValueByKeyByHandle(hgrp, hgrs + '_m', 2);
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hgrg) + ' retreat: ' + IntToStr(gIntegerList.GetCount) + ' men walk home to ' +
+      [*] = ;                            FloatToStr(hgrx) + ',' + FloatToStr(hgrz));
+      [*] = ;                     end
+      [*] = ;                     else
+      [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgrg) + ' retreat dropped: nobody alive');
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, hgrs + '_rq', 0);
+      [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, 'rp' + IntToStr(hgri), 0);
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;

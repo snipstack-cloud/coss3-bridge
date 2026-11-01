@@ -815,7 +815,7 @@ class Bridge:
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-               merge=None, arrive=None) -> bool:
+               merge=None, arrive=None, ret=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -835,7 +835,7 @@ class Bridge:
         if os.path.exists(self.atk_path):
             return False
         приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
-                              face, hold, gap, step, far, всех, merge, arrive)
+                              face, hold, gap, step, far, всех, merge, arrive, ret)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
@@ -843,7 +843,7 @@ class Bridge:
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                 gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-                merge=None, arrive=None):
+                merge=None, arrive=None, ret=None):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         `всех` (28.10, Д20, ключ файла `all`): ВЕСЬ ДОМ — блок берёт и держащих строй, снимает удержание и ведёт
@@ -989,6 +989,14 @@ class Bridge:
             приказ["merge"] = 1
         if arrive:
             приказ["arrive"] = 1
+        # ОТХОД РЕЗАКА (1.11, слово игрока): ret=N у ATTACK группе по номеру — через N игровых секунд блок сам ведёт живых
+        # из запомненного состава домой (проверка раз в секунду, без слота приказа python). Нет ключа — как было.
+        try:
+            _рет = int(float(ret or 0))
+        except (TypeError, ValueError):
+            _рет = 0
+        if _рет > 0 and int(group or 0) > 0 and not движение and _режим != "engage":
+            приказ["ret"] = _рет
         return приказ
 
     def attack_many(self, приказы: list[dict]) -> bool:
@@ -1025,7 +1033,7 @@ class Bridge:
                 п.get("face"),
                 п.get("hold"),
                 п.get("gap"), п.get("step"), п.get("far"), п.get("all"),
-                п.get("merge"), п.get("arrive"))
+                п.get("merge"), п.get("arrive"), п.get("ret"))
             if собран is None:
                 return False
             готовые.append(собран)
