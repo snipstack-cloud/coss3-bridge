@@ -1885,6 +1885,15 @@
       [*] = ;            end;
       [*] = ;            // Where to go. The model chooses: peasants (the objective), base, or army.
       [*] = ;            var hatx, hatz : Float;
+      [*] = ;            // WALL AS A TARGET (1.11, player's word: 'point the army's attack at the palisade').
+      [*] = ;            // Why a separate target and not just a cell: a cell is a COORDINATE, and the block turns
+      [*] = ;            // it into _player_SetGroupPosition - 'go stand at this point'. A sealed palisade has no
+      [*] = ;            // path through it, so the army stood at home and nobody ever touched the wall: in the live
+      [*] = ;            // game of 1.11 all twelve wall cells stayed at hp 100 while 158 men were under orders.
+      [*] = ;            // A wall must be ATTACKED AS AN OBJECT, and that needs a handle - which python cannot have.
+      [*] = ;            // Declared at block level on purpose: a scalar declared inside a nested begin does not
+      [*] = ;            // survive it (bought 17.09 by six army counters that read zero at 208 soldiers).
+      [*] = ;            var hawallh : Integer = 0;
       [*] = ;            // THE REMEMBERED COMPOSITION of group hagid. The selection loop above
       [*] = ;            // added nobody (its guard is count, and an order to a group has none),
       [*] = ;            // so the list is empty and we fill it from the parser.
@@ -1956,6 +1965,64 @@
       [*] = ;            // nearest such thing'; taking the fist around, or massing it away from the
       [*] = ;            // base, was impossible, and the map stayed mute: 0 cells named in 644 ticks.
       [*] = ;            // The cell resolves to the CENTRE of its square, else the squad walks to a corner.
+      [*] = ;            // TARGET 'wall' (1.11): python names the CELL whose weakest link it wants broken (it has the
+      [*] = ;            // whole wall map with hp per cell in ewalls); the block finds the wall OBJECT nearest to that
+      [*] = ;            // cell centre and remembers its handle for the order below. Walls are buildings, and usage
+      [*] = ;            // tells them apart: gc_obj_usage_weakwall = 13 is the wooden palisade, 12 the stone one
+      [*] = ;            // (same pair block_hstate uses to build ewalls).
+      [*] = ;            if (hatrg = 'wall') then
+      [*] = ;            begin
+      [*] = ;               var hawn : Integer = 16;
+      [*] = ;               var hawcx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cx');
+      [*] = ;               var hawcy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cy');
+      [*] = ;               if (hawcx < 0) then hawcx := 0;
+      [*] = ;               if (hawcy < 0) then hawcy := 0;
+      [*] = ;               if (hawcx > hawn-1) then hawcx := hawn-1;
+      [*] = ;               if (hawcy > hawn-1) then hawcy := hawn-1;
+      [*] = ;               var hawmw : Integer = GetMapWidth;
+      [*] = ;               var hawmh : Integer = GetMapHeight;
+      [*] = ;               var hawx : Float = (hawcx + 0.5) * hawmw / hawn - hawmw div 2;
+      [*] = ;               var hawz : Float = (hawcy + 0.5) * hawmh / hawn - hawmh div 2;
+      [*] = ;               var hawbest : Float = 1000000.0;
+      [*] = ;               var hawpl : Integer;
+      [*] = ;               for hawpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;               begin
+      [*] = ;                  if (gPlayer[hawpl].bexists) and (hawpl <> plind) then
+      [*] = ;                  if ((gPlayer[plind].enemyPlMask and gPlayer[hawpl].myPlMask) <> 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hawph : Integer = GetPlayerHandleByIndex(hawpl);
+      [*] = ;                     var hawon : Integer = GetPlayerGameObjectsCountByHandle(hawph);
+      [*] = ;                     var hawj : Integer;
+      [*] = ;                     for hawj := 0 to hawon-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hawg : Integer = GetGameObjectHandleByIndex(hawj, hawph);
+      [*] = ;                        var hawp : Pointer = _unit_GetTObj(hawg);
+      [*] = ;                        if (hawp<>nil) then
+      [*] = ;                        if (not TObj(hawp).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           var hawu : Integer = gObjProp[TObj(hawp).cid][TObj(hawp).id].usage;
+      [*] = ;                           if (hawu = gc_obj_usage_weakwall) or (hawu = gc_obj_usage_hardwall) then
+      [*] = ;                           begin
+      [*] = ;                              var hawex : Float = GetGameObjectPositionXByHandle(hawg);
+      [*] = ;                              var hawez : Float = GetGameObjectPositionZByHandle(hawg);
+      [*] = ;                              var hawd : Float = VectorDistance(hawex, 0, hawez, hawx, 0, hawz);
+      [*] = ;                              if (hawd < hawbest) then
+      [*] = ;                              begin
+      [*] = ;                                 hawbest := hawd;
+      [*] = ;                                 hatx := hawex;
+      [*] = ;                                 hatz := hawez;
+      [*] = ;                                 hawallh := hawg;
+      [*] = ;                                 hafound := True;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               if (not hafound) then
+      [*] = ;               Log('bridge-human: ATTACK wall - NO WALL OBJECT found near cell ' + IntToStr(hawcx) + ',' + IntToStr(hawcy));
+      [*] = ;            end
+      [*] = ;            else
       [*] = ;            if (hatrg = 'cell') then
       [*] = ;            begin
       [*] = ;               var hacn : Integer = 16;   // cHmGrid in the state block; grids must match
@@ -2484,6 +2551,18 @@
       [*] = ;                       False, False, True, True, gc_obj_order_move_mode_attack);
       [*] = ;                  Log('bridge-human: ATTACK ' + IntToStr(gIntegerList.GetCount) + ' target=' + hatrg +
       [*] = ;                      ' at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz) + haddir);
+      [*] = ;                  // AND THE WALL IS ATTACKED AS AN OBJECT (1.11). SetGroupPosition above is a MOVE:
+      [*] = ;                  // with a sealed palisade there is no path, the group stands and the wall is never
+      [*] = ;                  // touched. The list order below is the same shape the bridge already uses for mines
+      [*] = ;                  // (_player_OrderUnitsToGoInside at the top of this file): clear gPtrList, pass it as
+      [*] = ;                  // squads. Without it target=wall would only walk the men up to the fence.
+      [*] = ;                  if (hawallh > 0) then
+      [*] = ;                  begin
+      [*] = ;                     gPtrList.Clear;
+      [*] = ;                     _player_OrderUnitsToAttack(plind, hawallh, gIntegerList, gPtrList, True, False);
+      [*] = ;                     Log('bridge-human: ATTACK wall object ' + IntToStr(hawallh) + ' by ' +
+      [*] = ;                         IntToStr(gIntegerList.GetCount) + ' men at ' + FloatToStr(hatx) + ',' + FloatToStr(hatz));
+      [*] = ;                  end;
       [*] = ;                  // Wave size goes into a NAMED PARSER, not into a group. 14.09 the
       [*] = ;                  // 'one group per wave' fix renamed the groups to coss3_wave_0..7,
       [*] = ;                  // and block_hstate went on counting the old coss3_bridge_wave -
