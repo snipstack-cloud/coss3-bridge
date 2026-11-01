@@ -3653,9 +3653,25 @@ def стена_в_приказах(из: list, st: dict, п: dict, реестр=
     for c in из:
         if str(c.get("cmd") or "") != "ATTACK":
             continue
-        if str(c.get("target") or "") != "cell" or c.get("cx") is None:
+        # И `base` ТОЖЕ, не только `cell` (1.11, слово игрока «армия подходит, но забор не ломает»).
+        # Лог игры показал, что почти все удары идут целью `base`: 'ATTACK 22 target=base', 'ATTACK 20
+        # target=base'. При ней блок сам ищет БЛИЖАЙШЕЕ здание врага — а им и оказывается частокол —
+        # и ИДЁТ к нему приказом движения. Армия подходит к забору и стоит. Клетку базы берём из
+        # `en_base` (x, y, зданий), как её пишет блок состояния.
+        _ц = None
+        _т = str(c.get("target") or "")
+        if _т == "cell" and c.get("cx") is not None:
+            _ц = (c["cx"], c["cy"])
+        elif _т == "base":
+            _б = st.get("en_base")
+            if isinstance(_б, (list, tuple)) and len(_б) >= 2:
+                try:
+                    _ц = (int(_б[0]), int(_б[1]))
+                except (TypeError, ValueError):
+                    _ц = None
+        if _ц is None:
             continue
-        ст = _частокол_на_пути(st, (c["cx"], c["cy"]), п)
+        ст = _частокол_на_пути(st, _ц, п)
         if ст is None:
             continue
         (сx, сy), словами = ст
