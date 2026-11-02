@@ -12808,6 +12808,66 @@ def поднять_окно(log: str) -> None:
         print(f"окно не поднялось ({e}) — запустите overlay.ps1 руками")
 
 
+def _второй_бот(a):
+    """БОТ ПРОТИВ БОТА (2.11, слово игрока «можно в контейнере двух ботов с разной постройкой? — только чтобы не нарушить
+    бот против ИИ и бот против человека»). Скрипты контейнера запечены в образ и из git не обновляются, поэтому второго
+    бота запускает сама политика. Срабатывает ТОЛЬКО когда в `опыт.json` рядом с трассой есть непустое `флаги2` (поле
+    идеи в `experiments.ini`, кладёт `pick_experiment.py`); тогда `send.py --new` шлёт botslot 1 (слот 1 — мост, не
+    ИИ: в блоке botslot главнее ai). Тогда
+    этот процесс ведёт слот 0, а второй — слот 1 теми же аргументами плюс `флаги2` (они дописаны в конец и перебивают
+    одноимённые, как `COSS3_EXTRA_FLAGS`); файлы второго — свои: трасса, снимок, лог, уроки, мир с суффиксом `_P1`.
+    Во всех прочих случаях — ничего, и прежние режимы идут как шли. Возвращает процесс второго бота или None."""
+    if os.environ.get("COSS3_BOT2_CHILD") == "1":
+        return None
+    io = os.path.dirname(os.path.abspath(a.botlog)) if getattr(a, "botlog", "") else ""
+    try:
+        опыт = json.load(open(os.path.join(io, "опыт.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    ф2 = str(опыт.get("флаги2") or "").strip()
+    if not ф2:
+        return None
+    import subprocess
+    if a.plind is None:
+        a.plind = 0
+    def _p1(путь):
+        корень, хвост = os.path.splitext(путь)
+        return f"{корень}_P1{хвост}"
+    убрать = {"--plind", "--botlog", "--snaplog", "--log", "--lessons", "--world"}
+    исх, argv, i = _sys.argv[1:], [], 0
+    while i < len(исх):
+        if исх[i] in убрать:
+            i += 2
+            continue
+        argv.append(исх[i])
+        i += 1
+    argv += ["--plind", "1", "--botlog", _p1(a.botlog), "--snaplog", _p1(a.snaplog), "--log", _p1(a.log),
+             "--lessons", os.path.join(io, "lessons_P1.txt")]
+    if getattr(a, "world", ""):
+        мир2 = _p1(a.world)
+        try:
+            import shutil
+            shutil.copyfile(a.world, мир2)
+        except OSError:
+            pass
+        argv += ["--world", мир2]
+    argv += ф2.split()
+    env = dict(os.environ, COSS3_BOT2_CHILD="1")
+    лог = open(os.path.join(io, "policy_P1.log"), "a", encoding="utf-8")
+    p = subprocess.Popen([_sys.executable, "-u", os.path.abspath(__file__)] + argv, stdout=лог, stderr=subprocess.STDOUT,
+                         env=env, cwd=os.path.dirname(os.path.abspath(__file__)))
+    print(f"ВТОРОЙ БОТ ЗАПУЩЕН: слот 1, флаги2: {ф2}; этот процесс — слот 0. Лог второго: {лог.name}", flush=True)
+    import atexit
+
+    def _дождаться():
+        try:
+            p.wait(timeout=900)
+        except Exception:
+            p.kill()
+    atexit.register(_дождаться)
+    return p
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default=os.path.expandvars(os.path.expanduser("~/coss3-io")))
@@ -13451,6 +13511,7 @@ def main() -> int:
                     help="1 — требования зданий как в интерфейсе (честно); 0 — как принимает "
                          "движок: казарма и найм без кузницы. Законность 0 решает игрок")
     a = ap.parse_args()
+    _второй_бот(a)                      # 2.11: бот против бота — только при `флаги2` идеи и AI=-1, иначе ничего
     # ЯРУС 1 (25.09): всё детерминированное одним ключом — дебют скриптом до 20
     # бойцов (модель в это время молчит) и поддержание мостом. В симуляторе
     # первый боец на 64-й секунде против 228 у модели, двадцатый на 264-й,

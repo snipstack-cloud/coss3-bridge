@@ -30,6 +30,7 @@ for _s in (_sys.stdout, _sys.stderr):
     except Exception: pass
 
 import argparse
+import json
 import os
 import re
 import time
@@ -202,6 +203,15 @@ def parse_targets(tokens: list[str]):
     return cmds, goals, upgs
 
 
+def второй_бот_в_опыте() -> bool:
+    """Есть ли у идеи контейнера непустое `флаги2` (кладёт pick_experiment.py в COSS3_IO/опыт.json)."""
+    try:
+        with open(os.path.join(os.environ.get("COSS3_IO", "/io"), "опыт.json"), encoding="utf-8") as f:
+            return bool(str(json.load(f).get("флаги2") or "").strip())
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(add_help=True)
     ap.add_argument("targets", nargs="*",
@@ -350,13 +360,22 @@ def main() -> int:
             print(f"файл открытия для P{a.open}: {Bridge(d, a.open).write_opening()} — ратуша и мельница на первом тике блоком")
         cmd = "END" if a.end else "NEW"
         seed = a.new or 0
+        # БОТ ПРОТИВ БОТА (2.11): у идеи есть `флаги2` (опыт.json контейнера) — слот 1 отдаётся мосту, а не ИИ (botslot
+        # в блоке главнее ai), и ему тоже кладётся файл открытия. Второго бота ведёт `llm_policy._второй_бот`. Без
+        # `флаги2` (все прежние идеи, живые партии Windows) — botslot не шлётся, как было.
+        botslot = -1
+        if a.new is not None and второй_бот_в_опыте():
+            botslot = 1
+            print("бот против бота: слот 1 — мост (флаги2 идеи)")
+            if a.open is not None:
+                print(f"файл открытия для P1: {Bridge(d, 1).write_opening()}")
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
                           nation2=a.nation2,
                           balloon=a.balloon, cannons=a.cannons,
                           capture=a.capture, market=a.market,
                           century18=a.century18, mapsize=a.mapsize,
-                          speed=a.speed):
+                          speed=a.speed, botslot=botslot):
             print("предыдущая команда ещё не забрана — подождите пару секунд")
             return 1
         ack = br.wait_ack(timeout=25)
