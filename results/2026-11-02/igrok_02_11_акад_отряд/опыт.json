@@ -1,0 +1,27 @@
+{
+ "опыт": "партия против игрока",
+ "проверка": "",
+ "тень": false,
+ "стратегия": "sim/поиск/ветка_качели2_академия2_отряд.json",
+ "против_ии": -1,
+ "что": "живая партия ЧЕЛОВЕК ПРОТИВ БОТА: игрок слотом 0, бот слотом 1 — человеческим слотом без нативного ИИ. Условия партии взяты из архива (match.dat прогонов 28.09).",
+ "ref": "c72c736cd4d9d3bf9a57764912a9ffc903bb4e72",
+ "флаги": "--human --dir C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cossacks 3 --plind 1 --model @preset/coss3-bot --every 15 --horizon 1800 --stall 180 --episodes 1 --ban market --botlog C:\\coss3-io-igrok\\coss3_bot.jsonl --snaplog C:\\coss3-io-igrok\\coss3_snap.jsonl --log C:\\coss3-io-igrok\\coss3_llm.log --hints-extra hints_barracks_first.txt --barracks-first 1 --no-gather 1 --food-floor 800 --memo --world world.md --strategy C:\\Users\\LapSt\\Downloads\\coss3-git\\sim/поиск/ветка_качели2_академия2_отряд.json --every 5",
+ "слот_бота": 1,
+ "модель": "@preset/coss3-bot",
+ "настройка": {
+  "слот": 1,
+  "нация": "pol",
+  "нация_бота": "pol",
+  "mapsize": 3,
+  "res": 0,
+  "peace": 0,
+  "balloon": 2,
+  "cannons": 0,
+  "capture": 3,
+  "market": 2,
+  "century18": 1,
+  "speed": 2
+ },
+ "начало": "2026-11-02 17:15:36"
+}
