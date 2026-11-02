@@ -192,7 +192,10 @@ def команда_run(a) -> int:
     docker("rm", "-f", *[к["имя"] for к in контейнеры(a.ид)], тихо=True) \
         if контейнеры(a.ид) else None
 
-    есть_gpu = os.path.exists("/dev/dri")
+    # ВИДЕОКАРТА ПО УМОЛЧАНИЮ ВЫКЛЮЧЕНА (2.11, Windows (154)): на Windows /dev/dri в WSL есть, но его проброс ломает Xvfb —
+    # копия вышла через 12 с «ОСТАНОВКА: Xvfb не поднялся», а 29 копий без устройства в тот же день шли. Включать явно:
+    # `--gpu` или COSS3_GPU=1.
+    есть_gpu = (getattr(a, "gpu", False) or os.environ.get("COSS3_GPU") == "1") and os.path.exists("/dev/dri")
     print(f"опыт {a.ид}: {s.get('что', '')}")
     print(f"  мост {ref} из {репо or 'образа'}, флаги: {' '.join(флаги) or '—'}")
     if по_ssh:
@@ -502,6 +505,7 @@ def main() -> int:
     р = под.add_parser("run", help="запустить идею")
     р.add_argument("ид")
     р.add_argument("--copies", type=int, default=0)
+    р.add_argument("--gpu", action="store_true", help="пробросить /dev/dri (по умолчанию нет: на Windows ломает Xvfb)")
     р.add_argument("--force", action="store_true",
                    help="запустить без git-версии моста (для опыта негодно)")
     р.set_defaults(_=команда_run)
