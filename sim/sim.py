@@ -2204,6 +2204,15 @@ class Симулятор:
         s["upg_avail"] = ",".join(f"{имя}=" + "".join(f"{_б[r]}{int(v)}" for r, v in цена.items() if r in _б and v)
                                   for имя, цена in sorted(self.з.цены_апгрейдов.items())
                                   if имя not in self.апгрейды and имя not in self.исследуется)
+        # ЦЕНЫ ПОСТРОЕК КАК ВЖИВУЮ (2.11, починка двойника под нации): живое состояние несёт `build_cost`
+        # (`роль=food0,wood950,…` с удорожанием), и лестница закладок по нему решает «хватает ли»; без поля она брала цену
+        # по умолчанию — третья казарма «стоила» 2500 золота вместо 12 500, заказывалась каждый такт и держала академию.
+        # Переключатель COSS3_SIM_BUILD_COST=1 (0 — как было: поле включает в стратегии правила «только вживую» и сдвинуло
+        # бы батарею).
+        if ЖИВЫЕ_ЦЕНЫ_ПОСТРОЕК:
+            s["build_cost"] = " ".join(
+                f"{роль}=" + ",".join(f"{r}{int(v)}" for r, v in self.эк.цена_здания(роль).items())
+                for роль in core.ЗДАНИЯ)
         s["my_cx"], s["my_cy"], s["grid_n"] = int(self.з.my_cx), int(self.з.my_cy), СЕТКА
         s["my_freewar"] = round(self.свободные_бойцы())
         s["mil_away"] = round(sum(sum(г["состав"].values()) for г in self.группы[1:]))
@@ -2344,8 +2353,57 @@ class Симулятор:
                     # Рассогласования нет: в игру переносятся ПРАВИЛА словами, не веса.
 
 
+ЖИВЫЕ_ЦЕНЫ_ПОСТРОЕК = os.environ.get("COSS3_SIM_BUILD_COST", "0") == "1"   # 2.11: поле `build_cost` в состоянии
+_НАЦИИ_ПО_НОМЕРУ = {0: "aus", 1: "fra", 2: "eng", 3: "spa", 4: "rus", 5: "ukr", 6: "pol", 7: "swe", 8: "pru", 9: "ven", 10: "tur",
+                    11: "alg", 13: "net", 14: "den", 15: "por", 16: "pie", 17: "sax", 18: "bav", 19: "hun", 20: "swi", 21: "sco"}
+
+
+def нация_записи(каталог) -> str:
+    """Нация НАШЕГО слота по `match.dat` записи (2.11): живые партии — бот в слоте `botslot` (обычно 1, `nat1`),
+    контейнеры — `botslot` -1, бот в слоте 0 (`nat0`). COSS3_SIM_NATION перебивает. Нет файла — «net», как было."""
+    if os.environ.get("COSS3_SIM_NATION"):
+        return os.environ["COSS3_SIM_NATION"]
+    try:
+        поля = {}
+        for строка in open(os.path.join(каталог, "match.dat"), encoding="utf-8", errors="replace"):
+            if "=" in строка:
+                k, v = строка.split("=", 1)
+                поля[k.strip()] = v.strip()
+        слот = int(поля.get("botslot", "-1"))
+        номер = int(поля.get(f"nat{слот if слот >= 0 else 0}", "13"))
+        return _НАЦИИ_ПО_НОМЕРУ.get(номер, "net")
+    except (OSError, ValueError):
+        pass
+    # нет `match.dat` (живые 1.11 лежат без него) — по именам НАШИХ юнитов в трассе: `train_now` / `upg_shown`
+    # несут sid нации (`pikemanpol`, `peapol`); таблица — `цены_наций.json`
+    try:
+        таб = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "цены_наций.json"),
+                             encoding="utf-8"))["нации"]
+        юнит_нации = {в["юнит"]: код for код, н in таб.items() for в in н.values() if в["юнит"] not in ("pikeman", "dragoon")}
+        for имя in ("coss3_bot.jsonl", "coss3_snap.jsonl"):
+            путь = os.path.join(каталог, имя)
+            if not os.path.exists(путь):
+                continue
+            with open(путь, encoding="utf-8", errors="replace") as f:
+                for i, строка in enumerate(f):
+                    if i > 400:
+                        break
+                    for поле in ('"train_now"', '"upg_shown"'):
+                        j = строка.find(поле)
+                        if j < 0:
+                            continue
+                        кусок = строка[j:j + 400]
+                        for юнит, код in юнит_нации.items():
+                            if юнит + ":" in кусок or "." + юнит + "." in кусок:
+                                return код
+    except (OSError, ValueError, KeyError):
+        pass
+    return "net"
+
+
 def партия(каталог, политика, seed=0, темпы_партии=None, шаг_решения=ШАГ_РЕШЕНИЯ):
     """Прогнать партию: `политика(состояние) -> [команды]` раз в `шаг_решения` секунд."""
+    core.НАЦИЯ = нация_записи(каталог)
     сим = Симулятор(Запись(каталог), seed, темпы_партии)
     следующее = сим.t
     история = []

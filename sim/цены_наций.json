@@ -1,0 +1,1011 @@
+{
+ "источник": "нации.py: lib/unit.script (цена, время найма; здания — ветки case i of), lib/country.script (роспись ролей)",
+ "нации": {
+  "aus": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeeraus",
+    "цена": {
+     "food": 35,
+     "gold": 9,
+     "iron": 15
+    },
+    "найм_с": 6.5
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   },
+   "peaeng": {
+    "юнит": "peaaus",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "fra": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "eng": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   },
+   "peaeng": {
+    "юнит": "peaeng",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "spa": {
+   "pikeman": {
+    "юнит": "pikemanspa",
+    "цена": {
+     "food": 35,
+     "gold": 7,
+     "iron": 30
+    },
+    "найм_с": 5.5
+   },
+   "musketeer": {
+    "юнит": "musketeerspa",
+    "цена": {
+     "food": 40,
+     "gold": 12,
+     "iron": 20
+    },
+    "найм_с": 7.5
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   },
+   "peaeng": {
+    "юнит": "peaspa",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "rus": {
+   "pikeman": {
+    "юнит": "pikemanrus",
+    "цена": {
+     "food": 45,
+     "gold": 4,
+     "iron": 15
+    },
+    "найм_с": 5.5
+   },
+   "musketeer": {
+    "юнит": "strelet",
+    "цена": {
+     "food": 70,
+     "gold": 7,
+     "iron": 9
+    },
+    "найм_с": 8.5
+   },
+   "peaeng": {
+    "юнит": "pearus",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "ukr": {
+   "musketeer": {
+    "юнит": "serdiuk",
+    "цена": {
+     "food": 60,
+     "gold": 11,
+     "iron": 5
+    },
+    "найм_с": 11.0
+   },
+   "peaeng": {
+    "юнит": "peaukr",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 11.25
+   }
+  },
+  "pol": {
+   "pikeman": {
+    "юнит": "pikemanpol",
+    "цена": {
+     "food": 25,
+     "gold": 1
+    },
+    "найм_с": 3.0
+   },
+   "musketeer": {
+    "юнит": "musketeerpol",
+    "цена": {
+     "food": 40,
+     "gold": 3,
+     "iron": 3
+    },
+    "найм_с": 4.5
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   },
+   "peaeng": {
+    "юнит": "peapol",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "swe": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "pru": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "ven": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "tur": {
+   "pikeman": {
+    "юнит": "pikemantur",
+    "цена": {
+     "food": 55,
+     "gold": 5
+    },
+    "найм_с": 5.5
+   },
+   "musketeer": {
+    "юнит": "jannisary",
+    "цена": {
+     "food": 55,
+     "gold": 13,
+     "iron": 5
+    },
+    "найм_с": 8.0
+   },
+   "peaeng": {
+    "юнит": "peatur",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  },
+  "alg": {
+   "pikeman": {
+    "юнит": "lightinfantry",
+    "цена": {
+     "food": 25,
+     "iron": 1
+    },
+    "найм_с": 1.0
+   }
+  },
+  "net": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeernet",
+    "цена": {
+     "food": 50,
+     "gold": 8,
+     "iron": 4
+    },
+    "найм_с": 5.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "den": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "por": {
+   "pikeman": {
+    "юнит": "pikemanpor",
+    "цена": {
+     "food": 40,
+     "gold": 4,
+     "iron": 5
+    },
+    "найм_с": 4.0
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "pie": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "sax": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "bav": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "hun": {
+   "pikeman": {
+    "юнит": "pikeman",
+    "цена": {
+     "food": 25,
+     "gold": 3,
+     "iron": 20
+    },
+    "найм_с": 4.5
+   },
+   "musketeer": {
+    "юнит": "gauduk",
+    "цена": {
+     "food": 35,
+     "gold": 4,
+     "iron": 4
+    },
+    "найм_с": 4.5
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "swi": {
+   "pikeman": {
+    "юнит": "pikemanswi",
+    "цена": {
+     "food": 40,
+     "gold": 6,
+     "iron": 20
+    },
+    "найм_с": 5.0
+   },
+   "musketeer": {
+    "юнит": "musketeer",
+    "цена": {
+     "food": 45,
+     "gold": 6,
+     "iron": 5
+    },
+    "найм_с": 6.0
+   },
+   "dragoon": {
+    "юнит": "dragoon",
+    "цена": {
+     "food": 90,
+     "gold": 7,
+     "iron": 5
+    },
+    "найм_с": 15.0
+   }
+  },
+  "sco": {
+   "pikeman": {
+    "юнит": "pikemansco",
+    "цена": {
+     "food": 35,
+     "gold": 2
+    },
+    "найм_с": 4.0
+   },
+   "musketeer": {
+    "юнит": "musketeersco",
+    "цена": {
+     "food": 55,
+     "gold": 8,
+     "iron": 7
+    },
+    "найм_с": 7.0
+   },
+   "peaeng": {
+    "юнит": "peasco",
+    "цена": {
+     "food": 100
+    },
+    "найм_с": 12.5
+   }
+  }
+ },
+ "здания": {
+  "aus": {
+   "aca": {
+    "food": 0,
+    "wood": 1250,
+    "stone": 1100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "fra": {
+   "aca": {
+    "food": 0,
+    "wood": 1250,
+    "stone": 1100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "bla": {
+    "food": 0,
+    "wood": 100,
+    "stone": 30,
+    "gold": 0,
+    "iron": 640,
+    "coal": 0
+   }
+  },
+  "eng": {
+   "aca": {
+    "food": 0,
+    "wood": 1150,
+    "stone": 1200,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "sta": {
+    "food": 0,
+    "wood": 2350,
+    "stone": 0,
+    "gold": 800,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "spa": {
+   "aca": {
+    "food": 0,
+    "wood": 1350,
+    "stone": 1000,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "rus": {
+   "aca": {
+    "food": 0,
+    "wood": 1250,
+    "stone": 1300,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 120,
+    "stone": 0,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "sta": {
+    "food": 0,
+    "wood": 7950,
+    "stone": 0,
+    "gold": 550,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "ukr": {
+   "aca": {
+    "food": 0,
+    "wood": 1350,
+    "stone": 1200,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "bla": {
+    "food": 0,
+    "wood": 100,
+    "stone": 30,
+    "gold": 0,
+    "iron": 640,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 120,
+    "stone": 0,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "sta": {
+    "food": 0,
+    "wood": 3200,
+    "stone": 850,
+    "gold": 850,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "pol": {
+   "aca": {
+    "food": 0,
+    "wood": 950,
+    "stone": 800,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "swe": {
+   "aca": {
+    "food": 0,
+    "wood": 1350,
+    "stone": 1000,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "pru": {
+   "aca": {
+    "food": 0,
+    "wood": 1200,
+    "stone": 1150,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "ven": {
+   "aca": {
+    "food": 0,
+    "wood": 1090,
+    "stone": 1260,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "tur": {
+   "aca": {
+    "food": 0,
+    "wood": 1450,
+    "stone": 1100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 600,
+    "stone": 500,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "bla": {
+    "food": 0,
+    "wood": 100,
+    "stone": 30,
+    "gold": 0,
+    "iron": 640,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "sta": {
+    "food": 0,
+    "wood": 1000,
+    "stone": 2600,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "alg": {
+   "aca": {
+    "food": 0,
+    "wood": 1450,
+    "stone": 1100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "bla": {
+    "food": 0,
+    "wood": 100,
+    "stone": 30,
+    "gold": 0,
+    "iron": 640,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "sta": {
+    "food": 0,
+    "wood": 1000,
+    "stone": 2200,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "den": {
+   "aca": {
+    "food": 0,
+    "wood": 1450,
+    "stone": 900,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "net": {
+   "aca": {
+    "food": 0,
+    "wood": 1050,
+    "stone": 1230,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "cen": {
+    "food": 0,
+    "wood": 700,
+    "stone": 700,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   },
+   "hou": {
+    "food": 0,
+    "wood": 100,
+    "stone": 100,
+    "gold": 0,
+    "iron": 0,
+    "coal": 0
+   }
+  },
+  "sco": {
+   "sta": {
+    "food": 0,
+    "wood": 2350,
+    "stone": 0,
+    "gold": 800,
+    "iron": 0,
+    "coal": 0
+   }
+  }
+ }
+}
