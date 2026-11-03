@@ -46,7 +46,7 @@ def случай(опыт, ai, ребёнок=False):
     d = tempfile.mkdtemp()
     if опыт is not None:
         json.dump(опыт, open(os.path.join(d, "опыт.json"), "w", encoding="utf-8"), ensure_ascii=False)
-    open(os.path.join(d, "world.md"), "w").write("мир")
+    open(os.path.join(d, "world.md"), "w", encoding="utf-8").write("мир")
     a = argparse.Namespace(plind=None, botlog=os.path.join(d, "coss3_bot.jsonl"), snaplog=os.path.join(d, "coss3_snap.jsonl"),
                            log=os.path.join(d, "coss3_llm.log"), lessons="lessons.txt", world=os.path.join(d, "world.md"))
     os.environ.pop("COSS3_BOT2_CHILD", None)
