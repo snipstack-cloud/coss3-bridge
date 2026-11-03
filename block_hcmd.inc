@@ -372,6 +372,16 @@
       [*] = ;                     var hcang : Integer;
       [*] = ;                     var hcfx, hcfz : Float;
       [*] = ;                     var hcfound : Boolean = False;
+      [*] = ;                     // HALL AT THE FOREST LINE (3.11, player's word): pros press the first hall to the trees, or put it
+      [*] = ;                     // between forest and stone, so men leaving it chop at once. The rings below take the FIRST free spot
+      [*] = ;                     // around our first peasant and never look at resources. With key 'near' R (> 0) in the command, a town
+      [*] = ;                     // hall tries the same rings and keeps the spot with the most wood and stone objects within R. 0 - as before.
+      [*] = ;                     // Declared here, beside hcfound (a scalar declared in a nested begin does not accumulate - 17.09).
+      [*] = ;                     var hcnear : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'near');
+      [*] = ;                     var hcnbest : Integer = -1;
+      [*] = ;                     var hcnrad : Float = 4.0;
+      [*] = ;                     var hcnang : Integer;
+      [*] = ;                     var hcnok : Boolean;
       [*] = ;                     // A MINE GOES ON A DEPOSIT, so guessing by rings is the wrong tool: twelve
       [*] = ;                     // probes per ring with step 2 stand about nine units apart at radius 17, and
       [*] = ;                     // a deposit slips between them. Since 13.09 the deposit list is filled on the
@@ -419,6 +429,41 @@
       [*] = ;                        if (hcfound) then
       [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' on a deposit at ' + FloatToStr(hcfx) +
       [*] = ;                            ',' + FloatToStr(hcfz) + ' (' + FloatToStr(hcbest) + ' from base)');
+      [*] = ;                     end;
+      [*] = ;                     if (hcnear > 0) and (not hcfound) and (gObjProp[hccid][hcid].airole = gc_ai_unit_center) then
+      [*] = ;                     begin
+      [*] = ;                        while (hcnrad < 26.0) do
+      [*] = ;                        begin
+      [*] = ;                           for hcnang := 0 to 11 do
+      [*] = ;                           begin
+      [*] = ;                              var hcnx : Float = hcx + hcnrad * Cos(hcnang * 0.5236);
+      [*] = ;                              var hcnz : Float = hcz + hcnrad * Sin(hcnang * 0.5236);
+      [*] = ;                              var hcndum : Integer = _player_CreateConstructionDummyBySID(hcmisc, hccid, hcsid, hcnx, hcnz);
+      [*] = ;                              if (hcndum <> 0) then
+      [*] = ;                              begin
+      [*] = ;                                 hcnok := _misc_CanPlaceBuilding(hcndum, plind, hcuse, hcnx, hcnz,
+      [*] = ;                                      gc_path_mincoldist, 0.26, 0.5, gc_path_minemincoldist, True);
+      [*] = ;                                 GameObjectDestroyByHandle(hcndum);
+      [*] = ;                                 if (hcnok) then
+      [*] = ;                                 begin
+      [*] = ;                                    gIntegerList.Clear;
+      [*] = ;                                    _misc_MakeListEnvironmentInRadius(hcnx, hcnz, hcnear, True, False, True, True, False, gIntegerList);
+      [*] = ;                                    if (gIntegerList.GetCount > hcnbest) then
+      [*] = ;                                    begin
+      [*] = ;                                       hcnbest := gIntegerList.GetCount;
+      [*] = ;                                       hcfound := True;
+      [*] = ;                                       hcfx := hcnx;
+      [*] = ;                                       hcfz := hcnz;
+      [*] = ;                                    end;
+      [*] = ;                                 end;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                           hcnrad := hcnrad + 2.0;
+      [*] = ;                        end;
+      [*] = ;                        gIntegerList.Clear;
+      [*] = ;                        if (hcfound) then
+      [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' at the forest line: ' + IntToStr(hcnbest) + ' wood and stone within ' +
+      [*] = ;                            IntToStr(hcnear) + ' at ' + FloatToStr(hcfx) + ',' + FloatToStr(hcfz));
       [*] = ;                     end;
       [*] = ;                     while (hcrad < 26.0) and (not hcfound) do
       [*] = ;                     begin

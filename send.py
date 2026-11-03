@@ -35,7 +35,7 @@ import os
 import re
 import time
 
-from coss3_bridge import (Bridge, ROLE, BUILDABLE, RESOURCE,
+from coss3_bridge import (ратуша_у_леса, Bridge, ROLE, BUILDABLE, RESOURCE,
                            build, train, upgrade, mode, balance, seed,
                            builders)
 
@@ -203,6 +203,15 @@ def parse_targets(tokens: list[str]):
     return cmds, goals, upgs
 
 
+def опыт_контейнера() -> dict:
+    """COSS3_IO/опыт.json контейнера (его пишут pick_experiment.py и exp.py); нет — пустой словарь."""
+    try:
+        with open(os.path.join(os.environ.get("COSS3_IO", "/io"), "опыт.json"), encoding="utf-8") as f:
+            return json.load(f) or {}
+    except (OSError, ValueError):
+        return {}
+
+
 def второй_бот_в_опыте() -> bool:
     """Есть ли у идеи контейнера непустое `флаги2` (кладёт pick_experiment.py в COSS3_IO/опыт.json)."""
     try:
@@ -357,7 +366,10 @@ def main() -> int:
         br = Bridge(d, 0)                      # ctl-файл один на игру, слот не важен
         br.clear_ack()
         if a.new is not None and a.open is not None:
-            print(f"файл открытия для P{a.open}: {Bridge(d, a.open).write_opening()} — ратуша и мельница на первом тике блоком")
+            _оп = опыт_контейнера()
+            _near = ратуша_у_леса(_оп.get("флаги") if isinstance(_оп.get("флаги"), str) else " ".join(_оп.get("флаги") or []))
+            print(f"файл открытия для P{a.open}: {Bridge(d, a.open).write_opening(near=_near)} — ратуша и мельница на первом тике блоком"
+                  + (f", ратуша у леса (радиус {_near})" if _near else ""))
         cmd = "END" if a.end else "NEW"
         seed = a.new or 0
         # БОТ ПРОТИВ БОТА (2.11): у идеи есть `флаги2` (опыт.json контейнера) — слот 1 отдаётся мосту, а не ИИ (botslot
@@ -368,7 +380,9 @@ def main() -> int:
             botslot = 1
             print("бот против бота: слот 1 — мост (флаги2 идеи)")
             if a.open is not None:
-                print(f"файл открытия для P1: {Bridge(d, 1).write_opening()}")
+                _near2 = ратуша_у_леса(str(опыт_контейнера().get("флаги2") or ""))
+                print(f"файл открытия для P1: {Bridge(d, 1).write_opening(near=_near2)}"
+                      + (f", ратуша у леса (радиус {_near2})" if _near2 else ""))
         if not br.control(cmd, seed, seed // 7 + 1 if seed else 0,
                           res=a.res, peace=a.peace, ai=a.ai, nation=a.nation,
                           nation2=a.nation2,

@@ -102,6 +102,25 @@ class Command:
     upg: str = ""
 
 
+def ратуша_у_леса(путь_или_флаги: str) -> int:
+    """Ключ `ратуша_у_леса` из файла стратегии (3.11): радиус, в котором блок ищет лес и камень для первой ратуши.
+    Принимает путь к .json или строку флагов политики с `--strategy <путь>`. Нет файла/ключа — 0 (как было)."""
+    import json as _json
+    путь = str(путь_или_флаги or "").strip()
+    части = путь.split()
+    if "--strategy" in части and части.index("--strategy") + 1 < len(части):
+        путь = части[части.index("--strategy") + 1]
+    if not путь.endswith(".json"):
+        return 0
+    for кандидат in (путь, os.path.join(os.path.dirname(os.path.abspath(__file__)), путь)):
+        try:
+            with open(кандидат, encoding="utf-8") as f:
+                return int(float((_json.load(f).get("итог") or {}).get("ратуша_у_леса", 0) or 0))
+        except (OSError, ValueError, AttributeError):
+            continue
+    return 0
+
+
 def build(role: str, total_count: int) -> Command:
     """BUILD декларативен: total_count — желаемое ИТОГО зданий этой роли.
     Идемпотентен, можно слать каждый тик.
@@ -825,8 +844,10 @@ class Bridge:
     def open_path(self) -> str:
         return os.path.join(self.save_dir, f"coss3_open_P{self.plind}.dat")
 
-    def write_opening(self, команды=None) -> str:
-        """Положить файл открытия; вернуть путь. Перезаписывает прежний (он мог остаться от несыгранной партии)."""
+    def write_opening(self, команды=None, near: int = 0) -> str:
+        """Положить файл открытия; вернуть путь. Перезаписывает прежний (он мог остаться от несыгранной партии).
+        `near` R > 0 (3.11, ключ стратегии `ратуша_у_леса`): BUILD center получает поле `near` — блок ставит ратушу в то
+        место колец, где в радиусе R больше всего деревьев и камня, а не в первое свободное. 0 — как было."""
         cmds = list(команды or self.ОТКРЫТИЕ)
         values: dict[str, object] = {"count": len(cmds)}
         for i, c in enumerate(cmds):
@@ -835,6 +856,8 @@ class Bridge:
             values[f"{i}_a2"] = c.a2
             if c.upg:
                 values[f"{i}_upg"] = c.upg
+            if int(near or 0) > 0 and c.cmd == "BUILD" and c.a1 == ROLE["center"]:
+                values[f"{i}_near"] = int(near)
         text = dump_parser_file("br_cmd", values)
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")
         try:

@@ -1922,7 +1922,7 @@ ExecuteState('DoNewGame');
 
 **ЧИСЛА УСТАНОВКИ НА 1.11 вечер-2 (мак, (79): поля `mil_pike18`/`mil_musk18` в hstate; ПЕСОЧНИЦА, ЖДЁТ ПУЛЬСА):** `block_hcmd.inc` **3498**, `block_hstate.inc` **2820**, `block_gameloop.inc` **373**, установленный `progress.inc` **6882** (`wc` 6881).
 
-**ЧИСЛА УСТАНОВКИ НА 3.11 (мак, (175): поля `mil_dist_avg`/`mil_away_u` в hstate; ПЕСОЧНИЦА, ЖДЁТ ПУЛЬСА Windows):** `block_hcmd.inc` **3537**, `block_hstate.inc` **2835**, `block_gameloop.inc` **373**, установленный `progress.inc` **6936** по счёту установщика (`wc` 6935).
+**ЧИСЛА УСТАНОВКИ НА 3.11 (мак, (175)+(176): поля `mil_dist_avg`/`mil_away_u` в hstate, ратуша у леса `near` в hcmd; ПЕСОЧНИЦА, ЖДЁТ ПУЛЬСА Windows):** `block_hcmd.inc` **3582**, `block_hstate.inc` **2835**, `block_gameloop.inc` **373**, установленный `progress.inc` **6980** по счёту установщика (`wc` 6979).
 
 **ЧИСЛА УСТАНОВКИ НА 2.11 ночь (после частокола (101)/(102), метка `verified` = 8423b0b, проверено живой игрой Windows):** `block_hcmd.inc` **3537**, `block_hstate.inc` **2820**, `block_gameloop.inc` **373**, установленный `progress.inc` **6921** по счёту установщика (`wc` 6920).
 

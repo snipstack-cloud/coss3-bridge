@@ -80,9 +80,9 @@ src = open(os.path.join(К, "block_hcmd.inc"), encoding="latin-1").read()
 def есть(f, *куски):
     s = open(os.path.join(К, f), encoding="utf-8").read()
     return all(k in s for k in куски)
-проверить(есть("send.py", '"--open"', "write_opening()"), "(5а) send.py --open кладёт файл до NEW")
+проверить(есть("send.py", '"--open"', "write_opening(near="), "(5а) send.py --open кладёт файл до NEW")
 проверить(есть("docker/entrypoint.sh", 'COSS3_OPEN', '--open 0', '$OPENARG'), "(5б) entrypoint: COSS3_OPEN → --open 0")
-проверить(есть("против_игрока.py", "br.write_opening()", "br.clear_opening()", "--без-открытия"),
+проверить(есть("против_игрока.py", "br.write_opening(near=", "br.clear_opening()", "--без-открытия"),
           "(5в) против_игрока.py: файл до NEW, проверка «не забран»")
 проверить(есть("llm_policy.py", "br.write_opening()", "br.clear_opening()", '"--no-open"'),
           "(5г) llm_policy: эпизоды с --new, --no-open")
