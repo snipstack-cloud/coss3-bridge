@@ -136,6 +136,8 @@ description: Работа над мостом Cossacks 3, где модель и
 
 ```bash
 python3 verify_blocks.py "<игра>" block_hstate.inc          # семь классов ошибок
+# первый аргумент — ПАПКА ИГРЫ; без неё первый блок съедается как папка
+# и приговор СТОП выносится на непроверенном (3.11)
 python3 install_bridge.py /tmp/песочница --reinstall --human-only \
         --human-state --human-cmd --endgame --human-kills --outdir /tmp/io
 ```
