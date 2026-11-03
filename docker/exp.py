@@ -227,7 +227,7 @@ def команда_run(a) -> int:
         with open(os.path.join(каталог, "опыт.json"), "w", encoding="utf-8") as f:
             json.dump({"опыт": a.ид, "что": s.get("что", ""), "ref": ref,
                        "флаги": флаги, "копия": n, "начало": начало,
-                       "база": s.get("база", "")}, f, ensure_ascii=False, indent=1)
+                       "база": s.get("база", ""), "флаги2": s.get("флаги2", "").strip()}, f, ensure_ascii=False, indent=1)
         аргс = ["run", "-d",
                 "--name", f"coss3-{a.ид}-{n}",
                 "-v", f"{ПРОФИЛЬ}:/profile",
@@ -236,6 +236,12 @@ def команда_run(a) -> int:
                 "-v", f"{os.path.abspath(каталог)}:/io",
                 "-e", f"COSS3_BRIDGE_REF={ref}",
                 "-e", f"COSS3_EXTRA_FLAGS={' '.join(флаги)}",
+                # ИМЯ ОПЫТА И СВЕЖИЙ entrypoint (3.11, Windows (165)): без COSS3_EXPERIMENT entrypoint не читает идею —
+                # её `условия` (нация, век) и `флаги2` (второй бот) не применялись, прогон шёл «одиночным»; а без
+                # монтирования шёл entrypoint из ОБРАЗА (291 строка против 744 в репозитории) — копии падали на Xvfb.
+                # Ручной docker run Windows делал оба, поэтому его 29 копий шли.
+                "-e", f"COSS3_EXPERIMENT={a.ид}",
+                "-v", f"{os.path.join(КОРЕНЬ, 'entrypoint.sh')}:/opt/bridge/entrypoint.sh:ro",
                 "-p", f"{5900 + n}:5900"]
         if репо:
             аргс += ["-e", f"COSS3_BRIDGE_GIT={репо}"]
