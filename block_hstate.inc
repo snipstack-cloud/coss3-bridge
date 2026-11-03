@@ -493,6 +493,14 @@
       [*] = ;         var hswside : String = '';   // N/S/E/W, as for ore deposits
       [*] = ;         var hswhurt : Integer = 0;   // soldiers with hp below max - being hit
       [*] = ;         var hswfar  : Integer = 0;   // how far the furthest one got
+      [*] = ;         // DISTANCE IN UNITS, NOT BY CELL (3.11, Windows (174)): mil_away is a yes/no per cell, and a heap of
+      [*] = ;         // 140 that steps over one cell border halves it with nobody retreating - 36 such drops in 277 traces.
+      [*] = ;         // mil_dist_avg - mean distance of ALL soldiers from the hall, units; mil_away_u - soldiers further
+      [*] = ;         // than 1.5 cells in units (about where mil_away starts). Old mil_away stays: rules read it.
+      [*] = ;         var hswdsum : Float = 0;     // sum of unit distances of all soldiers
+      [*] = ;         var hswdcnt : Integer = 0;   // soldiers counted in that sum
+      [*] = ;         var hswawu  : Integer = 0;   // soldiers further than hswthr units
+      [*] = ;         var hswthr  : Float = 1.5*hqw/hqn;
       [*] = ;         if (hscen > 0) then
       [*] = ;         begin
       [*] = ;            var hswi : Integer;
@@ -526,6 +534,10 @@
       [*] = ;                        hswsx := hswsx + (GetGameObjectPositionXByHandle(hswh) - hscx);
       [*] = ;                        hswsz := hswsz + (GetGameObjectPositionZByHandle(hswh) - hscz);
       [*] = ;                     end;
+      [*] = ;                     hswdsum := hswdsum + hswd;
+      [*] = ;                     hswdcnt := hswdcnt + 1;
+      [*] = ;                     if (hswd > hswthr) then
+      [*] = ;                     hswawu := hswawu + 1;
       [*] = ;                     if (hswd > hswfar) then
       [*] = ;                     hswfar := hswd;
       [*] = ;                     if (TObj(hswo).hp < gPlayer[plind].objbase[TObj(hswo).cid][TObj(hswo).id].maxhp) then
@@ -548,6 +560,9 @@
       [*] = ;         ParserSetValueByKeyByHandle(hsp, 'mil_side', hswside);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_hurt', hswhurt);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_far',  hswfar);
+      [*] = ;         if (hswdcnt > 0) then
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_dist_avg', Round(hswdsum/hswdcnt));
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_away_u', hswawu);
       [*] = ;         // WAVE_SENT: how many were in the LAST wave we sent.
       [*] = ;         //
       [*] = ;         // It was called wave_alive for one run, and that was a lie. The group

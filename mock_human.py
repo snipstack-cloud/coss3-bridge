@@ -809,6 +809,9 @@ class Мир:
              "mil_far": 210 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
              "mil_near": 150 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 0,
              "mil_side": "NE" if (self.волна or getattr(self, "ушли_без_боя", 0)) else "",
+             # 3.11 (175): то же «в поле» в единицах карты (block_hstate: mil_dist_avg, mil_away_u)
+             "mil_dist_avg": 160 if (self.волна or getattr(self, "ушли_без_боя", 0)) else 20,
+             "mil_away_u": self.волна + getattr(self, "ушли_без_боя", 0),
              # ДЕРЖАЩИЕ НЕ СВОБОДНЫ (§102): в блоке это `not bstandground` в
              # счёте `hsfree`, здесь — вычет состава групп с режимом 4. Без этого
              # мок обещал бы свободных, которых приказ по числу взять не может, и
