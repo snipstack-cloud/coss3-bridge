@@ -501,6 +501,7 @@
       [*] = ;         var hswdcnt : Integer = 0;   // soldiers counted in that sum
       [*] = ;         var hswawu  : Integer = 0;   // soldiers further than hswthr units
       [*] = ;         var hswthr  : Float = 1.5*hqw/hqn;
+      [*] = ;         var hswdavg : Integer = 0;   // written ALWAYS, 0 with no soldiers (Windows (176): a missing key reads as zero anyway)
       [*] = ;         if (hscen > 0) then
       [*] = ;         begin
       [*] = ;            var hswi : Integer;
@@ -561,7 +562,8 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_hurt', hswhurt);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_far',  hswfar);
       [*] = ;         if (hswdcnt > 0) then
-      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_dist_avg', Round(hswdsum/hswdcnt));
+      [*] = ;         hswdavg := Round(hswdsum/hswdcnt);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_dist_avg', hswdavg);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'mil_away_u', hswawu);
       [*] = ;         // WAVE_SENT: how many were in the LAST wave we sent.
       [*] = ;         //
