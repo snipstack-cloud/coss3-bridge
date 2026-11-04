@@ -24,6 +24,7 @@
 """
 from __future__ import annotations
 import argparse
+import glob
 import os
 import random
 import re
@@ -77,8 +78,16 @@ for _s in (sys.stdout, sys.stderr):
            # слот 1. Нет второго бота — файлов нет, и строка ничего не меняет.
            "coss3_bot_P1.jsonl", "coss3_snap_P1.jsonl"]
 # Что отправляем хвостом: строк и сколько.
-ХВОСТОМ = {"policy.log": 400, "coss3_llm.log": 400, "game.log": 300,
-           "install.log": 200, "report.txt": 800, "policy_P1.log": 400}
+ХВОСТОМ = {"game.log": 300, "install.log": 200, "report.txt": 800,
+           # Лог пускателя: в живой партии он единственный говорит, сколько раз
+           # бота перезапускали посреди матча и на какой секунде.
+           "launcher.log": 200}
+# ТО ЖЕ ХВОСТОМ, НО ПО МАСКЕ (4.11). Жёсткий список имён молча терял логи живой
+# партии с перезапуском бота: политика второго пуска пишет `policy2.log`, а лог
+# модели первого уезжает в `coss3_llm.11-04_2053.log`. Третья живая партия
+# Польши ушла бы маку БЕЗ ЛОГА ПОЛИТИКИ ВООБЩЕ — `policy.log` в ней не
+# существует. Маска берёт и `policy_P1.log` второго бота.
+ХВОСТОМ_МАСКИ = {"policy*.log": 400, "coss3_llm*.log": 400}
 
 # Похожее на ключ. Список нарочно шире, чем «наши» ключи: в логи попадает то,
 # чего туда не клали, и обыск должен ловить чужое тоже.
@@ -136,6 +145,16 @@ def собрать(io: str, куда: str) -> list[str]:
             with open(os.path.join(куда, имя), "w", encoding="utf-8") as f:
                 f.write(т)
             собрано.append(имя)
+    for маска, строк in ХВОСТОМ_МАСКИ.items():
+        for и in sorted(glob.glob(os.path.join(io, маска))):
+            имя = os.path.basename(и)
+            if имя in собрано:
+                continue
+            т = хвост(и, строк)
+            if т.strip():
+                with open(os.path.join(куда, имя), "w", encoding="utf-8") as f:
+                    f.write(т)
+                собрано.append(имя)
     return собрано
 
 
