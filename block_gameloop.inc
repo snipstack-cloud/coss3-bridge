@@ -4,6 +4,42 @@
       [*] = ;   // the same way lib/miscext3.script does it.
       [*] = ;   if (plind = GetPlayerIndexInterfaceIO) and (not _net_IsClient) and (not _net_IsReplay) then
       [*] = ;   begin
+      [*] = ;      // NEW MATCH BY THE CLOCK (5.11, mac, item 3 of the block list; live games 2 and 3 of 4.11). A match started from the
+      [*] = ;      // game menu sends no NEW, and br_hdef/br_hkite/br_hbal outlived the previous match: the defence reflex read 'on' from
+      [*] = ;      // the first tick with nobody near, holds were stripped all game, the fist stood while recruits piled at the barracks.
+      [*] = ;      // Game time running backwards means a new match: every parser of ours that remembers a match is cleared here, before
+      [*] = ;      // the state and command blocks of this tick, and it is said aloud once. The first tick ever creates the clock only.
+      [*] = ;      var brmp : Integer = ParserSelectByKey('br_match');
+      [*] = ;      var brmnow : Float = GetGameTime;
+      [*] = ;      var brmlast : Float = -1;
+      [*] = ;      if (brmp = 0) then
+      [*] = ;      brmp := ParserCreate('br_match')
+      [*] = ;      else
+      [*] = ;      brmlast := ParserGetFloatValueByKeyByHandle(brmp, 'gt');
+      [*] = ;      if (brmlast >= 0) and (brmnow < brmlast - 2.0) then
+      [*] = ;      begin
+      [*] = ;      var brmq : Integer;
+      [*] = ;      brmq := ParserSelectByKey('br_hgrp');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hwave');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_kills');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hstate');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hfail');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hlog');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hdef');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hkite');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      brmq := ParserSelectByKey('br_hbal');
+      [*] = ;      if (brmq <> 0) then ParserClearByHandle(brmq);
+      [*] = ;      Log('bridge-human: NEW MATCH by the clock at ' + IntToStr(Round(brmnow)) + ' s (last seen ' + IntToStr(Round(brmlast)) + ' s) - memory of the previous match cleared');
+      [*] = ;      end;
+      [*] = ;      ParserSetFloatValueByKeyByHandle(brmp, 'gt', brmnow);
       [*] = ;      var hhb : Integer = ParserSelectByKey('br_hb');
       [*] = ;      var brhblast : Integer = -1000;
       [*] = ;      if (hhb = 0) then
