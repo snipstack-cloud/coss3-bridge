@@ -38,8 +38,10 @@ def стратегия(ключи):
     return с
 
 
-ТУРЦИЯ = "infantry17=pikemantur,hp95,atk9 musk17=jannisary,hp65,atk12 uniq_cav17=tatar,hp185,atk15"
-ПОЛЬША = "infantry17=pikemanpol,hp90,atk8 musk17=musketeerpol,hp70,atk9"
+# Живой вид (проба tur_raid_pol 4.11): у ЧУЖИХ бойцов sid нет, только статы — распознавание по отпечатку здоровья
+ТУРЦИЯ = ("infantry17=hp95,atk9,wkind1,pause0,rmax206 musk17=hp65,atk12,wkind3,pause469,rmax1594 "
+          "uniq_inf17=hp55,atk5,wkind2 reitar=hp230,atk15 uniq_cav17=hp185,atk140,wkind6,pause469,rmax2062")
+ПОЛЬША = "infantry17=hp90,atk11,wkind1 musk17=hp70,atk9,wkind3 uniq_cav17=hp190,atk9 reitar=hp225,atk14"
 # Карта 256: клетка 16 единиц. Ратуша в (2,2); шахты: (3,2) — у дома, (10,10) — дальняя (центр клетки 168,168).
 СОСТ = {
     "gametime": 400.0, "map_w": 256, "map_h": 256,
@@ -115,6 +117,22 @@ def шаг(с, **изм):
 проверить(len(из) == 1 and (из[0]["cx"], из[0]["cy"]) == (2, 2) and "домой" in стр, "(8б) тихо 35 с — домой")
 из, _ = шаг(с, gametime=470.0, ecells=НАЛЁТ)
 проверить(len(из) == 1 and из[0]["group"] == 81, "(8в) снова свободен и послан")
+
+# (9) 4.11 (206): ФАЙЛЫ — ключи в «итог»: живая стратегия читает `w.get("итог", w)` (strategy_live.py), а (204)/(205)
+#     положили их в «лучший», и обе пробы tur_raid отыграли без сторожей и без налётчика
+import json
+_ф = json.load(open("sim/поиск/ветка_казарма3_качели2_лес_академия2_копить_турция.json", encoding="utf-8"))
+проверить(int(_ф["итог"].get("против_турции") or 0) == 1, "(9а) против_турции в итог файла _турция")
+_н = json.load(open("sim/поиск/турция_налётчик_татары.json", encoding="utf-8"))
+проверить(_н["итог"].get("резак_who") == "uniq_cav17" and float(_н["итог"].get("конюшня_с") or 0) > 0
+          and int(_н["итог"].get("резак_крестьян") or 0) > 0, "(9б) налётчик: конюшня и резак в итог")
+# (10) отпечаток на ЖИВОЙ строке из пробы (Турция) и на польской — не путать
+_живая = ("infantry17=hp95,atk9,wkind1,pause0,rmax206,dmgs0,dmgp0,dinit9,dpike0,dsword0,dbullet0 musk17=hp65,atk12,wkind3,"
+          "pause469,rmax1594,dmgs0,dmgp0,dinit12,dpike0,dsword0,dbullet0 uniq_inf17=hp55,atk5,wkind2,pause0,rmax94,dmgs0,dmgp0,"
+          "dinit5,dpike0,dsword0,dbullet0 reitar=hp230,atk15,wkind1,pause0,rmax188,dmgs0,dmgp0,dinit15,dpike0,dsword1,dbullet0 "
+          "uniq_cav17=hp185,atk140,wkind6,pause469,rmax2062,dmgs0,dmgp0,dinit140,dpike0,dsword0,dbullet0")
+проверить(СЖ._враг_турция({"p1_fighters": _живая}), "(10а) живая строка Турции распознана")
+проверить(not СЖ._враг_турция({"p1_fighters": ПОЛЬША}), "(10б) Польша не Турция")
 
 print(f"selftest_турция: {ок} из {ок + len(пало)}")
 for и in пало:

@@ -1767,10 +1767,8 @@ class ЖиваяСтратегия:
                 return текст
             return ""
 
-        if ключ == 1:
-            его = str(st.get("p1_fighters") or "")
-            if not any(sid in его for sid in ("=tatar,", "=jannisary,", "=pikemantur,", "=spakh,", "=sipahi,")):
-                return из, ""
+        if ключ == 1 and not _враг_турция(st):
+            return из, ""
         try:
             дом = _наша_база(st)
         except (TypeError, ValueError, KeyError):
@@ -3448,6 +3446,20 @@ def _клетки_крестьян(st: dict, его_кл: list) -> list:
                 охр = sum(int(c.get("n") or 0) for c in его_кл if max(abs(int(c["x"]) - x), abs(int(c["y"]) - y)) <= 1)
                 из.append(dict(x=x, y=y, крестьян=n, бойцов_рядом=охр))
     return из
+
+
+def _враг_турция(st: dict) -> bool:
+    """Враг — Турция? По ОТПЕЧАТКУ СТАТОВ в `p1_fighters` (4.11 (205), проба tur_raid_pol): у ЧУЖИХ бойцов блок sid не
+    пишет — только `роль=hp..,atk..`, и поиск `=tatar,` молчал всю партию. Здоровье ролей Турции из unit.script:
+    пикинёр 95, янычар 65, лёгкая пехота 55, татарин 185 (он же дальность 2062). Турция — если сошлись три роли из
+    четырёх: hp ступенями почти не растёт, а одна случайная совпадает у других наций. sid, если вдруг пришёл, — тоже."""
+    сырое = str(st.get("p1_fighters") or "")
+    if any(sid in сырое for sid in ("=tatar,", "=jannisary,", "=pikemantur,")):
+        return True
+    б = _разбор_бойцов(сырое)
+    отпечаток = {"infantry17": 95, "musk17": 65, "uniq_inf17": 55, "uniq_cav17": 185}
+    сошлось = sum(1 for р, hp in отпечаток.items() if int(float((б.get(р) or {}).get("hp", -1) or -1)) == hp)
+    return сошлось >= 3
 
 
 def _наша_база(st: dict) -> tuple:
