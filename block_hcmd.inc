@@ -3376,6 +3376,19 @@
       [*] = ;               hdon := ParserGetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind));
       [*] = ;               hdt := ParserGetFloatValueByKeyByHandle(hdp, 't' + IntToStr(plind));
       [*] = ;               hdseen := ParserGetFloatValueByKeyByHandle(hdp, 'seen' + IntToStr(plind));
+      [*] = ;               // STALE MATCH (4.11 evening, live game 2): br_hdef outlives the match. Without a game restart 'on' was 1 from the first
+      [*] = ;               // tick with 0 enemies near, and the off-timer compared the clock with 'seen' of the previous game. A 'seen' or 't' in the
+      [*] = ;               // future means a new game - start clean (python guards itself the same way: defend_on counts only with defend_n >= hdoff).
+      [*] = ;               if (hdseen > hdnow) or (hdt > hdnow) then
+      [*] = ;               begin
+      [*] = ;               hdon := 0;
+      [*] = ;               hdseen := 0;
+      [*] = ;               hdt := 0;
+      [*] = ;               ParserSetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind), 0);
+      [*] = ;               ParserSetFloatValueByKeyByHandle(hdp, 'seen' + IntToStr(plind), 0);
+      [*] = ;               ParserSetFloatValueByKeyByHandle(hdp, 't' + IntToStr(plind), 0);
+      [*] = ;               Log('bridge-human: DEFENCE flags from a previous match dropped at ' + IntToStr(Round(hdnow)) + ' s');
+      [*] = ;               end;
       [*] = ;               hdfire := False;
       [*] = ;               if (hden >= hdmin) then
       [*] = ;               begin

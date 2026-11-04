@@ -171,6 +171,19 @@ _b = CB.Bridge.__new__(CB.Bridge)
 _пр = CB.Bridge._приказ(_b, 3, "cell", "retreat", 2, 13, "", 0, 0, [5, 13], None, None, None, None, None, None, None, None, 4, 13)
 проверить(_пр is not None and _пр.get("sx") == 4 and _пр.get("sy") == 13 and _пр.get("cx") == 2, f"(8г) приказ моста несёт sx/sy: {_пр}")
 
+# (9) застывший флаг (219в): партия 2, defend_on 1 при defend_n 0 с первого такта — стойка дома должна идти; (10) подвод пачкой
+С9 = стратегия({"судья_удара": 0})
+п9 = прогнать(С9, такты("живая_польша_04_11_2", 255, 300))
+ст9 = [(mm(g), c.get("count"), c.get("group")) for g, о in п9 for c in о["commands"] if c["cmd"] == "MOVE" and c.get("group") == С9.ЗАСЛОН]
+print("  стойка дома при застывшем флаге:", ст9[:3], "| defend_on/n:", [(s.get("defend_on"), s.get("defend_n")) for s in такты("живая_польша_04_11_2", 255, 260)])
+проверить(bool(ст9), "(9) стойка дома идёт при defend_on 1 и defend_n < 12 (флаг застывший)")
+проверить(not SL._рефлекс_жив({"defend_on": 1, "defend_n": 0}) and SL._рефлекс_жив({"defend_on": 1, "defend_n": 30}), "(9б) _рефлекс_жив: 0 врагов — нет, 30 — да")
+С10 = стратегия({"судья_удара": 0})
+п10 = прогнать(С10, такты("живая_польша_04_11_2", 300, 400))
+пд = [(mm(g), c.get("count"), c.get("merge")) for g, о in п10 for c in о["commands"] if c["cmd"] == "MOVE" and c.get("group") == С10.ПОДМОГА]
+print("  подвод пачкой:", пд)
+проверить(len(пд) >= 2 and all(n >= 8 and m == 1 for _, n, m in пд), "(10) подвод ≥ 8 с merge не реже раза в минуту на 5:00–6:40")
+
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
 raise SystemExit(1 if пало else 0)
