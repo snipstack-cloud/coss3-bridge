@@ -155,6 +155,22 @@ print("  all-приказы:", все7, "| сняты пачкой:", пач7)
 все7б = [(mm(g), c.get("count")) for g, о in прогнать(С7б, такты("живая_польша_04_11", 525, 590)) for c in о["commands"] if c["cmd"] in ("ATTACK", "ENGAGE")]
 проверить(len(все7б) >= 5, f"(7б) с ключом 0 — как было, all каждые 10 с ({len(все7б)})")
 
+# (8) одиночки домой (219б): партия 1, 6:40–7:45 — кучки по 1–4 в (3..5,13) при волне в (1..2,12) и «сироты … заслон стоит — не трогаем»
+С8 = стратегия({"судья_удара": 0})
+п8 = прогнать(С8, такты("живая_польша_04_11", 400, 465))
+од8 = [(mm(g), c.get("count"), c.get("sx"), c.get("sy"), c.get("cx"), c.get("cy")) for g, о in п8 for c in о["commands"] if c["cmd"] == "RETREAT" and c.get("sx") is not None]
+print("  RETREAT из клетки:", од8[:6])
+проверить(bool(од8) and all(1 <= n <= 4 and 0 <= sx <= 15 for _, n, sx, sy, _, _ in од8), "(8) одиночки 1–4 отзываются RETREAT с клеткой-источником")
+проверить(all((cx, cy) != (sx, sy) for _, _, sx, sy, cx, cy in од8), "(8б) цель — дом, не та же клетка")
+С8б = стратегия({"судья_удара": 0, "одиночки_домой": 0})
+од8б = [c for g, о in прогнать(С8б, такты("живая_польша_04_11", 400, 465)) for c in о["commands"] if c["cmd"] == "RETREAT" and c.get("sx") is not None]
+проверить(not од8б, "(8в) с ключом 0 — как было, приказов из клетки нет")
+# сквозной путь: словарь приказа моста несёт sx/sy
+import coss3_bridge as CB
+_b = CB.Bridge.__new__(CB.Bridge)
+_пр = CB.Bridge._приказ(_b, 3, "cell", "retreat", 2, 13, "", 0, 0, [5, 13], None, None, None, None, None, None, None, None, 4, 13)
+проверить(_пр is not None and _пр.get("sx") == 4 and _пр.get("sy") == 13 and _пр.get("cx") == 2, f"(8г) приказ моста несёт sx/sy: {_пр}")
+
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
 raise SystemExit(1 if пало else 0)

@@ -889,7 +889,7 @@ class Bridge:
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-               merge=None, arrive=None, ret=None) -> bool:
+               merge=None, arrive=None, ret=None, sx=None, sy=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -909,7 +909,7 @@ class Bridge:
         if os.path.exists(self.atk_path):
             return False
         приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
-                              face, hold, gap, step, far, всех, merge, arrive, ret)
+                              face, hold, gap, step, far, всех, merge, arrive, ret, sx, sy)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
@@ -917,8 +917,12 @@ class Bridge:
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                 gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-                merge=None, arrive=None, ret=None):
+                merge=None, arrive=None, ret=None, sx=None, sy=None):
         """Один приказ словарём полей файла, или None, если он негоден.
+
+        `sx`/`sy` (4.11 вечер, слово игрока «стоящих в поле одиночек убери»): КЛЕТКА-ИСТОЧНИК счётного приказа — блок берёт
+        только бойцов, стоящих в ней (отбор числом шёл по порядку списка объектов и увёл бы волну вместо одиночки). Нет
+        ключа — как было; старый блок лишних ключей не читает.
 
         `всех` (28.10, Д20, ключ файла `all`): ВЕСЬ ДОМ — блок берёт и держащих строй, снимает удержание и ведёт
         каждый наш отряд КАК ОТРЯД в ту же цель. Без ключа — как было: только свободные, отряды стоят.
@@ -1054,6 +1058,13 @@ class Bridge:
         # целого «ключа нет» и «клетка 0,0» выглядят одинаково.
         if _кл:
             приказ["fx"], приказ["fy"] = _кл
+        if sx is not None and sy is not None:
+            try:
+                _sx, _sy = int(sx), int(sy)
+                if 0 <= _sx <= 15 and 0 <= _sy <= 15:
+                    приказ["sx"], приказ["sy"] = _sx, _sy
+            except (TypeError, ValueError):
+                pass
         if всех and not движение and _режим != "engage":
             приказ["all"] = 1
         # ПУНКТ 2 списка улучшений блока (31.10): merge — состав группы НЕ заменяется, новые добавляются к запомненным
@@ -1107,7 +1118,7 @@ class Bridge:
                 п.get("face"),
                 п.get("hold"),
                 п.get("gap"), п.get("step"), п.get("far"), п.get("all"),
-                п.get("merge"), п.get("arrive"), п.get("ret"))
+                п.get("merge"), п.get("arrive"), п.get("ret"), п.get("sx"), п.get("sy"))
             if собран is None:
                 return False
             готовые.append(собран)

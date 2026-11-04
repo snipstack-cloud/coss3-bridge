@@ -4176,6 +4176,7 @@ def цена_труда(st: dict, было: dict | None) -> list[str]:
 СЧЁТ_ПО_ГРУППЕ: bool = False     # MOVE/RETREAT/ENGAGE/FACE группе без числа
 СЛИЯНИЕ_ДВИЖЕНИЯ: bool = False   # пункт 2 (31.10): MOVE merge=1 — состав группы не заменять
 ПРИБЫТИЕ_ДВИЖЕНИЯ: bool = False  # пункт 2 (31.10): MOVE arrive=1 — удержание по приходу
+ИСТОК_ДВИЖЕНИЯ = None            # (219б) RETREAT sx/sy: клетка-источник — блок берёт только стоящих в ней (одиночки домой)
 УДАР_ПО_ГРУППЕ: bool = False     # ATTACK группе без числа
 ВЕСЬ_ДОМ: bool = False           # ATTACK all=1 (28.10, Д20): весь дом, отряды как отряды, без урезания до свободных
 ЕГО_КР_ПОТЕРИ0: float = 0.0      # p1_pea_lost в первом такте партии — база приговора по горизонту (28.10, Д21: приговор печатался безусловно)
@@ -8829,6 +8830,7 @@ def to_commands(data: dict, доступные: set[str] | None = None,
     globals()["СЧЁТ_ПО_ГРУППЕ"] = False
     globals()["СЛИЯНИЕ_ДВИЖЕНИЯ"] = False
     globals()["ПРИБЫТИЕ_ДВИЖЕНИЯ"] = False
+    globals()["ИСТОК_ДВИЖЕНИЯ"] = None
     globals()["УДАР_ПО_ГРУППЕ"] = False
     globals()["ВЕСЬ_ДОМ"] = False
     globals()["КЛЕТКА_ВЗГЛЯДА"] = None
@@ -9104,6 +9106,13 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                     кем_движение = кем
                     if _гр > 0:
                         globals()["ГРУППА_ДВИЖЕНИЯ"] = _гр
+                    # (219б) клетка-источник: отзыв только стоящих в ней (одиночки домой)
+                    try:
+                        if item.get("sx") is not None and item.get("sy") is not None \
+                                and 0 <= int(item["sx"]) <= 15 and 0 <= int(item["sy"]) <= 15:
+                            globals()["ИСТОК_ДВИЖЕНИЯ"] = (int(item["sx"]), int(item["sy"]))
+                    except (TypeError, ValueError):
+                        pass
                     _ц = str(item.get("target", item.get("where", ""))).strip().lower()
                     if _ц == "cell":
                         кл = _клетка_из(item)
@@ -11796,7 +11805,9 @@ def одна_партия(a, client, br: Bridge, plind: int,
                     f"отзывать некого")
             elif not br.attack(0 if СЧЁТ_ПО_ГРУППЕ else движение, _куда, mode="retreat", who=кем_движение,
                                cx=клетка[0], cy=клетка[1], group=ГРУППА_ДВИЖЕНИЯ,
-                               face=КЛЕТКА_ВЗГЛЯДА):
+                               face=КЛЕТКА_ВЗГЛЯДА,
+                               sx=ИСТОК_ДВИЖЕНИЯ[0] if ИСТОК_ДВИЖЕНИЯ else None,
+                               sy=ИСТОК_ДВИЖЕНИЯ[1] if ИСТОК_ДВИЖЕНИЯ else None):
                 print("        RETREAT не отправлен: прошлый приказ ещё не забран игрой")
             else:
                 print(f"        RETREAT {движение}: бойцы дальше одной клетки от базы ({_вдали}) "

@@ -2554,6 +2554,12 @@ class ЖиваяСтратегия:
                 записи.append(_з)
         except Exception as e:
             записи.append(f"сироты/заслон не посчитаны: {type(e).__name__}")
+        try:
+            из, _од = self._одиночки_домой(из, st)       # (219б) стоящие в поле одиночки — домой приказом из их клетки
+            if _од:
+                записи.append(_од)
+        except Exception as e:
+            записи.append(f"одиночки не посчитаны: {type(e).__name__}")
         if float(п.get("подток", 0) or 0):
             пачка = int(float(п.get("пачка", 8) or 8))
             волна = self.реестр.активная()
@@ -2575,6 +2581,96 @@ class ЖиваяСтратегия:
         return из, "; ".join(записи)
 
     ЗАСЛОН_ПОЛЯ = 93
+
+    def _одиночки_домой(self, из: list, st: dict) -> tuple:
+        """ОДИНОЧКИ ДОМОЙ (4.11 вечер, слово игрока «стоящих в поле одиночек тоже убери», ключ `одиночки_домой` N; 0 — как было).
+        Правило сирот (§152) ждёт ≥ `без_волны_домой` бойцов в поле без волны и молчит при заслоне и волне в поле — в живой партии
+        1 кучки по 1–4 стояли в (3..5,13) с 6:18 по 7:43 («сироты 7 в поле, но заслон стоит — не трогаем») и по одному в (1,14),
+        (2,14) с 8:48 до конца. Здесь: наша клетка дальше 1 от ратуши с n ≤ N, не ближе 1 к клетке волны, её цели и пути между
+        ними, к заслону, к клетке встречи и к отряду — RETREAT числом n домой С КЛЕТКОЙ-ИСТОЧНИКОМ (`sx`/`sy`, правка блока
+        (219б): берутся только стоящие в ней, иначе отбор числом увёл бы волну), лицом к его ближней куче. Одна клетка за такт
+        (у политики одно движение в такт — молчим, если в такте уже есть MOVE/RETREAT/FACE/ENGAGE/KITE), самая дальняя первой,
+        повтор по клетке не чаще `одиночки_повтор` (30) с."""
+        п = self.п
+        N = int(float(п.get("одиночки_домой", 0) or 0))
+        if N <= 0:
+            return из, ""
+        if any(c.get("cmd") in ("MOVE", "RETREAT", "FACE", "ENGAGE", "KITE") for c in из):
+            return из, ""
+        import coss3_map as _КМ
+        t = float(st.get("gametime") or 0)
+        д = _дом(st)
+        if д is None:
+            return из, ""
+        _ч = lambda a, b: max(abs(int(a[0]) - int(b[0])), abs(int(a[1]) - int(b[1])))
+        наши_кл = [c for c in _список(st, "ocells", _КМ.наши_клетки) if int(c.get("n") or 0) > 0]
+        если_нет = [c for c in наши_кл if _ч((c["x"], c["y"]), д) > 1 and int(c.get("n") or 0) <= N]
+        if not если_нет:
+            return из, ""
+        # что не трогаем: волна (сбор, цель, путь между ними), заслон поля, клетка встречи, отряды
+        якоря, отрезки = [], []
+        волна = self.реестр.активная()
+        if волна is not None and волна.состояние != "КОНЧЕНА":
+            _сб = tuple(волна.сбор) if волна.сбор else None
+            _цл = tuple(волна.цель_клетка) if getattr(волна, "цель_клетка", None) else None
+            for _к in (_сб, _цл):
+                if _к is not None:
+                    якоря.append((int(_к[0]), int(_к[1])))
+            if _сб is not None and _цл is not None:
+                отрезки.append(((int(_сб[0]), int(_сб[1])), (int(_цл[0]), int(_цл[1]))))
+        for _k in ("wave_cx", "my_army_cx"):
+            _x, _y = st.get(_k), st.get(_k.replace("cx", "cy"))
+            if _x is not None and _y is not None:
+                try:
+                    якоря.append((int(_x), int(_y)))
+                except (TypeError, ValueError):
+                    pass
+        _зп = getattr(self, "_заслон_поля", None)
+        if _зп is not None and _зп.get("кл") is not None:
+            якоря.append((int(_зп["кл"][0]), int(_зп["кл"][1])))
+        _дг = getattr(self, "_дг", None) or {}
+        if _дг.get("клетка") is not None:
+            якоря.append((int(_дг["клетка"][0]), int(_дг["клетка"][1])))
+        for _отр in str(st.get("squads_list") or "").split(";"):
+            _ч5 = _отр.split(",")
+            if len(_ч5) >= 5 and _ч5[3].strip().lstrip("-").isdigit() and _ч5[4].strip().lstrip("-").isdigit():
+                якоря.append((int(_ч5[3]), int(_ч5[4])))
+        выход = getattr(self, "_выход_поля", None)
+        if выход is not None and выход.get("цель") is not None and t <= float(выход.get("до") or 0):
+            отрезки.append(((int(д[0]), int(д[1])), (int(выход["цель"][0]), int(выход["цель"][1]))))
+
+        def _до_отрезка(p, a, b):
+            ax, ay, bx, by = a[0], a[1], b[0], b[1]
+            dx, dy = bx - ax, by - ay
+            if dx == 0 and dy == 0:
+                return _ч(p, a)
+            u = max(0.0, min(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / float(dx * dx + dy * dy)))
+            return max(abs(p[0] - (ax + u * dx)), abs(p[1] - (ay + u * dy)))
+        память = getattr(self, "_одиночки_память", None)
+        if память is None or (память and t < min(память.values())):
+            память = self._одиночки_память = {}
+        повтор = float(п.get("одиночки_повтор", 30) or 30)
+        годные = []
+        for c in если_нет:
+            кл = (int(c["x"]), int(c["y"]))
+            if any(_ч(кл, я) <= 1 for я in якоря) or any(_до_отрезка(кл, a, b) <= 1.0 for a, b in отрезки):
+                continue
+            if t - память.get(кл, -1e9) < повтор:
+                continue
+            годные.append((c, кл))
+        if not годные:
+            return из, ""
+        c, кл = max(годные, key=lambda q: (_ч(q[1], д), int(q[0].get("n") or 0)))
+        n = int(c.get("n") or 0)
+        его_кл = [q for q in _список(st, "ecells", _КМ.его_клетки) if int(q.get("n") or 0) > 0]
+        ближ = min(его_кл, key=lambda q: _ч((q["x"], q["y"]), кл)) if его_кл else None
+        лицо = [int(ближ["x"]), int(ближ["y"])] if ближ else [int(д[0]), int(д[1])]
+        память[кл] = t
+        из.insert(0, {"cmd": "RETREAT", "count": n, "target": "cell", "cx": int(д[0]), "cy": int(д[1]),
+                      "sx": кл[0], "sy": кл[1], "face": лицо})
+        self.реестр.мера["одиночки домой"] += 1
+        return из, (f"ОДИНОЧКИ: наших {n} в ({кл[0]},{кл[1]}) ({_ч(кл, д)} кл. от ратуши) — домой приказом из клетки "
+                    f"(всего мелких клеток {len(если_нет)}, не трогаем у волны/заслона/отряда {len(если_нет) - len(годные)})")
 
     def _сироты_и_заслон(self, из: list, st: dict):
         """§152 (12.10, первый бой Д4). Два ключа файла стратегии, оба 0 — выкл.

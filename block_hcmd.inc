@@ -1831,6 +1831,13 @@
       [*] = ;         // the remembered roll walk home to the town hall (move mode default: a walk, not a hunt), checked once a game second
       [*] = ;         // below. Any later order to the same group disarms it. Missing key or 0: as before.
       [*] = ;         var haret : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'ret');
+      [*] = ;         // SOURCE CELL (4.11 evening, player's word 'take the lone men standing in the field away'): sx/sy on a counted order -
+      [*] = ;         // only men standing IN that cell of the 16x16 grid (hafn, the grid of hafbx above) qualify. A counted RETREAT took the
+      [*] = ;         // first N far men in object-list order and would have pulled the wave instead of the straggler. Missing key: as before.
+      [*] = ;         var hassrc : Boolean = (ParserGetValueByKeyByHandle(hah, hapre + 'sx') <> '');
+      [*] = ;         var hasx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'sx');
+      [*] = ;         var hasy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'sy');
+      [*] = ;         var hasrcn : Integer = 0;
       [*] = ;         var hasqn : Integer = 0;
       [*] = ;         var hasqm : Integer = 0;
       [*] = ;               // Turning in place is not combat, so truce does not forbid it - same
@@ -1898,6 +1905,14 @@
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then hatake2 := True;
+      [*] = ;                     // SOURCE CELL filter (4.11): with sx/sy the man must stand in that cell; counted below, said aloud after the pick.
+      [*] = ;                     if (hatake2) and (hassrc) then
+      [*] = ;                     begin
+      [*] = ;                     var hasux : Integer = floor((GetGameObjectPositionXByHandle(hago)+hafhw)*hafn/hafw);
+      [*] = ;                     var hasuy : Integer = floor((GetGameObjectPositionZByHandle(hago)+hafhh)*hafn/hafh);
+      [*] = ;                     if (hasux <> hasx) or (hasuy <> hasy) then hatake2 := False;
+      [*] = ;                     if (hatake2) then hasrcn := hasrcn + 1;
+      [*] = ;                     end;
       [*] = ;                     // The kind filter is applied LAST, after the idle/far test: the two
       [*] = ;                     // questions are separate, and mixing them would hide which one
       [*] = ;                     // refused the man.
@@ -1926,6 +1941,8 @@
       [*] = ;            end;
       [*] = ;            // WAVE PICK SAID ALOUD (31.10, Windows: 'roll cleaned' prints only when something was dropped, so a working
       [*] = ;            // filter would be proven by silence - and silence has other causes). Alive taken by the first pass, corpses met.
+      [*] = ;            if (hassrc) then
+      [*] = ;            Log('bridge-human: source cell ' + IntToStr(hasx) + ',' + IntToStr(hasy) + ': ' + IntToStr(hasrcn) + ' men taken from it');
       [*] = ;            Log('bridge-human: wave pick at ' + IntToStr(Round(GetGameTime)) + ' s: ' + IntToStr(gIntegerList.GetCount) + ' alive taken, ' + IntToStr(hadead) + ' dead skipped, ' + IntToStr(haheldn) + ' holding refused');
       [*] = ;            // MIRRORED INTO THE STATE (31.10, Windows: on Windows the game writes no log with bridge lines; in the container there is no
       [*] = ;            // battle - a measure named by a log line is judged nowhere). Last pick: time, alive, dead, refused -> hstate pick_*.
