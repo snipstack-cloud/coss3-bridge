@@ -166,6 +166,11 @@ _н = json.load(open("sim/поиск/турция_налётчик_лучник�
 проверить(int(_н["итог"].get("без_атаки_резак") or 0) == 1 and _н["итог"].get("резак_who") == "archer",
           "(12в) налётчик лучниками: ключ в итог")
 
+# (13) 4.11 (210): TRAIN archer у Турции уходил в 'archerdip' (дипцентр, «no producer» 26 раз в tur_arch_pol) — блок
+#      для роли лучника берёт член нации без 'dip'
+проверить("if (hca1 = gc_ai_unit_archer) and (hcid >= 0) then" in _блок
+          and "(not StrExists(gCountry[hccid].members[hcj], 'dip'))" in _блок, "(13) TRAIN archer минует archerdip")
+
 print(f"selftest_турция: {ок} из {ок + len(пало)}")
 for и in пало:
     print("  ПАЛО:", и)

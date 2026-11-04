@@ -232,6 +232,13 @@
       [*] = ;               for hcj := 0 to gc_country_maxmembers-1 do
       [*] = ;               if (hcid < 0) and (gObjProp[hccid][hcj].airole = hca1) then
       [*] = ;               hcid := hcj;
+      [*] = ;               // 4.11 (210): the archer role is first held by the diplomatic 'archerdip' (no producer), so
+      [*] = ;               // TRAIN archer never reached the barracks 'archertur'. For this role only, take a non-dip member.
+      [*] = ;               if (hca1 = gc_ai_unit_archer) and (hcid >= 0) then
+      [*] = ;               if (StrExists(gCountry[hccid].members[hcid], 'dip')) then
+      [*] = ;               for hcj := 0 to gc_country_maxmembers-1 do
+      [*] = ;               if (gObjProp[hccid][hcj].airole = hca1) and (not StrExists(gCountry[hccid].members[hcj], 'dip')) then
+      [*] = ;               hcid := hcj;
       [*] = ;               // A role this nation has no object for used to vanish here without
       [*] = ;               // a trace, and from the Python side that is indistinguishable from
       [*] = ;               // 'not enough resources'. Say it out loud instead.
