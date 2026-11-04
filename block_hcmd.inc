@@ -1853,6 +1853,18 @@
       [*] = ;            // Order TO an existing group carries no count: the men are the ones
       [*] = ;            // remembered when the group was made, minus the dead.
       [*] = ;            var hagold : Boolean = (hagid > 0) and (hawant <= 0);
+      [*] = ;            // NOT THOSE ALREADY AT THE TARGET (5.11, mac, item 1 of the block list; game.log of live game 2, 4.11): a counted order
+      [*] = ;            // took the first N idle men in object-list order - the oldest, i.e. the fist standing at the target - and 'led' them
+      [*] = ;            // into their own cell three times (5:34, 6:24, 7:12), while the recruits piled at the barracks. A counted ATTACK/MOVE
+      [*] = ;            // into a cell is picked in TWO PASSES: first everybody NOT standing in the target cell, then, if the count is short,
+      [*] = ;            // those in it (the old order). The count is always met when the men exist; what was deferred and refilled is logged.
+      [*] = ;            // Orders to a remembered group, ALL, RETREAT/ENGAGE/FACE/KITE and targets other than a cell: as before.
+      [*] = ;            var hask : Boolean = (hatrg = 'cell') and (not haall) and (not hagold) and (not haretreat) and (not haengage) and (not haface) and (not hakite);
+      [*] = ;            var hanear : Integer = 0;
+      [*] = ;            var hanfill : Integer = 0;
+      [*] = ;            var hapass : Integer;
+      [*] = ;            var haskcx : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cx');
+      [*] = ;            var haskcy : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'cy');
       [*] = ;            // MOVE: the same order file, only the mode differs. A player moves his
       [*] = ;            // troops wherever he likes with a click and is not obliged to send them
       [*] = ;            // into battle; the bot had ATTACK and nothing else, so a manoeuvre -
@@ -1866,13 +1878,14 @@
       [*] = ;            hagkeep := 0;
       [*] = ;            hagtot := 0;
       [*] = ;            gIntegerList.Clear;
+      [*] = ;            for hapass := 0 to 1 do
       [*] = ;            for hak := 0 to han-1 do
       [*] = ;            if (gIntegerList.GetCount < hawant) then
       [*] = ;            begin
       [*] = ;               var hago : Integer = GetGameObjectHandleByIndex(hak, haph);
       [*] = ;               var hapo : Pointer = _unit_GetTObj(hago);
       [*] = ;               if (hapo<>nil) then
-      [*] = ;               if (TObj(hapo).bdead) then
+      [*] = ;               if (TObj(hapo).bdead) and (hapass = 0) then
       [*] = ;               hadead := hadead + 1;
       [*] = ;               if (hapo<>nil) then
       [*] = ;               // CORPSES STAY IN THE PLAYER'S OBJECT LIST (31.10, 76 'roll cleaned' lines, 16 with >= 50% dead a second after the pick): dead men are not ours to count or to order. Wave pick.
@@ -1905,6 +1918,25 @@
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     if (TObj(hapo).orders[0].itype = gc_obj_order_type_none) then hatake2 := True;
+      [*] = ;                     // SECOND PASS (5.11, item 1): a man taken in the first pass is not taken again; counters below see new candidates only.
+      [*] = ;                     if (hatake2) and (hapass = 1) and (gIntegerList.GetCount > 0) then
+      [*] = ;                     for hatk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                     if (gIntegerList.Get(hatk) = hago) then
+      [*] = ;                     hatake2 := False;
+      [*] = ;                     // ALREADY AT THE TARGET (5.11, item 1): skip a man standing in the target cell or next to it.
+      [*] = ;                     if (hatake2) and (hask) and (hapass = 0) then
+      [*] = ;                     begin
+      [*] = ;                     var haskx : Integer = floor((GetGameObjectPositionXByHandle(hago)+hafhw)*hafn/hafw);
+      [*] = ;                     var hasky : Integer = floor((GetGameObjectPositionZByHandle(hago)+hafhh)*hafn/hafh);
+      [*] = ;                     var haskd : Integer = Round(Abs(haskx - haskcx));
+      [*] = ;                     var haskdy : Integer = Round(Abs(hasky - haskcy));
+      [*] = ;                     if (haskd < haskdy) then haskd := haskdy;
+      [*] = ;                     if (haskd = 0) then
+      [*] = ;                     begin
+      [*] = ;                     hatake2 := False;
+      [*] = ;                     hanear := hanear + 1;
+      [*] = ;                     end;
+      [*] = ;                     end;
       [*] = ;                     // SOURCE CELL filter (4.11): with sx/sy the man must stand in that cell; counted below, said aloud after the pick.
       [*] = ;                     if (hatake2) and (hassrc) then
       [*] = ;                     begin
@@ -1927,8 +1959,8 @@
       [*] = ;                     if (hatake2) and (hahled) and (not haall) then
       [*] = ;                     begin
       [*] = ;                        hatake2 := False;
-      [*] = ;                        haheldn := haheldn + 1;
-      [*] = ;                        if (TObj(hapo).squad < 0) then hadefo := hadefo + 1;
+      [*] = ;                        if (hapass = 0) then haheldn := haheldn + 1;
+      [*] = ;                        if (hapass = 0) and (TObj(hapo).squad < 0) then hadefo := hadefo + 1;
       [*] = ;                     end;
       [*] = ;                     // Already taken by an earlier order of THIS tick - skip.
       [*] = ;                     if (hatake2) and (gTmpIntList.GetCount > 0) then
@@ -1936,6 +1968,7 @@
       [*] = ;                     if (gTmpIntList.Get(hatk) = hago) then
       [*] = ;                     hatake2 := False;
       [*] = ;                     if (hatake2) then gIntegerList.Add(hago);
+      [*] = ;                     if (hatake2) and (hapass = 1) then hanfill := hanfill + 1;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;
@@ -1943,6 +1976,8 @@
       [*] = ;            // filter would be proven by silence - and silence has other causes). Alive taken by the first pass, corpses met.
       [*] = ;            if (hassrc) then
       [*] = ;            Log('bridge-human: source cell ' + IntToStr(hasx) + ',' + IntToStr(hasy) + ': ' + IntToStr(hasrcn) + ' men taken from it');
+      [*] = ;            if (hask) and (hanear > 0) then
+      [*] = ;            Log('bridge-human: pick deferred ' + IntToStr(hanear) + ' men standing in the target cell ' + IntToStr(haskcx) + ',' + IntToStr(haskcy) + ', ' + IntToStr(hanfill) + ' of them taken to fill the count');
       [*] = ;            Log('bridge-human: wave pick at ' + IntToStr(Round(GetGameTime)) + ' s: ' + IntToStr(gIntegerList.GetCount) + ' alive taken, ' + IntToStr(hadead) + ' dead skipped, ' + IntToStr(haheldn) + ' holding refused');
       [*] = ;            // MIRRORED INTO THE STATE (31.10, Windows: on Windows the game writes no log with bridge lines; in the container there is no
       [*] = ;            // battle - a measure named by a log line is judged nowhere). Last pick: time, alive, dead, refused -> hstate pick_*.
