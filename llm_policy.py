@@ -9063,6 +9063,13 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                     if total <= 0:
                         globals()["СЧЁТ_ПО_ГРУППЕ"] = True
                         total = 1
+                    # (219г) клетка-источник у MOVE: подвод новобранцев берётся из их клетки, а не первых по списку объектов
+                    try:
+                        if item.get("sx") is not None and item.get("sy") is not None \
+                                and 0 <= int(item["sx"]) <= 15 and 0 <= int(item["sy"]) <= 15:
+                            globals()["ИСТОК_ДВИЖЕНИЯ"] = (int(item["sx"]), int(item["sy"]))
+                    except (TypeError, ValueError):
+                        pass
                     движение = max(движение, total)
                     цель = str(item.get("target", item.get("where", ""))).strip().lower()
                     if цель in ПОЛИТИКА["цели_MOVE"]:
@@ -11822,7 +11829,9 @@ def одна_партия(a, client, br: Bridge, plind: int,
             elif not br.attack(0 if СЧЁТ_ПО_ГРУППЕ else движение, цель_движения, mode="move",
                                cx=клетка[0], cy=клетка[1], who=кем_движение,
                                group=ГРУППА_ДВИЖЕНИЯ, face=КЛЕТКА_ВЗГЛЯДА,
-                               merge=СЛИЯНИЕ_ДВИЖЕНИЯ, arrive=ПРИБЫТИЕ_ДВИЖЕНИЯ):
+                               merge=СЛИЯНИЕ_ДВИЖЕНИЯ, arrive=ПРИБЫТИЕ_ДВИЖЕНИЯ,
+                               sx=ИСТОК_ДВИЖЕНИЯ[0] if ИСТОК_ДВИЖЕНИЯ else None,
+                               sy=ИСТОК_ДВИЖЕНИЯ[1] if ИСТОК_ДВИЖЕНИЯ else None):
                 print(f"        MOVE {движение} не отправлен: прошлый приказ ещё "
                       f"не забран игрой")
             else:

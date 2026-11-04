@@ -1,0 +1,26 @@
+section.begin
+   ai1 = -1
+   balloon = 2
+   bot_ai = 0
+   bot_exists = 1
+   bot_human = 1
+   bot_nat = 6
+   bot_team = 2
+   botslot = 1
+   cannons = 0
+   capture = 3
+   century18 = 1
+   cmd = NEW
+   done = newgame_called
+   gametime = 911
+   mapsize = 3
+   market = 2
+   my_team = 1
+   myplind = 0
+   nat0 = 6
+   nat1 = 6
+   peace = 0
+   res = 0
+   speed = 14
+   victory = 0
+section.end

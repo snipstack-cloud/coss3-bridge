@@ -15,6 +15,7 @@ import copy, json, os, sys, tempfile
 sys.path.insert(0, К); sys.path.insert(0, os.path.join(К, "sim"))
 import strategy_live as SL
 import анализ_врага as АВ
+import llm_policy as LPm
 import поиск_стратегии as ПС
 
 ок, пало = 0, []
@@ -180,9 +181,12 @@ print("  стойка дома при застывшем флаге:", ст9[:3]
 проверить(not SL._рефлекс_жив({"defend_on": 1, "defend_n": 0}) and SL._рефлекс_жив({"defend_on": 1, "defend_n": 30}), "(9б) _рефлекс_жив: 0 врагов — нет, 30 — да")
 С10 = стратегия({"судья_удара": 0})
 п10 = прогнать(С10, такты("живая_польша_04_11_2", 300, 400))
-пд = [(mm(g), c.get("count"), c.get("merge")) for g, о in п10 for c in о["commands"] if c["cmd"] == "MOVE" and c.get("group") == С10.ПОДМОГА]
+пд = [(mm(g), c.get("count"), c.get("merge"), c.get("sx"), c.get("sy")) for g, о in п10 for c in о["commands"] if c["cmd"] == "MOVE" and c.get("group") == С10.ПОДМОГА]
 print("  подвод пачкой:", пд)
-проверить(len(пд) >= 2 and all(n >= 8 and m == 1 for _, n, m in пд), "(10) подвод ≥ 8 с merge не реже раза в минуту на 5:00–6:40")
+проверить(len(пд) >= 2 and all(n >= 8 and m == 1 for _, n, m, _, _ in пд), "(10) подвод ≥ 8 с merge не реже раза в минуту на 5:00–6:40")
+проверить(all((sx, sy) == (3, 4) for _, _, _, sx, sy in пд), f"(10б) подвод из клетки казармы (3,4), не по списку объектов: {[(sx, sy) for *_, sx, sy in пд]}")
+r10 = LPm.to_commands({"commands": [{"cmd": "MOVE", "count": 12, "target": "cell", "cx": 4, "cy": 4, "group": 94, "merge": 1, "sx": 3, "sy": 4}]})
+проверить(LPm.ИСТОК_ДВИЖЕНИЯ == (3, 4) and LPm.СЛИЯНИЕ_ДВИЖЕНИЯ, "(10в) политика берёт sx/sy и merge у MOVE")
 
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
