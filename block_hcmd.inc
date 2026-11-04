@@ -3326,6 +3326,8 @@
       [*] = ;      // defend_n) and the switch defend<p> (1 by default; python may set 0 later through a command).
       [*] = ;      // Defence counters at block scope (17.09 lesson: a number declared in a nested begin does not accumulate).
       [*] = ;      var hdcx, hdcz : Float;
+      [*] = ;      var hdex, hdez : Float;
+      [*] = ;      var hdgr : Integer;
       [*] = ;      var hdcen : Boolean;
       [*] = ;      var hden, hdheld, hdsqn, hdoff, hdon : Integer;
       [*] = ;      var hdt, hdseen : Float;
@@ -3374,6 +3376,8 @@
       [*] = ;               var hdrad : Float = 4.0 * GetMapWidth / 16.0;
       [*] = ;               var hdmin : Integer = 20;
       [*] = ;               hden := 0;
+      [*] = ;      hdex := 0;
+      [*] = ;      hdez := 0;
       [*] = ;               var hdpl : Integer;
       [*] = ;               for hdpl := 0 to gc_MaxPlayerCount-1 do
       [*] = ;               if (gPlayer[hdpl].bexists) and (hdpl <> plind) then
@@ -3397,7 +3401,11 @@
       [*] = ;                           var hddx : Float = GetGameObjectPositionXByHandle(hdego) - hdcx;
       [*] = ;                           var hddz : Float = GetGameObjectPositionZByHandle(hdego) - hdcz;
       [*] = ;                           if (hddx <= hdrad) and (hddx >= -hdrad) and (hddz <= hdrad) and (hddz >= -hdrad) then
-      [*] = ;                           hden := hden + 1;
+      [*] = ;      begin
+      [*] = ;      hden := hden + 1;
+      [*] = ;      hdex := hdex + GetGameObjectPositionXByHandle(hdego);
+      [*] = ;      hdez := hdez + GetGameObjectPositionZByHandle(hdego);
+      [*] = ;      end;
       [*] = ;                        end;
       [*] = ;                     end;
       [*] = ;                  end;
@@ -3443,6 +3451,13 @@
       [*] = ;                     ParserSetIntValueByKeyByHandle(hdp, 'on' + IntToStr(plind), 0);
       [*] = ;                     Log('bridge-human: DEFENCE over at ' + IntToStr(Round(hdnow)) + ' s - ' + IntToStr(hden) + ' enemy soldiers within 4 cells, below ' +
       [*] = ;                          IntToStr(hdoff) + ' for 30 s');
+      [*] = ;      // RETURN HOME (5.11, item 2 / old item 10): the defence group walks back to the town hall, facing where he was; the
+      [*] = ;      // hold is python's (home stance / FACE hold) - the block only brings the men back as one group.
+      [*] = ;      hdgr := _misc_GetOrCreateGroupByName(hdph, 'coss3_hdef');
+      [*] = ;      var hdlx : Float = ParserGetFloatValueByKeyByHandle(hdp, 'ex' + IntToStr(plind));
+      [*] = ;      var hdlz : Float = ParserGetFloatValueByKeyByHandle(hdp, 'ez' + IntToStr(plind));
+      [*] = ;      _player_SetGroupPosition(hdph, hdgr, -1, hdcx, hdcz, hdcx, hdcz, hdlx - hdcx, hdlz - hdcz, False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;      Log('bridge-human: DEFENCE group walks home to ' + IntToStr(Round(hdcx)) + ',' + IntToStr(Round(hdcz)));
       [*] = ;                  end
       [*] = ;                  else
       [*] = ;                  if (hdfire) or (hdnow - hdt >= 10.0) or (hdnow < hdt) then
@@ -3494,6 +3509,60 @@
       [*] = ;                        hdsqn := hdsqn + 1;
       [*] = ;                     end;
       [*] = ;                  end;
+      [*] = ;      // ONE ORDER FOR THE WHOLE DEFENCE (5.11, mac, item 2 of the block list; live games 1-3 of 4.11). The released men were
+      [*] = ;      // left to 'search victim' each on his own and ran into his formation one by one (84:8 in 30 s). Now the men released
+      [*] = ;      // at the firing tick form ONE group (coss3_hdef) and get one attack-move to the centre of his soldiers in the radius;
+      [*] = ;      // every squad of ours standing in the radius gets the same point as a squad, formation kept. Re-issued every 10 s while
+      [*] = ;      // the reflex is on, so the defence follows his centre as a block, not as a crowd of hunters. Whether to fight at all is
+      [*] = ;      // still python's word (DEFEND 0/0 from the strike judge).
+      [*] = ;      if (hden > 0) then
+      [*] = ;      begin
+      [*] = ;      hdex := hdex / hden;
+      [*] = ;      hdez := hdez / hden;
+      [*] = ;      end
+      [*] = ;      else
+      [*] = ;      begin
+      [*] = ;      hdex := hdcx;
+      [*] = ;      hdez := hdcz;
+      [*] = ;      end;
+      [*] = ;      ParserSetFloatValueByKeyByHandle(hdp, 'ex' + IntToStr(plind), hdex);
+      [*] = ;      ParserSetFloatValueByKeyByHandle(hdp, 'ez' + IntToStr(plind), hdez);
+      [*] = ;      hdgr := _misc_GetOrCreateGroupByName(hdph, 'coss3_hdef');
+      [*] = ;      if (hdfire) then
+      [*] = ;      begin
+      [*] = ;      GroupClearGameObjectsByHandle(hdgr);
+      [*] = ;      ParserSetIntValueByKeyByHandle(hdp, 'gn' + IntToStr(plind), 0);
+      [*] = ;      end;
+      [*] = ;      if (hdheld > 0) then
+      [*] = ;      begin
+      [*] = ;      for hdk := 0 to gIntegerList.GetCount-1 do
+      [*] = ;      GroupAddGameObjectByHandle(hdgr, gIntegerList.Get(hdk));
+      [*] = ;      ParserSetIntValueByKeyByHandle(hdp, 'gn' + IntToStr(plind), ParserGetIntValueByKeyByHandle(hdp, 'gn' + IntToStr(plind)) + hdheld);
+      [*] = ;      end;
+      [*] = ;      var hdgn : Integer = ParserGetIntValueByKeyByHandle(hdp, 'gn' + IntToStr(plind));
+      [*] = ;      if (hdgn > 0) then
+      [*] = ;      begin
+      [*] = ;      _group_Initialize(hdgr, nil);
+      [*] = ;      _player_SetGroupPosition(hdph, hdgr, -1, hdex, hdez, hdex, hdez, hdex - hdcx, hdez - hdcz, False, False, True, True, gc_obj_order_move_mode_attack);
+      [*] = ;      end;
+      [*] = ;      var hdsqo : Integer = 0;
+      [*] = ;      for hdsi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;      begin
+      [*] = ;      var hdsp2 : Pointer = gPlayer[plind].squads.Get(hdsi);
+      [*] = ;      if (hdsp2<>nil) then
+      [*] = ;      if (TSquad(hdsp2).GetCount > 0) then
+      [*] = ;      begin
+      [*] = ;      var hdsqh : Integer = TSquad(hdsp2).Get(0);
+      [*] = ;      var hdsqx : Float = GetGameObjectPositionXByHandle(hdsqh) - hdcx;
+      [*] = ;      var hdsqz : Float = GetGameObjectPositionZByHandle(hdsqh) - hdcz;
+      [*] = ;      if (hdsqx <= hdrad) and (hdsqx >= -hdrad) and (hdsqz <= hdrad) and (hdsqz >= -hdrad) then
+      [*] = ;      begin
+      [*] = ;      _player_SetSquadPosition(hdph, hdsi, hdex, hdez, hdex - hdcx, hdez - hdcz, False, True, gc_obj_order_move_mode_attack, False);
+      [*] = ;      hdsqo := hdsqo + 1;
+      [*] = ;      end;
+      [*] = ;      end;
+      [*] = ;      end;
+      [*] = ;      Log('bridge-human: DEFENCE order at ' + IntToStr(Round(hdnow)) + ' s: group of ' + IntToStr(hdgn) + ' and ' + IntToStr(hdsqo) + ' squads attack-move to ' + IntToStr(Round(hdex)) + ',' + IntToStr(Round(hdez)));
       [*] = ;                     if (hdfire) then
       [*] = ;                     Log('bridge-human: DEFENCE at ' + IntToStr(Round(hdnow)) + ' s - ' + IntToStr(hden) + ' enemy soldiers within 4 cells of the town hall - released ' +
       [*] = ;                          IntToStr(hdheld) + ' held soldiers and ' + IntToStr(hdsqn) + ' squads to search victim');
