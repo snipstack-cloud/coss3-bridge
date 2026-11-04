@@ -134,6 +134,24 @@ _живая = ("infantry17=hp95,atk9,wkind1,pause0,rmax206,dmgs0,dmgp0,dinit9,dp
 проверить(СЖ._враг_турция({"p1_fighters": _живая}), "(10а) живая строка Турции распознана")
 проверить(not СЖ._враг_турция({"p1_fighters": ПОЛЬША}), "(10б) Польша не Турция")
 
+# (11) 4.11 (207): пешие лучники — ключ `лучники_с`: TRAIN archer -1 с T, не чаще 60 с; who=archer доходит до моста
+с11 = стратегия({"лучники_с": 240})
+из, _ = с11._лучники([], {"gametime": 200.0})
+проверить(из == [], "(11а) до лучники_с — молчит")
+из, стр = с11._лучники([], {"gametime": 250.0})
+проверить(из and из[0] == {"cmd": "TRAIN", "role": "archer", "total": -1} and "ЛУЧНИКИ" in стр, "(11б) TRAIN archer -1")
+из, _ = с11._лучники([], {"gametime": 280.0})
+проверить(из == [], "(11в) не чаще 60 с")
+import llm_policy as LP
+_р = LP.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "who": "archer", "target": "cell", "cx": 5, "cy": 5},
+                                  {"cmd": "TRAIN", "role": "archer", "total": -1}]})
+проверить(_р[9] == "archer" and not _р[3], "(11г) who=archer проходит в мост без брака")
+проверить(_р[0] and _р[0][0].a1 == 34, "(11д) TRAIN archer — роль 34")
+_р = LP.to_commands({"commands": [{"cmd": "ATTACK", "count": 10, "who": "uniq_cav17", "target": "cell", "cx": 5, "cy": 5}]})
+проверить(_р[9] == "uniq_cav17", "(11е) who=uniq_cav17 больше не «иду всеми» (татары налётчика (205))")
+_блок = open("block_hcmd.inc", encoding="latin-1").read()
+проверить("if (hawho = 'archer') then hawrole := gc_ai_unit_archer;" in _блок, "(11ж) блок знает who=archer")
+
 print(f"selftest_турция: {ок} из {ок + len(пало)}")
 for и in пало:
     print("  ПАЛО:", и)

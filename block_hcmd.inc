@@ -1753,6 +1753,8 @@
       [*] = ;         if (hawho = 'uniq_cav17') then hawrole := gc_ai_unit_uniq_cav17;
       [*] = ;         if (hawho = 'cuirassier') then hawrole := gc_ai_unit_cuirassier;
       [*] = ;         if (hawho = 'hussar') then hawrole := gc_ai_unit_hussar;
+      [*] = ;         // 4.11 (207): the foot archer (Turkish archertur, airole gc_ai_unit_archer) - the raider of the mines.
+      [*] = ;         if (hawho = 'archer') then hawrole := gc_ai_unit_archer;
       [*] = ;         // RETREAT (18.09): the same order file, third mode. Takes the soldiers
       [*] = ;         // FARTHER than 60 from our centre whatever they are doing - a wave in
       [*] = ;         // the field, wounded or not - and walks them home in default mode.
