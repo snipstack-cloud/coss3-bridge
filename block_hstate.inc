@@ -75,6 +75,13 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hshb, 'stage' + IntToStr(plind), 1);
       [*] = ;         var hspea, hsidle, hsbuildp, hsunfin : Integer;
       [*] = ;         var hsonf, hsonw, hsons, hsonmine : Integer;
+      [*] = ;         // (255b, 5.11) WHERE OUR WOOD AND STONE GATHERERS WORK - and how far their nearest drop point is. The live
+      [*] = ;         // store (255a) went 20 units from the hall while all 18 men worked in the ring right beside the hall (wood
+      [*] = ;         // slots near 458, 12 taken): a store helps only where the men walk. Sum of positions of peasants with a
+      [*] = ;         // gainres order on wood or stone (first pass), centroid after it, then the nearest of our centre, store
+      [*] = ;         // or mill - the storehouses list of unit.script:3767, a peasant drops at the nearest one.
+      [*] = ;         var hsgwn : Integer;
+      [*] = ;         var hsgwx, hsgwz : Float;
       [*] = ;         // Mines split by kind. on_mine was one number for gold, iron and coal
       [*] = ;         // together, and a human sees each mine separately - how many work it and
       [*] = ;         // how many places are left. 15.09: BALANCE gold was issued 3 times in 6
@@ -376,6 +383,12 @@
       [*] = ;                        begin
       [*] = ;                           if (TRes(hsres).itype = gc_resource_type_wood)  then hsonw := hsonw + 1;
       [*] = ;                           if (TRes(hsres).itype = gc_resource_type_stone) then hsons := hsons + 1;
+      [*] = ;                           if (TRes(hsres).itype = gc_resource_type_wood) or (TRes(hsres).itype = gc_resource_type_stone) then
+      [*] = ;                           begin
+      [*] = ;                              hsgwn := hsgwn + 1;
+      [*] = ;                              hsgwx := hsgwx + GetGameObjectPositionXByHandle(hsgo);
+      [*] = ;                              hsgwz := hsgwz + GetGameObjectPositionZByHandle(hsgo);
+      [*] = ;                           end;
       [*] = ;                           if (TRes(hsres).itype = gc_resource_type_food)  then hsonf := hsonf + 1;
       [*] = ;                        end;
       [*] = ;                     end
@@ -605,6 +618,48 @@
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_food',   hsonf);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_wood',   hsonw);
+      [*] = ;         // (255b) gath_n / gath_x / gath_z (map frame, as obuild), gath_dist (centroid to hall), gath_drop (centroid to
+      [*] = ;         // the nearest of our centre/store/mill), gath_side (as for the ores). No gatherers - n 0, dist -1.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'gath_n', hsgwn);
+      [*] = ;         if (hsgwn > 0) then
+      [*] = ;         begin
+      [*] = ;            var hsgcx : Float = hsgwx / hsgwn;
+      [*] = ;            var hsgcz : Float = hsgwz / hsgwn;
+      [*] = ;            var hsgdrop : Float = -1.0;
+      [*] = ;            var hsgk : Integer;
+      [*] = ;            for hsgk := 0 to hscount-1 do
+      [*] = ;            begin
+      [*] = ;               var hsggo : Integer = GetGameObjectHandleByIndex(hsgk, hsph);
+      [*] = ;               var hsgpo : Pointer = _unit_GetTObj(hsggo);
+      [*] = ;               if (hsgpo<>nil) then
+      [*] = ;               begin
+      [*] = ;                  var hsgu : Integer = gObjProp[TObj(hsgpo).cid][TObj(hsgpo).id].usage;
+      [*] = ;                  if (hsgu = gc_obj_usage_center) or (hsgu = gc_obj_usage_storage) or (hsgu = gc_obj_usage_mill) then
+      [*] = ;                  begin
+      [*] = ;                     var hsgd : Float = Sqrt(Sqr(GetGameObjectPositionXByHandle(hsggo) - hsgcx) + Sqr(GetGameObjectPositionZByHandle(hsggo) - hsgcz));
+      [*] = ;                     if (hsgdrop < 0) or (hsgd < hsgdrop) then hsgdrop := hsgd;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;            var hsgdx : Float = hsgcx - hscx;
+      [*] = ;            var hsgdz : Float = hsgcz - hscz;
+      [*] = ;            var hsgside : String = '';
+      [*] = ;            if (hsgdz < -0.5*Abs(hsgdx)) then hsgside := 'N';
+      [*] = ;            if (hsgdz >  0.5*Abs(hsgdx)) then hsgside := 'S';
+      [*] = ;            if (hsgdx >  0.5*Abs(hsgdz)) then hsgside := hsgside + 'E';
+      [*] = ;            if (hsgdx < -0.5*Abs(hsgdz)) then hsgside := hsgside + 'W';
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_x', Round(hsgcx) + (GetMapWidth div 2));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_z', Round(hsgcz) + (GetMapHeight div 2));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_dist', Round(Sqrt(Sqr(hsgdx) + Sqr(hsgdz))));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_drop', Round(hsgdrop));
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'gath_side', hsgside);
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         begin
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_dist', -1);
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_drop', -1);
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'gath_side', '');
+      [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_stone',  hsons);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_mine',   hsonmine);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_gold',   hsong);

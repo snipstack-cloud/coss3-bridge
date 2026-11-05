@@ -9070,7 +9070,9 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                     брак.append(f"BUILD {role}: нужно ИТОГО зданий числом > 0"
                                 f" в поле total (поля: {поля})")
                 else:
-                    cmds.append(build(role, total, near=int(item.get("near") or 0) if isinstance(item, dict) else 0))   # (255)
+                    cmds.append(build(role, total, near=int(item.get("near") or 0) if isinstance(item, dict) else 0,
+                                      tx=int(item.get("tx", -1)) if isinstance(item, dict) else -1,
+                                      tz=int(item.get("tz", -1)) if isinstance(item, dict) else -1))   # (255/255б)
             elif c == "TRAIN":
                 if role == "dragoon17" and (_нд := конюшню_нельзя(st, "dragoon")):
                     брак.append(f"TRAIN {role}: " + _нд)
@@ -11488,6 +11490,7 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_gold_dist", "ore_gold_near", "ore_gold_side",
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "wood_side", "wood_dist", "stone_side", "stone_dist", "res_best_side", "res_best_dist", "res_best_x", "res_best_z",   # (255а)
+                        "gath_n", "gath_x", "gath_z", "gath_dist", "gath_drop", "gath_side",   # (255б)
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
                         "map_open", "upg_done", "upg_doing", "train_now", "ba_queues", "ba18_queues", "ba18", "mil_pike18", "mil_musk18", "food_ready",
                         # Сами сетки в трассу не кладём: 32 строки на такт это

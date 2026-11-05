@@ -81,7 +81,7 @@ _st4 = {"gametime": 100, "ba17": 1, "academies": 1, "my_officers": 0, "my_drumme
         "mines_gold": 1, "on_gold": 5, "mines_iron": 1, "mills": 1, "food_ready": 0, "centers": 1, "houses": 1, "my_farm": 100, "my_farmused": 24,
         "on_food": 6, "on_wood": 5, "on_stone": 3, "on_mine": 5, "on_build": 0, "idle_pea": 0, "iron": 900, "my_stores": 0, "wip": ""}
 def _лестница(доп, st_доп=None):
-    п = dict(_п, **доп); st = dict(_st4, **(st_доп or {}))
+    п = {**_п, "склад_у_леса": 12, "склад_к_рубщикам": 0, **доп}; st = dict(_st4, **(st_доп or {}))
     с = ПС.Стратегия(п); с(dict(st))
     из = SL.привести([], dict(st), п, с, collections.Counter(), collections.Counter())
     return [(c.get("role"), c.get("total"), c.get("near")) for c in из if c.get("cmd") == "BUILD"]
@@ -98,7 +98,44 @@ _ветка = [l for l in _блок.splitlines() if "hcnear > 0" in l and "airol
 проверить(len(_ветка) == 1 and "gc_ai_unit_center" in _ветка[0] and "gc_ai_unit_store" in _ветка[0], "(5) ветка колец «у леса» слушает ратушу И склад")
 
 # (6)
-проверить(int(_п.get("склад_у_леса", 0)) == 12, "(6) живой польский файл: склад_у_леса 12")
+проверить(int(_п.get("склад_у_леса", 0)) == 0 and int(_п.get("склад_к_рубщикам", 0)) == 1 and int(_п.get("склад_от", 0)) == 16,
+          "(6) живой польский файл: склад_у_леса 0 (дебютный склад у ратуши негоден — 255а), склад_к_рубщикам 1, склад_от 16")
+
+# (7) 255б: цель в транспорте и политике
+br7 = CB.Bridge(tempfile.mkdtemp(), 1); br7.send([CB.build("store", 1, near=12, tx=200, tz=210), CB.build("store", 1, near=12)])
+п7 = {k.strip(): v.strip() for k, v in (s.split("=", 1) for s in open(br7.cmd_path, encoding="latin-1").read().splitlines() if "=" in s)}
+проверить(п7.get("0_tgt") == "1" and п7.get("0_tx") == "200" and п7.get("0_tz") == "210" and "1_tgt" not in п7 and "1_tx" not in п7,
+          f"(7а) BUILD store с целью → 0_tgt/0_tx/0_tz, без цели — полей нет ({п7.get('0_tx')},{п7.get('0_tz')})")
+r7 = LP.to_commands({"commands": [{"cmd": "BUILD", "role": "store", "total": 1, "near": 12, "tx": 200, "tz": 210}]})
+_b7 = [c for c in r7[0] if getattr(c, "cmd", "") == "BUILD"]
+проверить(len(_b7) == 1 and _b7[0].tx == 200 and _b7[0].tz == 210 and _b7[0].near == 12, "(7б) политика везёт tx/tz")
+
+# (8) 255б: склад к рубщикам — центроид дальше склад_от от ближайшей сдачи
+def _рубщики(доп, st_доп=None, стр=None):
+    п = {**_п, "склад_у_леса": 0, "склад_к_рубщикам": 1, **доп}; st = dict(_st4, **(st_доп or {}))
+    if стр is None:
+        с = ПС.Стратегия(п); с(dict(st))            # вызов стратегии сам проходит лестницу — сбросить её задержку правила
+        с._склад_р_gt, с._склад_р_попыток = -999.0, 0
+    else:
+        с = стр
+    из = SL.привести([], dict(st), п, с, collections.Counter(), collections.Counter())
+    return [(c.get("role"), c.get("total"), c.get("near"), c.get("tx"), c.get("tz")) for c in из if c.get("cmd") == "BUILD"], с
+_г = {"gath_n": 10, "gath_x": 200, "gath_z": 210, "gath_dist": 28, "gath_drop": 30, "gath_side": "NE", "gametime": 200}
+_р1, _с1 = _рубщики({}, _г)
+print("  лестница, рубщики в 30 ед. от сдачи:", _р1)
+проверить(any(r == "store" and n == 12 and tx == 200 and tz == 210 for r, t, n, tx, tz in _р1), "(8а) рубщики 10 в 30 ед. от ближайшей сдачи — BUILD store к ним (near 12, tx/tz = gath)")
+проверить(not any(r == "store" for r, *_ in _рубщики({}, dict(_г, gath_drop=8))[0]), "(8б) сдача в 8 ед. — склад не нужен")
+проверить(not any(r == "store" for r, *_ in _рубщики({}, dict(_г, gath_n=3))[0]), "(8в) рубщиков 3 — рано")
+проверить(not any(r == "store" for r, *_ in _рубщики({}, dict(_г, my_stores=2))[0]), "(8г) складов уже 2 (склад_макс) — не кладём")
+_р2, _ = _рубщики({}, dict(_г, gametime=230), _с1)
+проверить(not any(r == "store" for r, *_ in _р2), "(8д) повтор через 30 с той же стратегией — молчит (не чаще 60 с)")
+_р3, _ = _рубщики({}, dict(_г, gametime=270), _с1)
+проверить(any(r == "store" for r, *_ in _р3), "(8е) через 70 с — снова, если склада так и нет")
+проверить(not any(r == "store" for r, *_ in _рубщики({"склад_к_рубщикам": 0}, _г)[0]), "(8ж) ключ 0 — как было")
+# (9) блоки
+_h9 = open(os.path.join(К, "block_hcmd.inc"), encoding="latin-1").read(); _s9 = open(os.path.join(К, "block_hstate.inc"), encoding="latin-1").read()
+проверить("hckey + 'tgt'" in _h9 and "at the gatherers: target" in _h9 and "hcncx := hctx;" in _h9, "(9а) блок команд: цель tgt/tx/tz, кольца вокруг цели")
+проверить(all(k in _s9 for k in ("'gath_n'", "'gath_x'", "'gath_drop'", "'gath_side'", "gc_obj_usage_storage")), "(9б) блок состояния: gath_n/x/z/dist/drop/side по ближайшей сдаче")
 
 print(f"selftest_склад_у_леса: {ок} из {ок + len(пало)}")
 if пало: print("  ПАЛО:", пало); sys.exit(1)

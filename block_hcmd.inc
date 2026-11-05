@@ -409,6 +409,14 @@
       [*] = ;                     var hctgx, hctgy, hctsum, hctd : Integer;
       [*] = ;                     var hcndbest : Float = -1.0;
       [*] = ;                     var hcbgx, hcbgy, hcgi, hcgj, hcwi, hcwj : Integer;
+      [*] = ;                     // (255b, 5.11) TARGET FROM PYTHON: keys tgt 1, tx, tz (map frame, as obuild / gath_x) - the centroid of our wood
+      [*] = ;                     // and stone gatherers (state gath_x/gath_z). Live 255a: the best resource cell sat between a forest to the W and
+      [*] = ;                     // stone to the SE, 20 units from the hall, while every man worked beside the hall. With a target the rings are
+      [*] = ;                     // centred ON THE TARGET and the free spot closest to it wins; the resource-cell scan is skipped.
+      [*] = ;                     var hcthas : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'tgt');
+      [*] = ;                     var hctpx : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'tx');
+      [*] = ;                     var hctpz : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'tz');
+      [*] = ;                     var hcncx, hcncz : Float;
       [*] = ;                     var hcnrad : Float = 4.0;
       [*] = ;                     var hcnang : Integer;
       [*] = ;                     var hcnok : Boolean;
@@ -462,7 +470,13 @@
       [*] = ;                     end;
       [*] = ;                     if (hcnear > 0) and (not hcfound) and ((gObjProp[hccid][hcid].airole = gc_ai_unit_center) or (gObjProp[hccid][hcid].airole = gc_ai_unit_store)) then
       [*] = ;                     begin
-      [*] = ;                        if (gObjProp[hccid][hcid].airole = gc_ai_unit_store) then
+      [*] = ;                        if (gObjProp[hccid][hcid].airole = gc_ai_unit_store) and (hcthas = 1) then
+      [*] = ;                        begin
+      [*] = ;                           hctgt := True;
+      [*] = ;                           hctx := hctpx - (GetMapWidth div 2);
+      [*] = ;                           hctz := hctpz - (GetMapHeight div 2);
+      [*] = ;                        end;
+      [*] = ;                        if (gObjProp[hccid][hcid].airole = gc_ai_unit_store) and (hcthas <> 1) then
       [*] = ;                        begin
       [*] = ;                           hcbgx := floor(hcx + (GetMapWidth div 2)) div gc_resgrid_size;
       [*] = ;                           hcbgy := floor(hcz + (GetMapHeight div 2)) div gc_resgrid_size;
@@ -494,12 +508,20 @@
       [*] = ;                              hctz := (hctgy + 0.5) * gc_resgrid_size - (GetMapHeight div 2);
       [*] = ;                           end;
       [*] = ;                        end;
+      [*] = ;                        hcncx := hcx;
+      [*] = ;                        hcncz := hcz;
+      [*] = ;                        if (hcthas = 1) and (hctgt) then
+      [*] = ;                        begin
+      [*] = ;                           hcncx := hctx;
+      [*] = ;                           hcncz := hctz;
+      [*] = ;                           hcnrad := 2.0;
+      [*] = ;                        end;
       [*] = ;                        while (hcnrad < 26.0) do
       [*] = ;                        begin
       [*] = ;                           for hcnang := 0 to 11 do
       [*] = ;                           begin
-      [*] = ;                              var hcnx : Float = hcx + hcnrad * Cos(hcnang * 0.5236);
-      [*] = ;                              var hcnz : Float = hcz + hcnrad * Sin(hcnang * 0.5236);
+      [*] = ;                              var hcnx : Float = hcncx + hcnrad * Cos(hcnang * 0.5236);
+      [*] = ;                              var hcnz : Float = hcncz + hcnrad * Sin(hcnang * 0.5236);
       [*] = ;                              var hcndum : Integer = _player_CreateConstructionDummyBySID(hcmisc, hccid, hcsid, hcnx, hcnz);
       [*] = ;                              if (hcndum <> 0) then
       [*] = ;                              begin
@@ -534,7 +556,11 @@
       [*] = ;                           hcnrad := hcnrad + 2.0;
       [*] = ;                        end;
       [*] = ;                        gIntegerList.Clear;
-      [*] = ;                        if (hcfound) and (hctgt) then
+      [*] = ;                        if (hcfound) and (hctgt) and (hcthas = 1) then
+      [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' at the gatherers: target ' + IntToStr(hctpx) + ',' + IntToStr(hctpz) + ' (map frame) - placed at ' +
+      [*] = ;                            FloatToStr(hcfx + (GetMapWidth div 2)) + ',' + FloatToStr(hcfz + (GetMapHeight div 2)) + ' (' + FloatToStr(hcndbest) + ' from the target, hall ' +
+      [*] = ;                            FloatToStr(hcx + (GetMapWidth div 2)) + ',' + FloatToStr(hcz + (GetMapHeight div 2)) + ')');
+      [*] = ;                        if (hcfound) and (hctgt) and (hcthas <> 1) then
       [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' toward wood and stone: best cell ' + IntToStr(hctgx) + ',' + IntToStr(hctgy) +
       [*] = ;                            ' score ' + IntToStr(hctbest) + ' at ' + FloatToStr(hctx) + ',' + FloatToStr(hctz) + ' - placed at ' + FloatToStr(hcfx) +
       [*] = ;                            ',' + FloatToStr(hcfz) + ' (' + FloatToStr(hcndbest) + ' from the cell, hall ' + FloatToStr(hcx) + ',' + FloatToStr(hcz) + ')');
