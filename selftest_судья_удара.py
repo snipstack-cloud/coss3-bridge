@@ -192,15 +192,35 @@ r10 = LPm.to_commands({"commands": [{"cmd": "MOVE", "count": 12, "target": "cell
 #      рефлекс блока выключен ключом — DEFEND с единицей не уходит ни разу
 С11 = стратегия()
 п11 = прогнать(С11, такты("живая_польша_04_11_2", 255, 320))
-уд11 = [(mm(g), c.get("count"), c.get("cx"), c.get("cy")) for g, о in п11 for c in о["commands"] if c["cmd"] == "ATTACK" and c.get("_оборона")]
+уд11 = [(mm(g), c.get("count"), c.get("cx"), c.get("cy")) for g, о in п11 for c in о["commands"] if c["cmd"] == "ATTACK" and c.get("_оборона") and str(c.get("count")) == "all"]
 why11 = [(mm(g), w[w.find("ОБОРОНА УДАРОМ"):][:90]) for g, о in п11 for w in [str(о.get("why", ""))] if "ОБОРОНА УДАРОМ" in w]
 деф11 = [(mm(g), c.get("count"), c.get("atk")) for g, о in п11 for c in о["commands"] if c["cmd"] == "DEFEND"]
 print("  удары обороны:", уд11[:5]); print("  why:", why11[:3]); print("  DEFEND:", деф11)
 проверить(bool(уд11) and all(str(n) == "all" for _, n, _, _ in уд11), "(11а) при R ≥ порога python сам бьёт всем домом в клетку его центра")
 проверить(bool(деф11) and all(int(c) == 0 for _, c, _ in деф11), "(11б) рефлекс блока выключен: DEFEND всегда 0")
 if len(уд11) >= 2:
-    _g = [g for g, о in п11 for c in о["commands"] if c["cmd"] == "ATTACK" and c.get("_оборона")]
     проверить(all(float(b.split(":")[0]) * 60 + float(b.split(":")[1]) - (float(a.split(":")[0]) * 60 + float(a.split(":")[1])) >= 9 for a, b in zip([x[0] for x in уд11], [x[0] for x in уд11][1:])), "(11в) повтор не чаще раза в 10 с")
+
+# (12) сторож налёта (227): один его пикинёр в (6,3) при ратуше (3,3), наших там нет — ATTACK 6 пиками из клетки у дома; повтор
+#      не раньше 10 с; налётчик ушёл, 30 с тишины — RETREAT наших из (6,3) домой
+С12 = стратегия()
+т12 = такты("живая_польша_04_11_2", 262, 266)[:1]      # 4:23: свободных 34, его у базы 6
+б = dict(т12[0]); б["ecells"] = "6,3,1,1,0,0,0,-1,-1,0"; б["ecells_all"] = 1
+о1 = прогнать(С12, [б])[0][1]
+ат = [c for c in о1["commands"] if c["cmd"] == "ATTACK" and c.get("_оборона")]
+w1 = str(о1.get("why", "")); i = w1.find("СТОРОЖ НАЛЁТА"); print("  сторож:", w1[i:i+120] if i >= 0 else "—", "|", [(c.get("count"), c.get("who"), c.get("cx"), c.get("cy"), c.get("sx"), c.get("sy")) for c in ат])
+проверить(len(ат) == 1 and ат[0].get("count") == 6 and (ат[0].get("cx"), ат[0].get("cy")) == (6, 3) and ат[0].get("who") == "infantry17" and ат[0].get("sx") is not None, "(12а) на одного налётчика идут 6 пик из клетки у дома")
+б2 = dict(б); б2["gametime"] = float(б["gametime"]) + 5
+о2 = прогнать(С12, [б2])[0][1]
+проверить(not [c for c in о2["commands"] if c["cmd"] == "ATTACK" and c.get("_оборона")], "(12б) через 5 с повтора нет")
+б3 = dict(б); б3["gametime"] = float(б["gametime"]) + 45; б3["ecells"] = "none"; б3["ecells_all"] = 0
+б3["ocells"] = (б["ocells"] + ";" if б.get("ocells") not in (None, "", "none") else "") + "6,3,6,6,0,0"
+о3 = прогнать(С12, [б3])[0][1]
+рт = [c for c in о3["commands"] if c["cmd"] == "RETREAT"]
+print("  возврат:", [(c.get("count"), c.get("sx"), c.get("sy"), c.get("cx"), c.get("cy")) for c in рт], "|", str(о3.get("why", ""))[str(о3.get("why", "")).find("СТОРОЖ:"):][:80])
+проверить(bool(рт) and рт[0].get("count") == 6 and (рт[0].get("sx"), рт[0].get("sy")) == (6, 3), "(12в) налёта нет 30 с — шестеро домой из (6,3)")
+r12 = LPm.to_commands({"commands": [{"cmd": "ATTACK", "count": 6, "who": "infantry17", "target": "cell", "cx": 6, "cy": 3, "sx": 3, "sy": 4}]})
+проверить(LPm.ИСТОК_УДАРА == (3, 4), "(12г) политика несёт sx/sy у ATTACK")
 
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
