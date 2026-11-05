@@ -56,6 +56,13 @@
       [*] = ;      end;
       [*] = ;      if (IsFileExists(hcpath)) or (hcopen) then
       [*] = ;      begin
+      [*] = ;         // BOT SLOT (5.11, live game 230): this block runs for EVERY human player, and the home defence reflex fired for the
+      [*] = ;         // human opponent too - 'DEFENCE at 609 s - 23 enemy soldiers' were OUR men near HIS town hall, and once it even
+      [*] = ;         // ordered his squad. Only a slot that ever receives a command file is the bot; the reflex below checks this flag.
+      [*] = ;         var hcbp : Integer = ParserSelectByKey('br_hdef');
+      [*] = ;         if (hcbp = 0) then
+      [*] = ;         hcbp := ParserCreate('br_hdef');
+      [*] = ;         ParserSetIntValueByKeyByHandle(hcbp, 'bot' + IntToStr(plind), 1);
       [*] = ;         var hch : Integer = ParserSelectByKey('br_hcmd');
       [*] = ;         if (hch = 0) then
       [*] = ;         hch := ParserCreate('br_hcmd');
@@ -3348,7 +3355,7 @@
       [*] = ;         ParserSetFloatValueByKeyByHandle(hdp, 'chk' + IntToStr(plind), hdnow);
       [*] = ;         Log('bridge-human: TIME ' + IntToStr(Round(hdnow)));
       [*] = ;      end;
-      [*] = ;      if (ParserGetIntValueByKeyByHandle(hdp, 'defend' + IntToStr(plind)) = 1) then
+      [*] = ;      if (ParserGetIntValueByKeyByHandle(hdp, 'defend' + IntToStr(plind)) = 1) and (ParserGetIntValueByKeyByHandle(hdp, 'bot' + IntToStr(plind)) = 1) then
       [*] = ;      begin
       [*] = ;         if (hdtick) then
       [*] = ;         begin
