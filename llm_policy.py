@@ -8821,6 +8821,8 @@ def _движение_из(mode: str, item: dict, total: int, гр: int, кем:
         п["merge"] = 1
     if гр > 0 and _истина(item.get("arrive")):
         п["arrive"] = 1
+    if mode == "retreat" and _истина(item.get("all")):
+        п["all"] = 1               # (242): RETREAT all — блок ведёт и отряды в поле домой строем
     try:
         if item.get("sx") is not None and item.get("sy") is not None and 0 <= int(item["sx"]) <= 15 and 0 <= int(item["sy"]) <= 15:
             п["sx"], п["sy"] = int(item["sx"]), int(item["sy"])

@@ -2835,6 +2835,61 @@
       [*] = ;                    IntToStr(hasqn) + ' squads (' + IntToStr(hasqm) + ' men) sent as squads to ' + hatrg + ', hold released');
       [*] = ;               Log('bridge-human: ATTACK all: ' + IntToStr(hasqn) + ' squads, ' + IntToStr(hasqm) + ' men sent as squads to ' + hatrg + ', search enemy on');
       [*] = ;            end;
+      [*] = ;            // RETREAT ALL (5.11, (242), bait2 traces): a counted RETREAT skips squad members (above) and the ALL branch
+      [*] = ;            // above is not for retreat - so no python order could ever bring a squad home: after RAZRYV and OTHOD the
+      [*] = ;            // loose men walked home and the squad stayed in contact alone (pol/1 15:34, 22:51, 29:19; mirror/2 x7).
+      [*] = ;            // Here every squad of ours standing in the FIELD (farther than hafr cells from the hall) walks to the
+      [*] = ;            // retreat point AS A SQUAD: hold released, hunt off (a walk, not a hunt - as the MOVE above), default mode.
+      [*] = ;            if (haall) and (haretreat) and (hafound) then
+      [*] = ;            begin
+      [*] = ;               var harsi : Integer;
+      [*] = ;               var harsn : Integer = 0;
+      [*] = ;               var harsm : Integer = 0;
+      [*] = ;               for harsi := 0 to gPlayer[plind].squads.GetCount-1 do
+      [*] = ;               begin
+      [*] = ;                  var harsp : Pointer = gPlayer[plind].squads.Get(harsi);
+      [*] = ;                  if (harsp<>nil) then
+      [*] = ;                  if (TSquad(harsp).GetCount > 0) then
+      [*] = ;                  begin
+      [*] = ;                     var harsx : Float = 0;
+      [*] = ;                     var harsz : Float = 0;
+      [*] = ;                     _squad_GetCentralPosition(harsp, harsx, harsz);
+      [*] = ;                     var harcx : Integer = floor((harsx+hafhw)*hafn/hafw);
+      [*] = ;                     var harcy : Integer = floor((harsz+hafhh)*hafn/hafh);
+      [*] = ;                     var hardx : Integer = Round(Abs(harcx - hafbx));
+      [*] = ;                     var hardy : Integer = Round(Abs(harcy - hafby));
+      [*] = ;                     if (hardx < hardy) then hardx := hardy;
+      [*] = ;                     if (hardx > hafr) then
+      [*] = ;                     begin
+      [*] = ;                        var harvx : Float = hatx - harsx;
+      [*] = ;                        var harvy : Float = 0;
+      [*] = ;                        var harvz : Float = hatz - harsz;
+      [*] = ;                        VectorNormalize(harvx, harvy, harvz);
+      [*] = ;                        TSquad(harsp).fStandGround := False;
+      [*] = ;                        TSquad(harsp).fHoldMode := False;
+      [*] = ;                        TSquad(harsp).fHoldModeProgress := 0;
+      [*] = ;                        TSquad(harsp).fSearchVictim := False;
+      [*] = ;                        var harsj : Integer;
+      [*] = ;                        for harsj := 0 to TSquad(harsp).GetCount-1 do
+      [*] = ;                        begin
+      [*] = ;                           var harsh : Integer = TSquad(harsp).Get(harsj);
+      [*] = ;                           var harsu : Pointer = _unit_GetTObj(harsh);
+      [*] = ;                           if (harsu<>nil) then
+      [*] = ;                           begin
+      [*] = ;                              TObj(harsu).bstandground := False;
+      [*] = ;                              TObj(harsu).bsearchenemy := False;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                        _player_SetSquadPosition(haph, harsi, hatx, hatz, harvx, harvz, False, True, gc_obj_order_move_mode_default, False);
+      [*] = ;                        harsn := harsn + 1;
+      [*] = ;                        harsm := harsm + TSquad(harsp).GetCount;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'RETREAT all: ' +
+      [*] = ;                    IntToStr(harsn) + ' squads (' + IntToStr(harsm) + ' men) walk home as squads');
+      [*] = ;               Log('bridge-human: RETREAT all: ' + IntToStr(harsn) + ' squads, ' + IntToStr(harsm) + ' men in the field walk home as squads, hold and hunt off');
+      [*] = ;            end;
       [*] = ;               end;
       [*] = ;            end;
       [*] = ;         end;
