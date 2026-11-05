@@ -1531,7 +1531,8 @@
       [*] = ;                           if (hca1 = 1) and (hfheld * 2 >= gIntegerList.GetCount) and (hfheld > 0) then
       [*] = ;                           begin
       [*] = ;                              TSquad(hfsq).fStandGround := True;
-      [*] = ;                              hfhw := ', ' + IntToStr(hfheld) + ' held ground - squad holds';
+      [*] = ;                              TSquad(hfsq).fSearchVictim := True;
+      [*] = ;                              hfhw := ', ' + IntToStr(hfheld) + ' held ground - squad holds and hunts';
       [*] = ;                           end
       [*] = ;                           else
       [*] = ;                           if (hca1 = 1) then
@@ -2573,10 +2574,14 @@
       [*] = ;                  // and TObj.bstandground, and a squad half-held would behave by the squad
       [*] = ;                  // flag (unit.script:8152).
       [*] = ;                  var hahw : String = '';
+      [*] = ;                  // HOLD WITH HUNT (5.11, mac, 1395 contact ticks of bot-vs-bot): a held squad WITHOUT search-victim loses 3-7 men per
+      [*] = ;                  // one of his, a held squad WITH it wins 6:1 - an idle man searches a victim only with bsearchenemy (unit.inc/nothing.inc:181),
+      [*] = ;                  // and recruits come with it off. Hold now sets both: stand ground AND search victim (melee radius only: standground
+      [*] = ;                  // keeps him from chasing, unit.script:7259). Same at hold-on-arrival and FORMATION hold.
       [*] = ;                  if (hahold) then
       [*] = ;                  begin
-      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
-      [*] = ;                     hahw := ' hold';
+      [*] = ;                     _misc_SetUnitsListUnitState(gIntegerList, True, True, True, True);
+      [*] = ;                     hahw := ' hold+hunt';
       [*] = ;                  end;
       [*] = ;                  Log('bridge-human: FACE ' + IntToStr(gIntegerList.GetCount) + ' in place at ' +
       [*] = ;                      FloatToStr(hadsx) + ',' + FloatToStr(hadsz) + haddir + hahw);
@@ -3641,7 +3646,7 @@
       [*] = ;                     end;
       [*] = ;                     if (gIntegerList.GetCount > 0) and (hgaidle * 5 >= gIntegerList.GetCount * 4) then
       [*] = ;                     begin
-      [*] = ;                        _misc_SetUnitsListUnitState(gIntegerList, True, False, True, False);
+      [*] = ;                        _misc_SetUnitsListUnitState(gIntegerList, True, True, True, True);
       [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, hgas + '_ap', 0);
       [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, hgas + '_m', 4);
       [*] = ;                        ParserSetIntValueByKeyByHandle(hgap, 'hp' + IntToStr(hgai), 0);
