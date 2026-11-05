@@ -474,7 +474,7 @@ _в22.подтверждена, _в22.сбор, _в22.состояние = True,
 import collections as _C
 _п23 = json.load(open(ФАЙЛ, encoding="utf-8"))["итог"]
 _st23 = {"gametime": 330, "ba17": 1, "academies": 0, "my_officers": 0, "my_drummers": 0, "mil_inf": 30, "mil_shooters": 0, "squads": 0, "squad_units": 0,
-         "train_now": "", "враг_слот": 0, "p0_army": 32, "food": 1500, "gold": 2600, "wood": 300, "stone": 200, "upg_done": "mil.1", "peasants": 28,
+         "train_now": "", "враг_слот": 0, "p0_army": 32, "food": 1500, "gold": 2600, "wood": 778, "stone": 720, "upg_done": "mil.1", "peasants": 28,      # (251а) казарма по карману — живая 5.11 4:55
          "mines_gold": 2, "on_gold": 10, "mines_iron": 0, "mills": 1, "food_ready": 1, "centers": 1, "houses": 2, "my_farm": 100, "my_farmused": 60,
          "on_food": 10, "on_wood": 5, "on_stone": 4, "on_mine": 10, "on_build": 0, "idle_pea": 0, "iron": 400, "mines_iron": 1}
 def _закладки(доп):
@@ -483,7 +483,7 @@ def _закладки(доп):
     return [(c.get("cmd"), c.get("role"), c.get("total")) for c in из if c.get("cmd") == "BUILD"]
 _а23, _б23 = _закладки({}), _закладки({"академия_вместо_казармы": 0})
 print("  закладки с ключом:", _а23, "| без:", _б23)
-проверить(any(r == "academi" for _, r, _ in _а23) and not any(r == "ba17" for _, r, _ in _а23), "(23а) академия вместо второй казармы при дереве 300/камне 200 — закладка академия, казармы нет")
+проверить(any(r == "academi" for _, r, _ in _а23) and not any(r == "ba17" for _, r, _ in _а23), "(23а) академия вместо второй казармы при 778/720/2600 (казарма по карману, «раньше шахт») — закладка академия, казармы нет")
 проверить(any(r == "ba17" for _, r, _ in _б23) and not any(r == "academi" for _, r, _ in _б23), "(23б) с ключом 0 — как было: вторая казарма")
 
 # (24) только пика (249, слово игрока): мушкетёров не нанимаем, линейка ступеней — пики даже при стрелках > пик, ступени мушкетёра мимо
