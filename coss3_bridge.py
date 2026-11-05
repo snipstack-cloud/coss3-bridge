@@ -176,7 +176,7 @@ def upgrade(name: str) -> Command:
 RESOURCE = {"food": 0, "wood": 1, "stone": 2, "gold": 3, "iron": 4, "coal": 5}
 
 
-def balance(res: str, value: int) -> Command:
+def balance(res: str, value: int, tx: int = -1, tz: int = -1) -> Command:
     """BALANCE — сколько крестьян держать на ресурсе. ЕДИНИЦА ОДНА: ЧЕЛОВЕК.
 
     Прежний текст здесь описывал КОМПЬЮТЕРНЫЙ слот (`_ai_GainResourcesByPeasants`:
@@ -201,7 +201,7 @@ def balance(res: str, value: int) -> Command:
     предел = 1000
     if not 0 <= value <= предел:
         raise ValueError(f"BALANCE {res}: значение вне 0..{предел}")
-    return Command("BALANCE", RESOURCE[res], value)
+    return Command("BALANCE", RESOURCE[res], value, tx=int(tx if tx is not None else -1), tz=int(tz if tz is not None else -1))   # (257) цель — очаг добычи
 
 
 def seed(сколько: int = 1) -> Command:
@@ -687,7 +687,7 @@ class Bridge:
                 values[f"{i}_upg"] = c.upg
             if int(getattr(c, "near", 0) or 0) > 0 and c.cmd == "BUILD":
                 values[f"{i}_near"] = int(c.near)          # (255) место у леса и камня — ратуша (180) и склад
-            if c.cmd == "BUILD" and int(getattr(c, "tx", -1)) >= 0 and int(getattr(c, "tz", -1)) >= 0:
+            if c.cmd in ("BUILD", "BALANCE") and int(getattr(c, "tx", -1)) >= 0 and int(getattr(c, "tz", -1)) >= 0:
                 values[f"{i}_tgt"] = 1                     # (255б) цель — склад к рубщикам, кольца вокруг цели
                 values[f"{i}_tx"] = int(c.tx)
                 values[f"{i}_tz"] = int(c.tz)

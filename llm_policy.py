@@ -9660,7 +9660,8 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                                 f" (поля: {поля}). Только: "
                                 f"{', '.join(RESOURCE)}")
                 else:
-                    cmds.append(balance(role, total))
+                    cmds.append(balance(role, total, tx=int(item.get("tx", -1)) if isinstance(item, dict) else -1,
+                                        tz=int(item.get("tz", -1)) if isinstance(item, dict) else -1))   # (257) очаг добычи
             else:
                 брак.append(f"{c or '?'}: нет такой команды (поля: {поля})")
         except ValueError as e:

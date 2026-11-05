@@ -1025,6 +1025,15 @@
       [*] = ;                        // already built in 67. The refusal was printed 29 times.
       [*] = ;                        var hbfx : Float = hcx;
       [*] = ;                        var hbfz : Float = hcz;
+      [*] = ;                        // (257, player's word 6.11 'all resources from ONE cluster'): live 256 had 15 gatherers over five cells. With keys
+      [*] = ;                        // tgt 1, tx, tz (map frame) on a wood/stone BALANCE the nearest deposit is taken around THAT point, so every batch
+      [*] = ;                        // goes to the same cluster (python keeps the point sticky - res_best of the state). Food still goes by the mill.
+      [*] = ;                        var hbthas : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'tgt');
+      [*] = ;                        if (hbthas = 1) and ((hbres = gc_resource_type_wood) or (hbres = gc_resource_type_stone)) then
+      [*] = ;                        begin
+      [*] = ;                           hbfx := ParserGetIntValueByKeyByHandle(hch, hckey + 'tx') - (GetMapWidth div 2);
+      [*] = ;                           hbfz := ParserGetIntValueByKeyByHandle(hch, hckey + 'tz') - (GetMapHeight div 2);
+      [*] = ;                        end;
       [*] = ;                        if (hbres = gc_resource_type_food) then
       [*] = ;                        begin
       [*] = ;                           var hbmk : Integer;
@@ -1054,7 +1063,7 @@
       [*] = ;                           if (TRes(hbrp2).brised) and (TRes(hbrp2).itype = hbres) then
       [*] = ;                           begin
       [*] = ;                              var hbd : Float = VectorDistance(GetGameObjectPositionXByHandle(hbh), 0,
-      [*] = ;                                   GetGameObjectPositionZByHandle(hbh), hcx, 0, hcz);
+      [*] = ;                                   GetGameObjectPositionZByHandle(hbh), hbfx, 0, hbfz);
       [*] = ;                              if (hbd < hbbest) then
       [*] = ;                              begin
       [*] = ;                                 hbbest := hbd;
@@ -1076,7 +1085,9 @@
       [*] = ;                           for hck := 0 to gTmpIntList.GetCount-1 do
       [*] = ;                           _unit_OrderGainResource(gTmpIntList.Get(hck), hbtrg, hbpx, hbpz);
       [*] = ;                           Log('bridge-human: GATHER res' + IntToStr(hca1) + ' sent ' +
-      [*] = ;                               IntToStr(gTmpIntList.GetCount) + ' peasants, had ' + IntToStr(hbhave));
+      [*] = ;                               IntToStr(gTmpIntList.GetCount) + ' peasants, had ' + IntToStr(hbhave) +
+      [*] = ;                               ' to ' + FloatToStr(hbpx + (GetMapWidth div 2)) + ',' + FloatToStr(hbpz + (GetMapHeight div 2)) +
+      [*] = ;                               ' (search centre ' + FloatToStr(hbfx + (GetMapWidth div 2)) + ',' + FloatToStr(hbfz + (GetMapHeight div 2)) + ', target ' + IntToStr(hbthas) + ')');
       [*] = ;                        end
       [*] = ;                        else
       [*] = ;                        begin
