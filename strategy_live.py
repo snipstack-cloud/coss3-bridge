@@ -3590,19 +3590,15 @@ class ЖиваяСтратегия:
         держат = [о for о in _отряды_из(st.get("squads_list")) if о["hold"] and о["hunt"] and о["n"] > 0]
         if not держат:
             return из, ""
-        д = _дом(st)
-        _чб = lambda a, b: max(abs(int(a[0]) - int(b[0])), abs(int(a[1]) - int(b[1])))
+        # (245) tishina_pol/1 на 241: FACE hold шёл группе 91, когда отряд стоял в 3–4 клетках от клетки стойки — фильтр по клетке его
+        # пропускал, «GROUP 91 face: 1 squads, 149 men» пять раз, отряд тянуло к центру группы, holdmode 0 всю партию (у базы в тишине
+        # 21:24–26:33 holdmode стал 1 — 57 тактов, впервые). Группа 91/94 несёт отряд, где бы он ни стоял, а python его группы не знает:
+        # пока ХОТЬ ОДИН наш отряд держит с охотой, FACE hold не шлём вовсе (новобранцев держит `arrive`, направление — не стоит 37,5 с).
         снято = []
         for c in из:
             if c.get("cmd") != "FACE" or not c.get("hold"):
                 continue
-            кл = c.get("_клетка")
-            if кл is not None:
-                рядом = [о for о in держат if _чб((о["x"], о["y"]), кл) <= 1]
-            else:
-                рядом = [о for о in держат if _чб((о["x"], о["y"]), д) <= 2]
-            if рядом:
-                снято.append((c, max(рядом, key=lambda о: о["n"])))
+            снято.append((c, max(держат, key=lambda о: о["n"])))
         if not снято:
             return из, ""
         из = [c for c in из if not any(c is s for s, _ in снято)]
