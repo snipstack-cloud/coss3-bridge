@@ -486,6 +486,20 @@ print("  закладки с ключом:", _а23, "| без:", _б23)
 проверить(any(r == "academi" for _, r, _ in _а23) and not any(r == "ba17" for _, r, _ in _а23), "(23а) академия вместо второй казармы при дереве 300/камне 200 — закладка академия, казармы нет")
 проверить(any(r == "ba17" for _, r, _ in _б23) and not any(r == "academi" for _, r, _ in _б23), "(23б) с ключом 0 — как было: вторая казарма")
 
+# (24) только пика (249, слово игрока): мушкетёров не нанимаем, линейка ступеней — пики даже при стрелках > пик, ступени мушкетёра мимо
+_st24 = {"gametime": 400, "ba17": 2, "academies": 1, "my_officers": 1, "my_drummers": 1, "mil_inf": 2, "mil_shooters": 3, "squads": 0, "squad_units": 0,
+         "train_now": "", "враг_слот": 0, "p0_army": 40, "food": 3000, "gold": 3000, "wood": 500, "stone": 500, "upg_done": "mil.1", "peasants": 30,
+         "en_upg_done": "bar.musketeerpol.1.2,bar.pikemanpol.1.1", "upg_shown": "bar.pikemanpol.1.1=f500g50i0,bar.musketeerpol.1.1=f500g50i0,bar.musketeerpol.1.2=f600g60i0"}
+_п24 = json.load(open(ФАЙЛ, encoding="utf-8"))["итог"]
+_о24 = ПС.Стратегия(dict(_п24))(dict(_st24)); _к24 = [c for c in (_о24 if isinstance(_о24, list) else _о24.get("commands", [])) if c.get("cmd") == "TRAIN"]
+print("  TRAIN при только_пики:", [(c.get("role"), c.get("total")) for c in _к24])
+проверить(not any(c.get("role") == "musk17" for c in _к24), "(24а) мушкетёров не нанимаем")
+_о24б = ПС.Стратегия(dict(_п24, только_пики=0, доля_мушк=0.3, мушк_с=0))(dict(_st24, mil_shooters=0, mil_inf=20)); _к24б = [c for c in (_о24б if isinstance(_о24б, list) else _о24б.get("commands", [])) if c.get("cmd") == "TRAIN"]
+проверить(any(c.get("role") == "musk17" for c in _к24б), "(24а′) с ключом 0 и долей 0,3 — мушкетёры нанимаются, как было")
+_с24 = ПС._ступени_по_врагу(_st24, {"mil.1"}, dict(_п24))
+проверить(_с24 == ["bar.pikemanpol.1.1"], f"(24б) ступени по врагу при стрелках 3 > пик 2 — линейка пики ({_с24})")
+проверить(ПС._ступени_по_врагу(_st24, {"mil.1"}, dict(_п24, только_пики=0)) == ["bar.musketeerpol.1.1"], "(24б′) с ключом 0 — линейка стрелков, как было")
+
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
 raise SystemExit(1 if пало else 0)
