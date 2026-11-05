@@ -651,11 +651,10 @@ postmortem() {
         # 1.11 (Windows, open_smoke): только хвост 400 строк — и начала партии (OPENING, первые BUILD) в результатах не было,
         # а полный лог погиб с контейнером (том root, копия упала). Теперь: ПЕРВЫЕ 300 строк моста + разделитель + последние
         # 400, и полный лог игры на том /io (в git не едет — размер; живёт на хосте рядом с трассой).
-        {
-            grep "bridge-human" "$GAMELOG" 2>/dev/null | head -300
-            echo "----- ... середина партии опущена; полный лог: $COSS3_IO/игра_полный.log ... -----"
-            grep "bridge-human" "$GAMELOG" 2>/dev/null | tail -400
-        } >"$COSS3_IO/мост_в_игре.log" || true
+        # 5.11 (235): голова и хвост не дали судить приманку (GROUP 95 … retreat armed/walk home жили в середине партии). Теперь ВСЕ
+        # строки моста, кроме хозяйственного шума (TOPUP/GATHER/MINE/SEED/BALANCE/TRAIN), с потолком 40 000 строк; полный — игра_полный.log.
+        grep "bridge-human" "$GAMELOG" 2>/dev/null | grep -v -E "bridge-human: (TOPUP|GATHER|MINE|SEED|BALANCE|TRAIN) " | head -40000 \
+            >"$COSS3_IO/мост_в_игре.log" || true
         cp "$GAMELOG" "$COSS3_IO/игра_полный.log" 2>/dev/null && chmod a+r "$COSS3_IO/игра_полный.log" 2>/dev/null || \
             log "  полный лог игры на том не скопирован ($GAMELOG)"
         log "  строк моста из $GAMELOG: $(wc -l <"$COSS3_IO/мост_в_игре.log" 2>/dev/null || echo 0) (начало и хвост); полный — игра_полный.log"

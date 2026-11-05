@@ -216,6 +216,12 @@ def оценить(st, еда_после: float = 800.0, золото_после
         лин = основа.split(".")[-1]
         # 1.11: линейка и прибавка — по коду игры для любой нации (`CM.прибавка_ступени`), а не по таблице Нидерландов:
         # бот Польшей ступеней `bar.pikemanpol.*` не видел вовсе.
+        # (235) контейнеры 5.11: `ba2.pikeman18.1.1` просилась 37 тактов подряд при `ba18` 0 — ценник движка показывает ступени и
+        # не построенных зданий, блок отвечал «the building that researches it is not built». Ступень — только при своей казарме.
+        if основа.startswith("ba2.") and float(st.get("ba18") or 0) < 1:
+            continue
+        if основа.startswith("bar.") and float(st.get("ba17") or 0) < 1 and st.get("ba17") is not None:
+            continue
         if not основа.startswith(("bar.", "ba2.")) or CM.род_линейки(лин) is None or CM.прибавка_ступени(лин, вид, ур, цены.get(имя)) is None:
             continue
         if (лин, вид) not in следующая or ур < следующая[(лин, вид)][0]:
