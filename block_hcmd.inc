@@ -2757,13 +2757,19 @@
       [*] = ;                           _player_SetSquadPosition(haph, hgsi, hgtx, hgtz, hadx, hadz, False, True, hgmode, False);
       [*] = ;                           if (haface) and (hahold) then
       [*] = ;                           begin
+      [*] = ;                              // HOLD WITH HUNT for the squad too (5.11, pair on 3e9662a: squads 1 and 2 stood hold 1 hunt 0 for
+      [*] = ;                              // minutes - this path cleared the hunt above and set only the stand). Stand AND search victim.
       [*] = ;                              TSquad(hgsp).fStandGround := True;
+      [*] = ;                              TSquad(hgsp).fSearchVictim := True;
       [*] = ;                              for hgsj := 0 to TSquad(hgsp).GetCount-1 do
       [*] = ;                              begin
       [*] = ;                                 var hgsh3 : Integer = TSquad(hgsp).Get(hgsj);
       [*] = ;                                 var hgsu3 : Pointer = _unit_GetTObj(hgsh3);
       [*] = ;                                 if (hgsu3<>nil) then
+      [*] = ;                                 begin
       [*] = ;                                 TObj(hgsu3).bstandground := True;
+      [*] = ;                                 TObj(hgsu3).bsearchenemy := True;
+      [*] = ;                                 end;
       [*] = ;                              end;
       [*] = ;                           end;
       [*] = ;                           hgsn := hgsn + 1;
