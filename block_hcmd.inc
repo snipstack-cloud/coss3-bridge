@@ -1838,6 +1838,10 @@
       [*] = ;         // the remembered roll walk home to the town hall (move mode default: a walk, not a hunt), checked once a game second
       [*] = ;         // below. Any later order to the same group disarms it. Missing key or 0: as before.
       [*] = ;         var haret : Integer = ParserGetIntValueByKeyByHandle(hah, hapre + 'ret');
+      [*] = ;         // BAIT RETREAT BY DISTANCE (5.11, mac, player's word 'a human clicks every second'): rd=D (cells) on a numbered
+      [*] = ;         // ATTACK - the same retreat slot fires at once when any enemy soldier comes within D cells of a living man of
+      [*] = ;         // the roll, checked once a game second below; ret stays the fallback if nobody takes the bait. Missing key: as before.
+      [*] = ;         var hard : Float = ParserGetFloatValueByKeyByHandle(hah, hapre + 'rd');
       [*] = ;         // SOURCE CELL (4.11 evening, player's word 'take the lone men standing in the field away'): sx/sy on a counted order -
       [*] = ;         // only men standing IN that cell of the 16x16 grid (hafn, the grid of hafbx above) qualify. A counted RETREAT took the
       [*] = ;         // first N far men in object-list order and would have pulled the wave instead of the straggler. Missing key: as before.
@@ -2653,7 +2657,7 @@
       [*] = ;                     hawp := ParserCreate('br_hwave');
       [*] = ;                     ParserSetIntValueByKeyByHandle(hawp, 'sent', gIntegerList.GetCount);
       [*] = ;                  end;
-      [*] = ;                  if (haret > 0) and (hagid > 0) and (not haengage) then
+      [*] = ;                  if ((haret > 0) or (hard > 0)) and (hagid > 0) and (not haengage) then
       [*] = ;                  begin
       [*] = ;                     var harap : Integer = ParserSelectByKey('br_hgrp');
       [*] = ;                     if (harap = 0) then
@@ -2669,10 +2673,14 @@
       [*] = ;                     begin
       [*] = ;                        ParserSetIntValueByKeyByHandle(harap, 'rp' + IntToStr(harsl), hagid);
       [*] = ;                        ParserSetIntValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rq', 1);
-      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rt', GetGameTime + haret);
+      [*] = ;                        if (haret > 0) then
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rt', GetGameTime + haret)
+      [*] = ;                        else
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rt', GetGameTime + 100000);
+      [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rd', hard * hafw / hafn);
       [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rx', hax);
       [*] = ;                        ParserSetFloatValueByKeyByHandle(harap, 'g' + IntToStr(hagid) + '_rz', haz);
-      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hagid) + ' retreat armed: home in ' + IntToStr(haret) + ' s');
+      [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hagid) + ' retreat armed: home in ' + IntToStr(haret) + ' s, or enemy within ' + FloatToStr(hard) + ' cells');
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hagid) + ' retreat NOT armed: all 8 retreat slots busy');
@@ -3337,6 +3345,9 @@
       [*] = ;      var hdgr : Integer;
       [*] = ;      var hdcen : Boolean;
       [*] = ;      var hden, hdheld, hdsqn, hdoff, hdon : Integer;
+      [*] = ;      var hgrgo : Boolean;
+      [*] = ;      var hgrrd : Float;
+      [*] = ;      var hgrwhy : String;
       [*] = ;      var hdt, hdseen : Float;
       [*] = ;      var hdfire : Boolean;
       [*] = ;      var hdp : Integer = ParserSelectByKey('br_hdef');
@@ -3669,7 +3680,62 @@
       [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, 'rp' + IntToStr(hgri), 0);
       [*] = ;                  end
       [*] = ;                  else
-      [*] = ;                  if (hdnow >= ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rt')) then
+      [*] = ;                  begin
+      [*] = ;                  hgrgo := (hdnow >= ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rt'));
+      [*] = ;                  hgrrd := ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rd');
+      [*] = ;                  hgrwhy := 'time is up';
+      [*] = ;                  // BAIT (5.11): any enemy soldier within _rd px of a living man of the roll - retreat this very second.
+      [*] = ;                  if (not hgrgo) and (hgrrd > 0) then
+      [*] = ;                  begin
+      [*] = ;                     var hgrn0 : Integer = ParserGetIntValueByKeyByHandle(hgrp, hgrs + '_n');
+      [*] = ;                     var hgrk0 : Integer;
+      [*] = ;                     for hgrk0 := 0 to hgrn0-1 do
+      [*] = ;                     if (not hgrgo) then
+      [*] = ;                     begin
+      [*] = ;                        var hgrh0 : Integer = ParserGetIntValueByKeyByHandle(hgrp, hgrs + '_h' + IntToStr(hgrk0));
+      [*] = ;                        var hgrp0 : Pointer = _unit_GetTObj(hgrh0);
+      [*] = ;                        if (hgrh0 <> 0) and (hgrp0 <> nil) then
+      [*] = ;                        if (not TObj(hgrp0).bdead) then
+      [*] = ;                        begin
+      [*] = ;                           var hgrux : Float = GetGameObjectPositionXByHandle(hgrh0);
+      [*] = ;                           var hgruz : Float = GetGameObjectPositionZByHandle(hgrh0);
+      [*] = ;                           var hgrpl : Integer;
+      [*] = ;                           for hgrpl := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;                           if (not hgrgo) then
+      [*] = ;                           if (gPlayer[hgrpl].bexists) and (hgrpl <> plind) then
+      [*] = ;                           if ((gPlayer[plind].enemyPlMask and gPlayer[hgrpl].myPlMask) <> 0) then
+      [*] = ;                           begin
+      [*] = ;                              var hgreph : Integer = GetPlayerHandleByIndex(hgrpl);
+      [*] = ;                              var hgreoc : Integer = GetPlayerGameObjectsCountByHandle(hgreph);
+      [*] = ;                              var hgrej : Integer;
+      [*] = ;                              for hgrej := 0 to hgreoc-1 do
+      [*] = ;                              if (not hgrgo) then
+      [*] = ;                              begin
+      [*] = ;                                 var hgrego : Integer = GetGameObjectHandleByIndex(hgrej, hgreph);
+      [*] = ;                                 var hgrepo : Pointer = _unit_GetTObj(hgrego);
+      [*] = ;                                 if (hgrepo <> nil) then
+      [*] = ;                                 if (not TObj(hgrepo).bdead) then
+      [*] = ;                                 begin
+      [*] = ;                                    var hgreu : Integer = gObjProp[TObj(hgrepo).cid][TObj(hgrepo).id].usage;
+      [*] = ;                                    if (hgreu = gc_obj_usage_lightinfantry) or (hgreu = gc_obj_usage_weak) or (hgreu = gc_obj_usage_grenadier) or
+      [*] = ;                                       (hgreu = gc_obj_usage_shooter) or (hgreu = gc_obj_usage_archer) or (hgreu = gc_obj_usage_fasthorse) or
+      [*] = ;                                       (hgreu = gc_obj_usage_hardhorse) or (hgreu = gc_obj_usage_horseshooter) then
+      [*] = ;                                    begin
+      [*] = ;                                       var hgrdx2 : Float = GetGameObjectPositionXByHandle(hgrego) - hgrux;
+      [*] = ;                                       var hgrdz2 : Float = GetGameObjectPositionZByHandle(hgrego) - hgruz;
+      [*] = ;                                       if (hgrdx2 <= hgrrd) and (hgrdx2 >= -hgrrd) and (hgrdz2 <= hgrrd) and (hgrdz2 >= -hgrrd) then
+      [*] = ;                                       begin
+      [*] = ;                                          hgrgo := True;
+      [*] = ;                                          hgrwhy := 'enemy within ' + IntToStr(Round(hgrrd)) + ' px';
+      [*] = ;                                       end;
+      [*] = ;                                    end;
+      [*] = ;                                 end;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;                  if (hgrgo) then
       [*] = ;                  begin
       [*] = ;                     var hgrx : Float = ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rx');
       [*] = ;                     var hgrz : Float = ParserGetFloatValueByKeyByHandle(hgrp, hgrs + '_rz');
@@ -3717,12 +3783,13 @@
       [*] = ;                             False, False, True, True, gc_obj_order_move_mode_default);
       [*] = ;                        ParserSetIntValueByKeyByHandle(hgrp, hgrs + '_m', 2);
       [*] = ;                        Log('bridge-human: GROUP ' + IntToStr(hgrg) + ' retreat: ' + IntToStr(gIntegerList.GetCount) + ' men walk home to ' +
-      [*] = ;                            FloatToStr(hgrx) + ',' + FloatToStr(hgrz));
+      [*] = ;                            FloatToStr(hgrx) + ',' + FloatToStr(hgrz) + ' (' + hgrwhy + ')');
       [*] = ;                     end
       [*] = ;                     else
       [*] = ;                     Log('bridge-human: GROUP ' + IntToStr(hgrg) + ' retreat dropped: nobody alive');
       [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, hgrs + '_rq', 0);
       [*] = ;                     ParserSetIntValueByKeyByHandle(hgrp, 'rp' + IntToStr(hgri), 0);
+      [*] = ;                  end;
       [*] = ;                  end;
       [*] = ;               end;
       [*] = ;            end;

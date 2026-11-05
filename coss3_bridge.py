@@ -889,7 +889,7 @@ class Bridge:
     def attack(self, count: int, target: str = "base", mode: str = "",
                cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-               merge=None, arrive=None, ret=None, sx=None, sy=None) -> bool:
+               merge=None, arrive=None, ret=None, sx=None, sy=None, rd=None) -> bool:
         """Собрать count бойцов в армию-агрессора и отправить в атаку.
 
         target — КУДА идти, выбирает модель:
@@ -909,7 +909,7 @@ class Bridge:
         if os.path.exists(self.atk_path):
             return False
         приказ = self._приказ(count, target, mode, cx, cy, who, group, gid,
-                              face, hold, gap, step, far, всех, merge, arrive, ret, sx, sy)
+                              face, hold, gap, step, far, всех, merge, arrive, ret, sx, sy, rd)
         if приказ is None:
             return False
         return self._послать_приказы([приказ])
@@ -917,7 +917,7 @@ class Bridge:
     def _приказ(self, count: int, target: str = "base", mode: str = "",
                 cx: int = -1, cy: int = -1, who: str = "", group: int = 0,
                 gid: int = 0, face=None, hold=None, gap=None, step=None, far=None, всех=None,
-                merge=None, arrive=None, ret=None, sx=None, sy=None):
+                merge=None, arrive=None, ret=None, sx=None, sy=None, rd=None):
         """Один приказ словарём полей файла, или None, если он негоден.
 
         `sx`/`sy` (4.11 вечер, слово игрока «стоящих в поле одиночек убери»): КЛЕТКА-ИСТОЧНИК счётного приказа — блок берёт
@@ -1082,6 +1082,15 @@ class Bridge:
             _рет = 0
         if _рет > 0 and int(group or 0) > 0 and not движение and _режим != "engage":
             приказ["ret"] = _рет
+        # ПРИМАНКА (5.11, слово игрока «человек кликает каждую секунду»): rd=D клеток у ATTACK группе по номеру — блок сам
+        # уводит группу домой в ту же игровую секунду, как его боец подошёл на D клеток к любому живому из состава (проверка
+        # раз в секунду в блоке, без такта python); `ret` остаётся запасным сроком. Нет ключа — как было.
+        try:
+            _рд = float(rd or 0)
+        except (TypeError, ValueError):
+            _рд = 0.0
+        if _рд > 0 and int(group or 0) > 0 and not движение and _режим != "engage":
+            приказ["rd"] = round(_рд, 2)
         return приказ
 
     def attack_many(self, приказы: list[dict]) -> bool:
@@ -1118,7 +1127,7 @@ class Bridge:
                 п.get("face"),
                 п.get("hold"),
                 п.get("gap"), п.get("step"), п.get("far"), п.get("all"),
-                п.get("merge"), п.get("arrive"), п.get("ret"), п.get("sx"), п.get("sy"))
+                п.get("merge"), п.get("arrive"), п.get("ret"), п.get("sx"), п.get("sy"), п.get("rd"))
             if собран is None:
                 return False
             готовые.append(собран)
