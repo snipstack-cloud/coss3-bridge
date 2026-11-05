@@ -11491,6 +11491,8 @@ def одна_партия(a, client, br: Bridge, plind: int,
                         "ore_iron_dist", "ore_iron_near", "ore_iron_side",
                         "wood_side", "wood_dist", "stone_side", "stone_dist", "res_best_side", "res_best_dist", "res_best_x", "res_best_z",   # (255а)
                         "gath_n", "gath_x", "gath_z", "gath_dist", "gath_drop", "gath_side",   # (255б)
+                        "gath_wood_n", "gath_wood_x", "gath_wood_z", "gath_wood_dist", "gath_wood_drop", "gath_wood_side",   # (255в)
+                        "gath_stone_n", "gath_stone_x", "gath_stone_z", "gath_stone_dist", "gath_stone_drop", "gath_stone_side", "pea_cells",
                         "ore_coal_dist", "ore_coal_near", "ore_coal_side",
                         "map_open", "upg_done", "upg_doing", "train_now", "ba_queues", "ba18_queues", "ba18", "mil_pike18", "mil_musk18", "food_ready",
                         # Сами сетки в трассу не кладём: 32 строки на такт это

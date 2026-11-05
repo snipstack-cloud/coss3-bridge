@@ -82,6 +82,14 @@
       [*] = ;         // or mill - the storehouses list of unit.script:3767, a peasant drops at the nearest one.
       [*] = ;         var hsgwn : Integer;
       [*] = ;         var hsgwx, hsgwz : Float;
+      [*] = ;         // (255c, player's word 'the bot must see wood and stone APART'): the same sums per resource - wood [0], stone [1].
+      [*] = ;         // Live 255b: 18 on stone at 0:51, 3 on wood at 0:56 - one mixed centroid ran 15 units in ten seconds, and one
+      [*] = ;         // mean drop (6 to wood, 20 to stone gives 12) never crossed the threshold for either. Arrays at block level.
+      [*] = ;         var hsgrn : array [0..1] of Integer;
+      [*] = ;         var hsgrx : array [0..1] of Float;
+      [*] = ;         var hsgrz : array [0..1] of Float;
+      [*] = ;         var hsgrname : array [0..1] of String;
+      [*] = ;         var hsgr : Integer;
       [*] = ;         // Mines split by kind. on_mine was one number for gold, iron and coal
       [*] = ;         // together, and a human sees each mine separately - how many work it and
       [*] = ;         // how many places are left. 15.09: BALANCE gold was issued 3 times in 6
@@ -388,6 +396,11 @@
       [*] = ;                              hsgwn := hsgwn + 1;
       [*] = ;                              hsgwx := hsgwx + GetGameObjectPositionXByHandle(hsgo);
       [*] = ;                              hsgwz := hsgwz + GetGameObjectPositionZByHandle(hsgo);
+      [*] = ;                              hsgr := 0;
+      [*] = ;                              if (TRes(hsres).itype = gc_resource_type_stone) then hsgr := 1;
+      [*] = ;                              hsgrn[hsgr] := hsgrn[hsgr] + 1;
+      [*] = ;                              hsgrx[hsgr] := hsgrx[hsgr] + GetGameObjectPositionXByHandle(hsgo);
+      [*] = ;                              hsgrz[hsgr] := hsgrz[hsgr] + GetGameObjectPositionZByHandle(hsgo);
       [*] = ;                           end;
       [*] = ;                           if (TRes(hsres).itype = gc_resource_type_food)  then hsonf := hsonf + 1;
       [*] = ;                        end;
@@ -659,6 +672,52 @@
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_dist', -1);
       [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_drop', -1);
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'gath_side', '');
+      [*] = ;         end;
+      [*] = ;         // (255c) gath_wood_* and gath_stone_*: n, x, z (map frame), dist to the hall, drop to the nearest centre/store/mill, side.
+      [*] = ;         hsgrname[0] := 'wood';
+      [*] = ;         hsgrname[1] := 'stone';
+      [*] = ;         for hsgr := 0 to 1 do
+      [*] = ;         begin
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_n', hsgrn[hsgr]);
+      [*] = ;            if (hsgrn[hsgr] > 0) then
+      [*] = ;            begin
+      [*] = ;               var hsgrcx : Float = hsgrx[hsgr] / hsgrn[hsgr];
+      [*] = ;               var hsgrcz : Float = hsgrz[hsgr] / hsgrn[hsgr];
+      [*] = ;               var hsgrdrop : Float = -1.0;
+      [*] = ;               var hsgrk : Integer;
+      [*] = ;               for hsgrk := 0 to hscount-1 do
+      [*] = ;               begin
+      [*] = ;                  var hsgrgo : Integer = GetGameObjectHandleByIndex(hsgrk, hsph);
+      [*] = ;                  var hsgrpo : Pointer = _unit_GetTObj(hsgrgo);
+      [*] = ;                  if (hsgrpo<>nil) then
+      [*] = ;                  begin
+      [*] = ;                     var hsgru : Integer = gObjProp[TObj(hsgrpo).cid][TObj(hsgrpo).id].usage;
+      [*] = ;                     if (hsgru = gc_obj_usage_center) or (hsgru = gc_obj_usage_storage) or (hsgru = gc_obj_usage_mill) then
+      [*] = ;                     begin
+      [*] = ;                        var hsgrd : Float = Sqrt(Sqr(GetGameObjectPositionXByHandle(hsgrgo) - hsgrcx) + Sqr(GetGameObjectPositionZByHandle(hsgrgo) - hsgrcz));
+      [*] = ;                        if (hsgrdrop < 0) or (hsgrd < hsgrdrop) then hsgrdrop := hsgrd;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;               var hsgrdx : Float = hsgrcx - hscx;
+      [*] = ;               var hsgrdz : Float = hsgrcz - hscz;
+      [*] = ;               var hsgrside : String = '';
+      [*] = ;               if (hsgrdz < -0.5*Abs(hsgrdx)) then hsgrside := 'N';
+      [*] = ;               if (hsgrdz >  0.5*Abs(hsgrdx)) then hsgrside := 'S';
+      [*] = ;               if (hsgrdx >  0.5*Abs(hsgrdz)) then hsgrside := hsgrside + 'E';
+      [*] = ;               if (hsgrdx < -0.5*Abs(hsgrdz)) then hsgrside := hsgrside + 'W';
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_x', Round(hsgrcx) + (GetMapWidth div 2));
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_z', Round(hsgrcz) + (GetMapHeight div 2));
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_dist', Round(Sqrt(Sqr(hsgrdx) + Sqr(hsgrdz))));
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_drop', Round(hsgrdrop));
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_side', hsgrside);
+      [*] = ;            end
+      [*] = ;            else
+      [*] = ;            begin
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_dist', -1);
+      [*] = ;               ParserSetIntValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_drop', -1);
+      [*] = ;               ParserSetValueByKeyByHandle(hsp, 'gath_' + hsgrname[hsgr] + '_side', '');
+      [*] = ;            end;
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_stone',  hsons);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'on_mine',   hsonmine);
@@ -2249,6 +2308,12 @@
       [*] = ;            for hmi := 0 to cHmGrid-1 do
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            hmown[hmi][hmj] := 0;
+      [*] = ;            // (255c, player's word) OUR gatherers of wood and stone by minimap cell - a fact beside the estimates
+      [*] = ;            // (gath_*), written as 'x,y,n;...' in pea_cells, like en_pea_cells for his peasants.
+      [*] = ;            var hmgc : array [0..15] of array [0..15] of Integer;
+      [*] = ;            for hmi := 0 to cHmGrid-1 do
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            hmgc[hmi][hmj] := 0;
       [*] = ;            // Zeroed HERE, declared OUTSIDE (next to hmbase/hmforce). Live game
       [*] = ;            // 17.09 showed why: declared inside this block they never accumulated
       [*] = ;            // - 208 soldiers stood in the grid and both counters read zero, while
@@ -2271,6 +2336,19 @@
       [*] = ;               begin
       [*] = ;                  var hmou : Integer = gObjProp[TObj(hmop).cid][TObj(hmop).id].usage;
       [*] = ;                  var hmof : Boolean = False;
+      [*] = ;                  if (hmou = gc_obj_usage_peasant) then
+      [*] = ;                  if (TObj(hmop).orders[0].itype = gc_obj_order_type_gainres) then
+      [*] = ;                  begin
+      [*] = ;                     var hmgres : Pointer = _res_GetTRes(TObj(hmop).orders[0].info.trg);
+      [*] = ;                     if (hmgres<>nil) then
+      [*] = ;                     if (TRes(hmgres).itype = gc_resource_type_wood) or (TRes(hmgres).itype = gc_resource_type_stone) then
+      [*] = ;                     begin
+      [*] = ;                        var hmgcx : Integer = floor((GetGameObjectPositionXByHandle(hmog)+hmhw)*cHmGrid/hmw);
+      [*] = ;                        var hmgcy : Integer = floor((GetGameObjectPositionZByHandle(hmog)+hmhh)*cHmGrid/hmh);
+      [*] = ;                        if (hmgcx>=0) and (hmgcx<cHmGrid) and (hmgcy>=0) and (hmgcy<cHmGrid) then
+      [*] = ;                        hmgc[hmgcx][hmgcy] := hmgc[hmgcx][hmgcy] + 1;
+      [*] = ;                     end;
+      [*] = ;                  end;
       [*] = ;                  if (hmou = gc_obj_usage_lightinfantry) or (hmou = gc_obj_usage_weak) or
       [*] = ;                     (hmou = gc_obj_usage_grenadier) or (hmou = gc_obj_usage_shooter) or
       [*] = ;                     (hmou = gc_obj_usage_archer) or (hmou = gc_obj_usage_fasthorse) or
@@ -2449,6 +2527,16 @@
       [*] = ;               end;
       [*] = ;               ParserSetValueByKeyByHandle(hsp, 'arow'+IntToStr(hmj), hmrow);
       [*] = ;            end;
+      [*] = ;            // (255c) pea_cells: our wood and stone gatherers by cell.
+      [*] = ;            var hmgcs : String = '';
+      [*] = ;            for hmj := 0 to cHmGrid-1 do
+      [*] = ;            for hmi := 0 to cHmGrid-1 do
+      [*] = ;            if (hmgc[hmi][hmj] > 0) then
+      [*] = ;            begin
+      [*] = ;               if (hmgcs <> '') then hmgcs := hmgcs + ';';
+      [*] = ;               hmgcs := hmgcs + IntToStr(hmi) + ',' + IntToStr(hmj) + ',' + IntToStr(hmgc[hmi][hmj]);
+      [*] = ;            end;
+      [*] = ;            ParserSetValueByKeyByHandle(hsp, 'pea_cells', hmgcs);
       [*] = ;            // Enemy peasants on their own grid, same marks as frow/arow.
       [*] = ;            for hmj := 0 to cHmGrid-1 do
       [*] = ;            begin
