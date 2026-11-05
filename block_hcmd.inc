@@ -396,6 +396,19 @@
       [*] = ;                     // Declared here, beside hcfound (a scalar declared in a nested begin does not accumulate - 17.09).
       [*] = ;                     var hcnear : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'near');
       [*] = ;                     var hcnbest : Integer = -1;
+      [*] = ;                     // (255a, 5.11) DIRECTION - player's word after the first live store: 'the store went to the other side from
+      [*] = ;                     // stone and wood, mind the direction'. The ring count within R found 64 objects south-west of the hall while
+      [*] = ;                     // the forest the men cut stood elsewhere. The engine's own AI (_ai_FindBestPlaceForStorehouse,
+      [*] = ;                     // progresseconomicai.inc:440, not visible from this state) scores gResGrid cells by wood+stone count and
+      [*] = ;                     // distance; a STORE does the same here: best 3x3 window of cells within 14 cells (56 units) of the hall,
+      [*] = ;                     // score = sum * 100 / (10 + cells away), then the free ring spot CLOSEST to that cell wins. A hall keeps the
+      [*] = ;                     // 3.11 rule (most objects within R); no cell with resources - the 3.11 rule too. Scalars at block level.
+      [*] = ;                     var hctgt : Boolean = False;
+      [*] = ;                     var hctx, hctz : Float;
+      [*] = ;                     var hctbest : Integer = -1;
+      [*] = ;                     var hctgx, hctgy, hctsum, hctd : Integer;
+      [*] = ;                     var hcndbest : Float = -1.0;
+      [*] = ;                     var hcbgx, hcbgy, hcgi, hcgj, hcwi, hcwj : Integer;
       [*] = ;                     var hcnrad : Float = 4.0;
       [*] = ;                     var hcnang : Integer;
       [*] = ;                     var hcnok : Boolean;
@@ -449,6 +462,38 @@
       [*] = ;                     end;
       [*] = ;                     if (hcnear > 0) and (not hcfound) and ((gObjProp[hccid][hcid].airole = gc_ai_unit_center) or (gObjProp[hccid][hcid].airole = gc_ai_unit_store)) then
       [*] = ;                     begin
+      [*] = ;                        if (gObjProp[hccid][hcid].airole = gc_ai_unit_store) then
+      [*] = ;                        begin
+      [*] = ;                           hcbgx := floor(hcx + (GetMapWidth div 2)) div gc_resgrid_size;
+      [*] = ;                           hcbgy := floor(hcz + (GetMapHeight div 2)) div gc_resgrid_size;
+      [*] = ;                           for hcgi := 0 to gc_resgrid_countx-1 do
+      [*] = ;                           for hcgj := 0 to gc_resgrid_county-1 do
+      [*] = ;                           begin
+      [*] = ;                              hctd := Round(Sqrt(Sqr(hcbgx-hcgi)+Sqr(hcbgy-hcgj)));
+      [*] = ;                              if (hctd <= 14) then
+      [*] = ;                              if ((gResGrid[hcgi,hcgj].fResCount[gc_resource_type_wood] + gResGrid[hcgi,hcgj].fResCount[gc_resource_type_stone]) > 1) then
+      [*] = ;                              begin
+      [*] = ;                                 hctsum := 0;
+      [*] = ;                                 for hcwi := hcgi-1 to hcgi+1 do
+      [*] = ;                                 for hcwj := hcgj-1 to hcgj+1 do
+      [*] = ;                                 if (hcwi >= 0) and (hcwj >= 0) and (hcwi < gc_resgrid_countx) and (hcwj < gc_resgrid_county) then
+      [*] = ;                                 hctsum := hctsum + gResGrid[hcwi,hcwj].fResCount[gc_resource_type_wood] + gResGrid[hcwi,hcwj].fResCount[gc_resource_type_stone];
+      [*] = ;                                 hctsum := (hctsum * 100) div (10 + hctd);
+      [*] = ;                                 if (hctsum > hctbest) then
+      [*] = ;                                 begin
+      [*] = ;                                    hctbest := hctsum;
+      [*] = ;                                    hctgx := hcgi;
+      [*] = ;                                    hctgy := hcgj;
+      [*] = ;                                 end;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                           if (hctbest > 0) then
+      [*] = ;                           begin
+      [*] = ;                              hctgt := True;
+      [*] = ;                              hctx := (hctgx + 0.5) * gc_resgrid_size - (GetMapWidth div 2);
+      [*] = ;                              hctz := (hctgy + 0.5) * gc_resgrid_size - (GetMapHeight div 2);
+      [*] = ;                           end;
+      [*] = ;                        end;
       [*] = ;                        while (hcnrad < 26.0) do
       [*] = ;                        begin
       [*] = ;                           for hcnang := 0 to 11 do
@@ -461,7 +506,18 @@
       [*] = ;                                 hcnok := _misc_CanPlaceBuilding(hcndum, plind, hcuse, hcnx, hcnz,
       [*] = ;                                      gc_path_mincoldist, 0.26, 0.5, gc_path_minemincoldist, True);
       [*] = ;                                 GameObjectDestroyByHandle(hcndum);
-      [*] = ;                                 if (hcnok) then
+      [*] = ;                                 if (hcnok) and (hctgt) then
+      [*] = ;                                 begin
+      [*] = ;                                    var hcnd : Float = Sqrt(Sqr(hcnx - hctx) + Sqr(hcnz - hctz));
+      [*] = ;                                    if (hcndbest < 0) or (hcnd < hcndbest) then
+      [*] = ;                                    begin
+      [*] = ;                                       hcndbest := hcnd;
+      [*] = ;                                       hcfound := True;
+      [*] = ;                                       hcfx := hcnx;
+      [*] = ;                                       hcfz := hcnz;
+      [*] = ;                                    end;
+      [*] = ;                                 end;
+      [*] = ;                                 if (hcnok) and (not hctgt) then
       [*] = ;                                 begin
       [*] = ;                                    gIntegerList.Clear;
       [*] = ;                                    _misc_MakeListEnvironmentInRadius(hcnx, hcnz, hcnear, True, False, True, True, False, gIntegerList);
@@ -478,7 +534,11 @@
       [*] = ;                           hcnrad := hcnrad + 2.0;
       [*] = ;                        end;
       [*] = ;                        gIntegerList.Clear;
-      [*] = ;                        if (hcfound) then
+      [*] = ;                        if (hcfound) and (hctgt) then
+      [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' toward wood and stone: best cell ' + IntToStr(hctgx) + ',' + IntToStr(hctgy) +
+      [*] = ;                            ' score ' + IntToStr(hctbest) + ' at ' + FloatToStr(hctx) + ',' + FloatToStr(hctz) + ' - placed at ' + FloatToStr(hcfx) +
+      [*] = ;                            ',' + FloatToStr(hcfz) + ' (' + FloatToStr(hcndbest) + ' from the cell, hall ' + FloatToStr(hcx) + ',' + FloatToStr(hcz) + ')');
+      [*] = ;                        if (hcfound) and (not hctgt) then
       [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' at the forest line: ' + IntToStr(hcnbest) + ' wood and stone within ' +
       [*] = ;                            IntToStr(hcnear) + ' at ' + FloatToStr(hcfx) + ',' + FloatToStr(hcfz));
       [*] = ;                     end;

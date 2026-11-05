@@ -47,23 +47,30 @@ def _дебют(ключ, st, gt=30):
     деб = D.Дебют(как_игрок=True)
     cmds, слова = деб.такт(dict(st), gt)
     return [(c.cmd, c.a1, c.a2, c.near) for c in cmds if c.cmd in ("BUILD", "BUILDERS")], слова
-_st = {"centers": 1, "mills": 1, "smiths": 0, "ba17": 0, "wip": "smith/1/12/30", "my_stores": 0, "wood": 950, "stone": 980, "food": 900,
-       "peasants": 18, "idle_pea": 0, "mil_inf": 0, "mil_shooters": 0, "mil_cav": 0, "ba_queues": "", "upg_done": "", "mines_iron": 0}
+_st = {"centers": 1, "mills": 1, "smiths": 0, "ba17": 0, "wip": "mill/1/6/40", "my_stores": 0, "wood": 950, "stone": 980, "food": 900,
+       "peasants": 18, "idle_pea": 12, "mil_inf": 0, "mil_shooters": 0, "mil_cav": 0, "ba_queues": "", "upg_done": "", "mines_iron": 0}
 _а, _сл = _дебют(12, _st)
-print("  дебют с ключом, кузница строится:", _а, "|", _сл)
+print("  дебют с ключом, ратуша готова, кузницы нет:", _а, "|", _сл)
 проверить(any(c == "BUILD" and a1 == CB.ROLE["store"] and near == 12 for c, a1, a2, near in _а)
-          and any(c == "BUILDERS" and a1 == 4 for c, a1, a2, near in _а), "(3а) с ключом: склад в окно кузницы, 4 строителя, near 12")
+          and any(c == "BUILDERS" and a1 == 4 for c, a1, a2, near in _а), "(3а) с ключом: склад ПЕРВЫМ после готовой ратуши, 4 строителя, near 12 (255а: строители ратуши свободны)")
 _б, _ = _дебют(0, _st)
-проверить(not any(c == "BUILD" for c, *_ in _б), f"(3б) без ключа в этом окне закладки нет ({_б})")
-_в, _ = _дебют(12, dict(_st, smiths=1, wip=""))
-проверить(any(c == "BUILD" and a1 == CB.ROLE["ba17"] for c, a1, a2, near in _в) and not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _в),
-          f"(3в) кузница готова, склада ещё нет — казарма ПЕРВОЙ, склад не задерживает её ({_в})")
-_г, _ = _дебют(12, dict(_st, smiths=1, wip="ba17/1/18/5"))
-проверить(any(c == "BUILD" and a1 == CB.ROLE["store"] and near == 12 for c, a1, a2, near in _г), f"(3г) казарма заложена — склад следующим тактом ({_г})")
+проверить(any(c == "BUILD" and a1 == CB.ROLE["smith"] for c, a1, a2, near in _б) and not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _б), f"(3б) без ключа — кузница, как было ({_б})")
+_в, _ = _дебют(12, dict(_st, wip="mill/1/6/40,store/1/4/10"))
+проверить(any(c == "BUILD" and a1 == CB.ROLE["smith"] for c, a1, a2, near in _в) and not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _в),
+          f"(3в) склад заложен — кузница следующим тактом ({_в})")
+_г, _ = _дебют(12, dict(_st, my_stores=1, smiths=1, wip=""))
+проверить(any(c == "BUILD" and a1 == CB.ROLE["ba17"] for c, a1, a2, near in _г) and not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _г), f"(3г) склад и кузница готовы — казарма ({_г})")
 _д, _ = _дебют(12, dict(_st, my_stores=1))
 проверить(not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _д), "(3д) склад есть — второго не кладём")
 _е, _ = _дебют(12, dict(_st, wood=40))
-проверить(not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _е), "(3е) дерева меньше 50 — ждём")
+проверить(not any(a1 == CB.ROLE["store"] for c, a1, a2, near in _е) and any(a1 == CB.ROLE["smith"] for c, a1, a2, near in _е), "(3е) дерева меньше 50 — склад ждёт, кузница идёт")
+# (3ж) блок: ветка склада целится в лучшую клетку сетки (3x3, сумма*100/(10+клеток)), берёт кольцевое место ближе всего к ней
+_блок2 = open(os.path.join(К, "block_hcmd.inc"), encoding="latin-1").read()
+проверить("toward wood and stone: best cell" in _блок2 and "hctsum := (hctsum * 100) div (10 + hctd);" in _блок2 and "if (hcnok) and (hctgt) then" in _блок2,
+          "(3ж) блок команд: склад целится в лучшую клетку дерева и камня, место — ближайшее к ней")
+_сост = open(os.path.join(К, "block_hstate.inc"), encoding="latin-1").read()
+проверить(all(k in _сост for k in ("'wood_side'", "'wood_dist'", "'stone_side'", "'stone_dist'", "'res_best_side'", "'res_best_dist'", "'res_best_x'")),
+          "(3з) блок состояния пишет сторону и расстояние леса, камня и лучшей клетки")
 D.СКЛАД_У_ЛЕСА = 0
 
 # (4)

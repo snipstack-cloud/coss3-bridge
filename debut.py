@@ -220,6 +220,12 @@ class Дебют:
                 закладка = ("center", 12)
             elif _int(st, "mills") < 1 and "mill" not in идут:
                 закладка = ("mill", 6)
+            # (255а) склад — ПЕРВЫМ после готовой ратуши: её 12 строителей в этот миг свободны; кузница следующим тактом
+            # берёт остальных. Живая 5.11: склад в окне кузницы шесть раз подряд «NO WORKERS» (все на ратуше, мельнице и
+            # кузнице — блок не снимает людей со стройки) и лёг только к 63 с.
+            elif (СКЛАД_У_ЛЕСА > 0 and готово["center"] >= 1 and _int(st, "my_stores") < 1 and "store" not in идут
+                  and _int(st, "wood") >= 50 and _int(st, "stone") >= 20):
+                закладка = ("store", СКЛАД_СТРОИТЕЛЕЙ)
             elif готово["center"] >= 1 and готово["smith"] < 1 and "smith" not in идут:
                 закладка = ("smith", 99)
             elif (готово["smith"] >= 1 and _int(st, "mills") >= 1 and готово["ba17"] < 1
@@ -241,10 +247,9 @@ class Дебют:
         if (закладка is None and готово["center"] >= 1 and _int(st, "mills") < 1
                 and "mill" not in идут and _int(st, "wood") >= 30 and _int(st, "stone") >= 150):
             закладка = ("mill", 4)
-        # --- (255) склад у леса: когда ратуша стоит, кузница заложена (или готова), склада нет и есть 50/20 ---
-        if (закладка is None and СКЛАД_У_ЛЕСА > 0 and готово["center"] >= 1 and _int(st, "my_stores") < 1
-                and "store" not in идут and (готово["smith"] >= 1 or "smith" in идут)
-                and _int(st, "wood") >= 50 and _int(st, "stone") >= 20):
+        # --- (255) склад у леса в модульной цепочке (не как у игрока): ратуша стоит, склада нет, есть 50/20 ---
+        if (закладка is None and not self.как_игрок and СКЛАД_У_ЛЕСА > 0 and готово["center"] >= 1 and _int(st, "my_stores") < 1
+                and "store" not in идут and _int(st, "wood") >= 50 and _int(st, "stone") >= 20):
             закладка = ("store", СКЛАД_СТРОИТЕЛЕЙ)
         # --- шахта железа после казармы, когда добыто на неё ---
         if (закладка is None and self.mine and self._железо_нужно(st) and готово["ba17"] >= 1

@@ -1065,6 +1065,14 @@
       [*] = ;         // working there. A human sees the same forest and rocks on his screen.
       [*] = ;         var hswn, hswf, hssn, hssf : Integer;
       [*] = ;         var hsgx, hsgy : Integer;
+      [*] = ;         // (255a, 5.11) WHERE the wood and stone are - the state had only counts, so neither python nor a trace
+      [*] = ;         // could say which side the store went to (player: 'the store stands on the other side from stone and
+      [*] = ;         // wood'). Centroid of wood cells and of stone cells within the same 10 cells (weighted by object count),
+      [*] = ;         // as a side word like the ores plus distance in units; and the best 3x3 window the store aims at (same
+      [*] = ;         // score as block_hcmd: sum * 100 / (10 + cells away), within 14 cells) as res_best_side / res_best_dist.
+      [*] = ;         var hsrwx, hsrwz, hsrsx, hsrsz, hswraw, hssraw : Integer;
+      [*] = ;         var hsrbest : Integer = -1;
+      [*] = ;         var hsrgx, hsrgy, hsrsum, hsrwi, hsrwj : Integer;
       [*] = ;         var hsbgx : Integer = floor(hscx + (GetMapWidth div 2)) div gc_resgrid_size;
       [*] = ;         var hsbgy : Integer = floor(hscz + (GetMapHeight div 2)) div gc_resgrid_size;
       [*] = ;         for hsgx := 0 to gc_resgrid_countx-1 do
@@ -1075,8 +1083,29 @@
       [*] = ;            if ((hswc+hssc) > 0) then
       [*] = ;            begin
       [*] = ;               var hscd : Integer = Round(Sqrt(Sqr(hsbgx-hsgx)+Sqr(hsbgy-hsgy)));
+      [*] = ;               if (hscd <= 14) and ((hswc+hssc) > 1) then
+      [*] = ;               begin
+      [*] = ;                  hsrsum := 0;
+      [*] = ;                  for hsrwi := hsgx-1 to hsgx+1 do
+      [*] = ;                  for hsrwj := hsgy-1 to hsgy+1 do
+      [*] = ;                  if (hsrwi >= 0) and (hsrwj >= 0) and (hsrwi < gc_resgrid_countx) and (hsrwj < gc_resgrid_county) then
+      [*] = ;                  hsrsum := hsrsum + gResGrid[hsrwi,hsrwj].fResCount[gc_resource_type_wood] + gResGrid[hsrwi,hsrwj].fResCount[gc_resource_type_stone];
+      [*] = ;                  hsrsum := (hsrsum * 100) div (10 + hscd);
+      [*] = ;                  if (hsrsum > hsrbest) then
+      [*] = ;                  begin
+      [*] = ;                     hsrbest := hsrsum;
+      [*] = ;                     hsrgx := hsgx;
+      [*] = ;                     hsrgy := hsgy;
+      [*] = ;                  end;
+      [*] = ;               end;
       [*] = ;               if (hscd <= 10) then
       [*] = ;               begin
+      [*] = ;                  hswraw := hswraw + hswc;
+      [*] = ;                  hssraw := hssraw + hssc;
+      [*] = ;                  hsrwx := hsrwx + hswc*(hsgx-hsbgx);
+      [*] = ;                  hsrwz := hsrwz + hswc*(hsgy-hsbgy);
+      [*] = ;                  hsrsx := hsrsx + hssc*(hsgx-hsbgx);
+      [*] = ;                  hsrsz := hsrsz + hssc*(hsgy-hsbgy);
       [*] = ;                  hswn := hswn + hswc*gc_gameplay_resource_maxattackers_wood;
       [*] = ;                  hssn := hssn + hssc*gc_gameplay_resource_maxattackers_stone;
       [*] = ;                  hswf := hswf + Max(0, hswc*gc_gameplay_resource_maxattackers_wood
@@ -1129,6 +1158,53 @@
       [*] = ;         end;
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'food_ready', hsfrd);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_near', hswn);
+      [*] = ;         // (255a) side words as for the ores: north is -Z; '' means around or none.
+      [*] = ;         var hsrdx, hsrdz : Float;
+      [*] = ;         var hsrside : String;
+      [*] = ;         hsrside := '';
+      [*] = ;         if (hswraw > 0) then
+      [*] = ;         begin
+      [*] = ;            hsrdx := hsrwx / hswraw;
+      [*] = ;            hsrdz := hsrwz / hswraw;
+      [*] = ;            if (hsrdz < -0.5*Abs(hsrdx)) then hsrside := 'N';
+      [*] = ;            if (hsrdz >  0.5*Abs(hsrdx)) then hsrside := 'S';
+      [*] = ;            if (hsrdx >  0.5*Abs(hsrdz)) then hsrside := hsrside + 'E';
+      [*] = ;            if (hsrdx < -0.5*Abs(hsrdz)) then hsrside := hsrside + 'W';
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'wood_dist', Round(Sqrt(Sqr(hsrdx)+Sqr(hsrdz)) * gc_resgrid_size));
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_dist', -1);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'wood_side', hsrside);
+      [*] = ;         hsrside := '';
+      [*] = ;         if (hssraw > 0) then
+      [*] = ;         begin
+      [*] = ;            hsrdx := hsrsx / hssraw;
+      [*] = ;            hsrdz := hsrsz / hssraw;
+      [*] = ;            if (hsrdz < -0.5*Abs(hsrdx)) then hsrside := 'N';
+      [*] = ;            if (hsrdz >  0.5*Abs(hsrdx)) then hsrside := 'S';
+      [*] = ;            if (hsrdx >  0.5*Abs(hsrdz)) then hsrside := hsrside + 'E';
+      [*] = ;            if (hsrdx < -0.5*Abs(hsrdz)) then hsrside := hsrside + 'W';
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'stone_dist', Round(Sqrt(Sqr(hsrdx)+Sqr(hsrdz)) * gc_resgrid_size));
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_dist', -1);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'stone_side', hsrside);
+      [*] = ;         hsrside := '';
+      [*] = ;         if (hsrbest > 0) then
+      [*] = ;         begin
+      [*] = ;            hsrdx := hsrgx - hsbgx;
+      [*] = ;            hsrdz := hsrgy - hsbgy;
+      [*] = ;            if (hsrdz < -0.5*Abs(hsrdx)) then hsrside := 'N';
+      [*] = ;            if (hsrdz >  0.5*Abs(hsrdx)) then hsrside := 'S';
+      [*] = ;            if (hsrdx >  0.5*Abs(hsrdz)) then hsrside := hsrside + 'E';
+      [*] = ;            if (hsrdx < -0.5*Abs(hsrdz)) then hsrside := hsrside + 'W';
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'res_best_dist', Round(Sqrt(Sqr(hsrdx)+Sqr(hsrdz)) * gc_resgrid_size));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'res_best_x', Round((hsrgx + 0.5) * gc_resgrid_size - (GetMapWidth div 2)));
+      [*] = ;            ParserSetIntValueByKeyByHandle(hsp, 'res_best_z', Round((hsrgy + 0.5) * gc_resgrid_size - (GetMapHeight div 2)));
+      [*] = ;         end
+      [*] = ;         else
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'res_best_dist', -1);
+      [*] = ;         ParserSetValueByKeyByHandle(hsp, 'res_best_side', hsrside);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'wood_slots_free', hswf);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_near', hssn);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'stone_slots_free', hssf);
