@@ -701,6 +701,59 @@
       [*] = ;         var hssqln : Integer = 0;
       [*] = ;         var hssqmw : Integer = GetMapWidth;
       [*] = ;         var hssqmh : Integer = GetMapHeight;
+      [*] = ;         // (251) SQUAD'S GROUP (mac 5.11, map item A 'identity for bodies'): python could address a squad only by 'all' (the
+      [*] = ;         // whole house), because it never knew which group roster holds the squad's men - the command block finds a squad by
+      [*] = ;         // ANY member in the roster (SQUAD BY GROUP NUMBER). Here, per squad (by fIndex = TObj.squad), the group id (1..16,
+      [*] = ;         // 81..97) whose remembered roster (br_hgrp) holds the most of its living men; 0 when none. NINTH field of squads_list.
+      [*] = ;         var hssqgb : array [0..15] of Integer;
+      [*] = ;         var hssqgc : array [0..15] of Integer;
+      [*] = ;         var hssqgt : array [0..15] of Integer;
+      [*] = ;         var hssqgk : Integer;
+      [*] = ;         for hssqgk := 0 to 15 do
+      [*] = ;         begin
+      [*] = ;            hssqgb[hssqgk] := 0;
+      [*] = ;            hssqgc[hssqgk] := 0;
+      [*] = ;         end;
+      [*] = ;         var hssqgp : Integer = ParserSelectByKey('br_hgrp');
+      [*] = ;         if (hssqgp <> 0) then
+      [*] = ;         begin
+      [*] = ;            var hssqgg : Integer;
+      [*] = ;            for hssqgg := 1 to 97 do
+      [*] = ;            begin
+      [*] = ;               if ((hssqgg <= 16) or (hssqgg >= 81)) then
+      [*] = ;               begin
+      [*] = ;                  var hssqgn : Integer = ParserGetIntValueByKeyByHandle(hssqgp, 'g' + IntToStr(hssqgg) + '_n');
+      [*] = ;                  if (hssqgn > 0) then
+      [*] = ;                  begin
+      [*] = ;                     for hssqgk := 0 to 15 do
+      [*] = ;                     begin
+      [*] = ;                        hssqgt[hssqgk] := 0;
+      [*] = ;                     end;
+      [*] = ;                     var hssqgj : Integer;
+      [*] = ;                     for hssqgj := 0 to hssqgn-1 do
+      [*] = ;                     begin
+      [*] = ;                        var hssqgh : Integer = ParserGetIntValueByKeyByHandle(hssqgp, 'g' + IntToStr(hssqgg) + '_h' + IntToStr(hssqgj));
+      [*] = ;                        if (hssqgh <> 0) then
+      [*] = ;                        begin
+      [*] = ;                           var hssqgo : Pointer = _unit_GetTObj(hssqgh);
+      [*] = ;                           if (hssqgo<>nil) then
+      [*] = ;                           if (not TObj(hssqgo).bdead) then
+      [*] = ;                           if ((TObj(hssqgo).squad >= 0) and (TObj(hssqgo).squad <= 15)) then
+      [*] = ;                           hssqgt[TObj(hssqgo).squad] := hssqgt[TObj(hssqgo).squad] + 1;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     for hssqgk := 0 to 15 do
+      [*] = ;                     begin
+      [*] = ;                        if (hssqgt[hssqgk] > hssqgc[hssqgk]) then
+      [*] = ;                        begin
+      [*] = ;                           hssqgc[hssqgk] := hssqgt[hssqgk];
+      [*] = ;                           hssqgb[hssqgk] := hssqgg;
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                  end;
+      [*] = ;               end;
+      [*] = ;            end;
+      [*] = ;         end;
       [*] = ;         for hssqi := 0 to hssq-1 do
       [*] = ;         begin
       [*] = ;            var hspsq : Pointer = gPlayer[plind].squads.Get(hssqi);
@@ -736,10 +789,12 @@
       [*] = ;               if (TSquad(hspsq).fSearchVictim) then hssqh2 := 1;
       [*] = ;               var hssqm2 : Integer = 0;
       [*] = ;               if (TSquad(hspsq).fHoldMode) then hssqm2 := 1;
+      [*] = ;               var hssqgid : Integer = 0;
+      [*] = ;               if ((hssqfi >= 0) and (hssqfi <= 15)) then hssqgid := hssqgb[hssqfi];
       [*] = ;               if (hssqln > 0) then
       [*] = ;               hssql := hssql + ';';
       [*] = ;               hssql := hssql + IntToStr(TSquad(hspsq).fUID) + ',' + IntToStr(TSquad(hspsq).GetCount) + ',' + hssqfs + ',' +
-      [*] = ;                    IntToStr(hssqcx) + ',' + IntToStr(hssqcy) + ',' + IntToStr(hssqg2) + ',' + IntToStr(hssqh2) + ',' + IntToStr(hssqm2);
+      [*] = ;                    IntToStr(hssqcx) + ',' + IntToStr(hssqcy) + ',' + IntToStr(hssqg2) + ',' + IntToStr(hssqh2) + ',' + IntToStr(hssqm2) + ',' + IntToStr(hssqgid);
       [*] = ;               hssqln := hssqln + 1;
       [*] = ;            end;
       [*] = ;         end;

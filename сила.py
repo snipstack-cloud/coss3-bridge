@@ -43,7 +43,8 @@ def _отряды_из(строка) -> list:
         if len(f) < 8:
             continue
         try:
-            из.append({"n": int(f[1]), "x": int(f[3]), "y": int(f[4]), "hold": int(f[5]), "hunt": int(f[6]), "holdmode": int(f[7])})
+            из.append({"n": int(f[1]), "x": int(f[3]), "y": int(f[4]), "hold": int(f[5]), "hunt": int(f[6]), "holdmode": int(f[7]),
+                       "gid": int(f[8]) if len(f) >= 9 and f[8].strip().lstrip("-").isdigit() else 0})   # (251) группа отряда (блок 2892)
         except (TypeError, ValueError):
             continue
     return из
