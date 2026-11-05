@@ -100,6 +100,7 @@ class Command:
     a1: int = 0
     a2: int = 0
     upg: str = ""
+    near: int = 0                 # (255) BUILD: радиус поиска леса и камня для места (ратуша/склад); 0 — как было
 
 
 def ратуша_у_леса(путь_или_флаги: str) -> int:
@@ -121,15 +122,19 @@ def ратуша_у_леса(путь_или_флаги: str) -> int:
     return 0
 
 
-def build(role: str, total_count: int) -> Command:
+def build(role: str, total_count: int, near: int = 0) -> Command:
     """BUILD декларативен: total_count — желаемое ИТОГО зданий этой роли.
     Идемпотентен, можно слать каждый тик.
 
     Исключение: для house движок игнорирует count и ограничивает стройку
-    правилом «не более 3 идей в работе» (см. _ai_TryUnit)."""
+    правилом «не более 3 идей в работе» (см. _ai_TryUnit).
+
+    `near` R > 0 (255, 5.11, слово игрока «склад рядом с ресурсами»): блок перебирает те же кольца вокруг
+    ратуши и берёт место, где в радиусе R больше всего деревьев и камня. Блок слушает поле у ратуши (180)
+    и склада (255); у прочих ролей оно молча не действует. 0 — как было."""
     if role not in BUILDABLE:
         raise ValueError(f"BUILD не поддерживает роль {role!r}; см. BUILDABLE")
-    return Command("BUILD", ROLE[role], total_count)
+    return Command("BUILD", ROLE[role], total_count, near=int(near or 0))
 
 
 INFINITE = -1     # TRAIN с отрицательным числом = бесконечное производство
@@ -678,6 +683,8 @@ class Bridge:
             values[f"{i}_a2"] = c.a2
             if c.upg:
                 values[f"{i}_upg"] = c.upg
+            if int(getattr(c, "near", 0) or 0) > 0 and c.cmd == "BUILD":
+                values[f"{i}_near"] = int(c.near)          # (255) место у леса и камня — ратуша (180) и склад
         text = dump_parser_file("br_cmd", values)
         # атомарно: игра делает IsFileExists -> Load -> Delete, частичный файл её сломает
         fd, tmp = tempfile.mkstemp(dir=self.save_dir, suffix=".tmp")

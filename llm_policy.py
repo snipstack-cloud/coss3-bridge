@@ -9070,7 +9070,7 @@ def to_commands(data: dict, доступные: set[str] | None = None,
                     брак.append(f"BUILD {role}: нужно ИТОГО зданий числом > 0"
                                 f" в поле total (поля: {поля})")
                 else:
-                    cmds.append(build(role, total))
+                    cmds.append(build(role, total, near=int(item.get("near") or 0) if isinstance(item, dict) else 0))   # (255)
             elif c == "TRAIN":
                 if role == "dragoon17" and (_нд := конюшню_нельзя(st, "dragoon")):
                     брак.append(f"TRAIN {role}: " + _нд)

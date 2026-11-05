@@ -390,6 +390,9 @@
       [*] = ;                     // between forest and stone, so men leaving it chop at once. The rings below take the FIRST free spot
       [*] = ;                     // around our first peasant and never look at resources. With key 'near' R (> 0) in the command, a town
       [*] = ;                     // hall tries the same rings and keeps the spot with the most wood and stone objects within R. 0 - as before.
+      [*] = ;                     // (255, 5.11, player's word 'his storehouse stands beside the resources'): a STOREHOUSE listens to the same
+      [*] = ;                     // key. Live games 5.11: his store goes down at 0:34-0:42, 3-10 units from his hall, his peasants work 0-1 cell
+      [*] = ;                     // from it; ours never built one (0 of 11). Rings are centred on our hall, so the store walks to the trees.
       [*] = ;                     // Declared here, beside hcfound (a scalar declared in a nested begin does not accumulate - 17.09).
       [*] = ;                     var hcnear : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'near');
       [*] = ;                     var hcnbest : Integer = -1;
@@ -444,7 +447,7 @@
       [*] = ;                        Log('bridge-human: BUILD ' + hcsid + ' on a deposit at ' + FloatToStr(hcfx) +
       [*] = ;                            ',' + FloatToStr(hcfz) + ' (' + FloatToStr(hcbest) + ' from base)');
       [*] = ;                     end;
-      [*] = ;                     if (hcnear > 0) and (not hcfound) and (gObjProp[hccid][hcid].airole = gc_ai_unit_center) then
+      [*] = ;                     if (hcnear > 0) and (not hcfound) and ((gObjProp[hccid][hcid].airole = gc_ai_unit_center) or (gObjProp[hccid][hcid].airole = gc_ai_unit_store)) then
       [*] = ;                     begin
       [*] = ;                        while (hcnrad < 26.0) do
       [*] = ;                        begin
