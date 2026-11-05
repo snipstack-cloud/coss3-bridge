@@ -274,7 +274,8 @@ class Стратегия:
             if int(п.get("ступени_по_врагу", 0) or 0):
                 for _u in _ступени_по_врагу(st, взято, п):
                     if not any(c.get("cmd") == "UPGRADE" and c.get("upg") == _u for c in из):
-                        из.append({"cmd": "UPGRADE", "upg": _u, "_по_врагу": True})
+                        из.append({"cmd": "UPGRADE", "upg": _u, "_по_врагу": True,
+                                   **({"_сквозь_пол": 1} if int(п.get("ступени_сквозь_пол", 0) or 0) else {})})   # (250) мимо порога еды моста
             if _ценность and not _казарм_мало:
                 _ст = self._ступень_по_ценности(st, взято, t)
                 if _ст:

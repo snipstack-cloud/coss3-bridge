@@ -500,6 +500,18 @@ _с24 = ПС._ступени_по_врагу(_st24, {"mil.1"}, dict(_п24))
 проверить(_с24 == ["bar.pikemanpol.1.1"], f"(24б) ступени по врагу при стрелках 3 > пик 2 — линейка пики ({_с24})")
 проверить(ПС._ступени_по_врагу(_st24, {"mil.1"}, dict(_п24, только_пики=0)) == ["bar.musketeerpol.1.1"], "(24б′) с ключом 0 — линейка стрелков, как было")
 
+# (25) ступени по врагу сквозь порог еды (250): UPGRADE с меткой _сквозь_пол политика не откладывает порогом еды; без метки — как было
+_st25 = {"gametime": 400, "food": 1600, "upg_avail": "bar.pikemanpol.1.2=f1400g200i0", "mil_inf": 40, "mil_shooters": 0, "mil_cav": 0}
+_пор = LPm.ЕДА_ПОРОГ; LPm.ЕДА_ПОРОГ = 800
+LPm.to_commands({"commands": [{"cmd": "UPGRADE", "role": "bar.pikemanpol.1.2", "_по_врагу": True, "_сквозь_пол": 1}]})      # `привести` переименовывает upg → role
+_о25 = LPm.прокачка_еды_рано(_st25, "bar.pikemanpol.1.2")
+LPm.to_commands({"commands": [{"cmd": "UPGRADE", "role": "bar.pikemanpol.1.2", "_по_врагу": True}]})
+_о25б = LPm.прокачка_еды_рано(_st25, "bar.pikemanpol.1.2")
+LPm.ЕДА_ПОРОГ = _пор
+проверить(_о25 is None and _о25б is not None and "ОТЛОЖЕН" in _о25б, f"(25) с меткой порог не держит, без метки — ОТЛОЖЕН ({str(_о25б)[:40]})")
+_о25в = ПС.Стратегия(dict(_п24))(dict(_st24, mil_inf=20, mil_shooters=0))
+проверить(any(c.get("cmd") == "UPGRADE" and c.get("_по_врагу") and c.get("_сквозь_пол") for c in (_о25в if isinstance(_о25в, list) else _о25в.get("commands", []))), "(25б) стратегия помечает ступени по врагу _сквозь_пол при ключе")
+
 print(f"selftest_судья_удара: {ок} из {ок + len(пало)}")
 for и in пало: print("  ПАЛО:", и)
 raise SystemExit(1 if пало else 0)
