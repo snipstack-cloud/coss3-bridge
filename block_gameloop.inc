@@ -54,6 +54,27 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'gametime', Round(GetGameTime));
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'myplind', plind);
       [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'victory', gPlayer[plind].victorystate);
+      [*] = ;         // (262, player's word 6.11: 'the bridge must see which nation I pick in a NETWORK game under my profile, wait
+      [*] = ;         // for the start, then hand the slot to the bot'). The lobby keeps its settings in gMap.players (eventcustomgame
+      [*] = ;         // writes cid there), gMap.gamestage says lobby / loading / started, _net_IsServer says who hosts. This loop
+      [*] = ;         // runs only when not a client, so the bot works for the HOST of the lobby. Python (setevaya_partiya.py) reads
+      [*] = ;         // these from the pulse, writes the opening file for the slot, picks the strategy by nation and starts the policy.
+      [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'stage', gMap.gamestage);
+      [*] = ;         var hhbsn : String = 'lobby';
+      [*] = ;         if (gMap.gamestage = gc_map_gamestage_started) then hhbsn := 'started';
+      [*] = ;         if (gMap.gamestage = gc_map_gamestage_waitingloading) then hhbsn := 'loading';
+      [*] = ;         ParserSetValueByKeyByHandle(hhb, 'stage_name', hhbsn);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'my_cid', gMap.players[plind].cid);
+      [*] = ;         ParserSetValueByKeyByHandle(hhb, 'my_csid', gMap.players[plind].csid);
+      [*] = ;         ParserSetValueByKeyByHandle(hhb, 'my_name', gMap.players[plind].name);
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hhb, 'my_ready', gMap.players[plind].bready);
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hhb, 'online', _net_IsOnline);
+      [*] = ;         ParserSetBoolValueByKeyByHandle(hhb, 'server', _net_IsServer);
+      [*] = ;         var hhbpc : Integer = 0;
+      [*] = ;         var hhbpi : Integer;
+      [*] = ;         for hhbpi := 0 to gc_MaxPlayerCount-1 do
+      [*] = ;         if (gMap.players[hhbpi].bexists) then hhbpc := hhbpc + 1;
+      [*] = ;         ParserSetIntValueByKeyByHandle(hhb, 'players', hhbpc);
       [*] = ;         // STAGE OF THE STATE BLOCK (29.10 night, mac, after D22/D23): the state block marks how far it got in
       [*] = ;         // br_hstate (stage<plind> 0..11, 11 = saved; stageat = game time of the entry). Copied into the pulse,
       [*] = ;         // because this parser is cleared before every save and the state block runs after us in the tick.
