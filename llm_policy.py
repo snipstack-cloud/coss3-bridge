@@ -2305,7 +2305,7 @@ def конец_партии(a, br, исход: str, gt: int) -> str:
     # любую меру «близко ли враг к дому» считаемой задним числом по архиву.
     "my_cx", "my_cy",
     # 1.11 (селфтест снимка): всё мерное из трассы обязано быть и здесь
-    "my_army_cx", "my_army_cy", "my_army_n", "squad_form", "squad_hdmg", "squad_hdef", "upg_doing",
+    "my_army_cx", "my_army_cy", "my_army_n", "squad_form", "squad_hdmg", "squad_hdef", "upg_doing", "squad_real_dmg", "squad_real_def", "squad_real_hdmg", "squad_real_hdef",
     # СПИСОК ОТРЯДОВ — В СНИМОК (31.10, серия defence_full_vs_ai). Поле завели
     # 30.10 и провели в состояние, в запрос модели и в ТРАССУ (список на
     # :11174), а в снимок — нет: у него свой список, этот. Цена ошибки ровно
@@ -2466,7 +2466,7 @@ def писать_снимок(a, st: dict, когда: dict) -> None:
                       "squads_list", "squads_list_n",          # 1.11 (пункт 7): его отряды списком
                       "squads_form", "squads_form_hold", "squad_form",
                       "squad_form_units", "squad_dmg", "squad_def",
-                      "squad_hdmg", "squad_hdef", "squad_hold",
+                      "squad_hdmg", "squad_hdef", "squad_hold", "squad_real_dmg", "squad_real_def", "squad_real_hdmg", "squad_real_hdef",
                       "mv_n", "mv_base", "mv_cx", "mv_cy",
                       # ЕГО ЗДАНИЯ ПО ВИДАМ (28.09, по счёту очков мака). Блок их
                       # пишет давно, и ТРАССА несёт все — а снимок не несёл ни

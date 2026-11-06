@@ -809,6 +809,13 @@
       [*] = ;         var hssqf : Integer = -1;
       [*] = ;         var hssqh : Integer = 0;   // block task No3 (29.10): does the largest squad hunt (fSearchVictim)
       [*] = ;         var hssqg : Integer = 0;   // ... and does it stand its ground (fStandGround)
+      [*] = ;         // (291, player 7.11 'you do not see the bonuses of the bot squad?'): squad_dmg..hdef below come from the
+      [*] = ;         // formation TABLE by index; these four are read from the largest squad ITSELF (the fields the damage gate
+      [*] = ;         // uses, lib/miscext2.script 347-355 and 418-430), -1 when there is no squad.
+      [*] = ;         var hssrd : Integer = -1;
+      [*] = ;         var hssrs : Integer = -1;
+      [*] = ;         var hssrdh : Integer = -1;
+      [*] = ;         var hssrsh : Integer = -1;
       [*] = ;         // BLOCK LIST ITEM 3 (30.10 night): EVERY squad, not only the largest - 'uid,men,formation,cx,cy,hold,hunt,holdmode'
       [*] = ;         // per squad, ';' between, 'none' when there is none; cell = minimap cell (width/16) of the squad centre.
       [*] = ;         var hssql : String = '';
@@ -880,6 +887,10 @@
       [*] = ;               if (TSquad(hspsq).fSearchVictim) then hssqh := 1;
       [*] = ;               hssqg := 0;
       [*] = ;               if (TSquad(hspsq).fStandGround) then hssqg := 1;
+      [*] = ;               hssrd := TSquad(hspsq).fAddDamage;
+      [*] = ;               hssrs := TSquad(hspsq).fAddShield;
+      [*] = ;               hssrdh := TSquad(hspsq).fAddDamageHold;
+      [*] = ;               hssrsh := TSquad(hspsq).fAddShieldHold;
       [*] = ;            end;
       [*] = ;            if (hspsq<>nil) then
       [*] = ;            if (hssqln < 16) then
@@ -920,6 +931,10 @@
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_units', hssqu);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hunt',  hssqh);
       [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_hold',  hssqg);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_real_dmg',  hssrd);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_real_def',  hssrs);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_real_hdmg', hssrdh);
+      [*] = ;         ParserSetIntValueByKeyByHandle(hsp, 'squad_real_hdef', hssrsh);
       [*] = ;         if (hssqf >= 0) then
       [*] = ;         begin
       [*] = ;            ParserSetValueByKeyByHandle(hsp, 'squad_form', gFormation[hssqf].sid);
