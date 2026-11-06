@@ -1,0 +1,20 @@
+{
+ "опыт": "сетевая партия (лобби игрока)",
+ "стратегия": "sim/поиск/польша_судья_по_врагу.json",
+ "слот_бота": 0,
+ "нация": "pol",
+ "лобби": {
+  "слот": 0,
+  "нация": "pol",
+  "cid": 6,
+  "стадия": "started",
+  "имя": "Georgy",
+  "готов": false,
+  "игроков": 1,
+  "онлайн": true,
+  "хост": true,
+  "gt": 2
+ },
+ "флаги": "--human --dir C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cossacks 3 --plind 0 --model @preset/coss3-bot --every 15 --horizon 1800 --stall 180 --episodes 1 --ban market --botlog C:\\coss3-io-set262\\coss3_bot.jsonl --snaplog C:\\coss3-io-set262\\coss3_snap.jsonl --log C:\\coss3-io-set262\\coss3_llm.log --hints-extra hints_barracks_first.txt --barracks-first 1 --no-gather 1 --food-floor 800 --memo --world world.md --strategy sim/поиск/польша_судья_по_врагу.json --every 5",
+ "начало": "2026-11-06 15:42:46"
+}
