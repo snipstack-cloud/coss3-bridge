@@ -47,7 +47,7 @@ br = CB.Bridge.__new__(CB.Bridge)
 п1 = br._приказ(171, "peasants", "", -1, -1, "", 0, 0, None, None, None, None, None, 1)
 п2 = br._приказ(171, "home", "retreat", -1, -1, "", 0, 0, None, None, None, None, None, 1)
 п3 = br._приказ(171, "peasants", "", -1, -1, "", 0, 0, None, None, None, None, None, None)
-проверить(п1 and п1.get("all") == 1 and п2 and "all" not in п2 and п3 and "all" not in п3, f"(д) мост: ATTACK all=1 {п1}; retreat без all {п2}; без ключа {п3}")
+проверить(п1 and п1.get("all") == 1 and п2 and п2.get("all") == 1 and п3 and "all" not in п3, f"(д) мост: ATTACK all=1 {п1}; retreat с all (242: отряды домой строем) {п2}; без ключа {п3}")
 import inspect
 проверить('п.get("all")' in inspect.getsource(CB.Bridge.attack_many), "(д′) attack_many переносит ключ all из словаря приказа")
 # (е) 28.10, Д21: ОБЕ ветки отказа «больше свободных» (урезание и «собирать некого») пропускают приказ с all — иначе выход всем домом
