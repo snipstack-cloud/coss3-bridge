@@ -1,0 +1,9 @@
+section.begin
+   realtime = 55814
+   gametime = 270
+   myplind = 0
+   gamemode = 1
+   victory = none
+   paused = no
+section.end
+

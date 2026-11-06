@@ -1,0 +1,18 @@
+section.begin
+   realtime = 55812
+   gametime = 267
+   myplind = 0
+   victory = 0
+   stage = 2
+   stage_name = started
+   my_cid = 6
+   my_csid = pol
+   my_name = Georgy
+   my_ready = False
+   online = True
+   server = True
+   players = 1
+   hs_stage0 = 11
+   hs_at0 = 266
+section.end
+
