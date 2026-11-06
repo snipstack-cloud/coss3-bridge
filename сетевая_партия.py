@@ -67,7 +67,10 @@ def лобби(hb: dict) -> dict:
     csid = str(hb.get("my_csid") or "").strip().lower()
     if not csid and cid is not None:
         csid = СИД_ПО_CID.get(cid, "")
-    return dict(слот=_и(hb, "myplind"), нация=csid, cid=cid, стадия=str(hb.get("stage_name") or "").strip() or "?",
+    стадия = str(hb.get("stage_name") or "").strip() or "?"
+    if стадия == "lobby" and not _б(hb, "online") and not _б(hb, "server"):
+        стадия = "меню"           # (263, винда): gamestage 0 — это gc_map_gamestage_none; в главном меню пульс идёт, лобби ещё нет
+    return dict(слот=_и(hb, "myplind"), нация=csid, cid=cid, стадия=стадия,
                 имя=str(hb.get("my_name") or "").strip(), готов=_б(hb, "my_ready"), игроков=_и(hb, "players"),
                 онлайн=_б(hb, "online"), хост=_б(hb, "server"), gt=_и(hb, "gametime", 0))
 
