@@ -57,7 +57,7 @@ st4 = dict(st2, gametime=720, squads_list="9,36,SQUARE36,12,3,1,1,1,91;10,30,SQU
 из10, _ = С9._сбор_у_базы([], dict(st, gametime=725))
 проверить(any(c.get("cmd") == "RETREAT" for c in из10), "(7б) через 25 с — снова")
 # конвейер целиком: ответ() с ключом не падает и несёт сбор в why
-С11 = стратегия(dict(кл, выход_к=100, выход_перевес=0.1)); import llm_policy
+С11 = стратегия(dict(кл, выход_к=100, выход_перевес=0.1, марш_при_отряде=0)); import llm_policy   # (285) марш в живом файле — здесь выключен, судим сбор
 try:
     о = С11.ответ(dict(st, fighters="infantry17=pikemanpol,hp90,atk9,wkind1,pause0,rmax206,dmgs1,dmgp0,dinit8,dpike0,dsword0,dbullet0,food25,gold1,iron0,coal0",
                        p1_fighters="infantry17=hp90,atk9,wkind1,pause0,rmax206,dmgs1,dmgp0,dinit8,dpike2,dsword2,dbullet0", p1_army=70, p1_peasants=60, враг_слот=1, p1_enemy=1,
