@@ -1533,6 +1533,62 @@
       [*] = ;                        for hck := 0 to gTmpIntList.GetCount-1 do
       [*] = ;                        gIntegerList.Add(gTmpIntList.Get(hck));
       [*] = ;                     end;
+      [*] = ;                     // (266) SQUAD ON THE MARCH, player's word 6.11 ('compare how the human makes squads on the move'): live 5.11 he brought
+      [*] = ;                     // his army 3 cells from our hall and built ONE SQUARE36 of 36 pikes from the men on the spot, the rest 10-25 stayed loose
+      [*] = ;                     // beside it; we built one squad of ALL men at home at 11:35 (LINE120 of 173). Keys: a2 - at most this many men (0 - all,
+      [*] = ;                     // as before), tgt 1 + tx/tz (map frame) - the point: men are the nearest to it, and the officer and drummer must stand
+      [*] = ;                     // within 24 of it, otherwise both are sent there as a group and python asks again next tick; sq 1 - SQUARE among equals.
+      [*] = ;                     var hfmax : Integer = hca2;
+      [*] = ;                     var hftgt : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'tgt');
+      [*] = ;                     var hfsqp : Integer = ParserGetIntValueByKeyByHandle(hch, hckey + 'sq');
+      [*] = ;                     var hfpx : Float = GetGameObjectPositionXByHandle(hfoff);
+      [*] = ;                     var hfpz : Float = GetGameObjectPositionZByHandle(hfoff);
+      [*] = ;                     var hfaway : Boolean = False;
+      [*] = ;                     if (hftgt = 1) then
+      [*] = ;                     begin
+      [*] = ;                        hfpx := ParserGetIntValueByKeyByHandle(hch, hckey + 'tx') - (GetMapWidth div 2);
+      [*] = ;                        hfpz := ParserGetIntValueByKeyByHandle(hch, hckey + 'tz') - (GetMapHeight div 2);
+      [*] = ;                        var hfod : Float = VectorDistance(GetGameObjectPositionXByHandle(hfoff), 0, GetGameObjectPositionZByHandle(hfoff), hfpx, 0, hfpz);
+      [*] = ;                        var hfdd : Float = VectorDistance(GetGameObjectPositionXByHandle(hfdrum), 0, GetGameObjectPositionZByHandle(hfdrum), hfpx, 0, hfpz);
+      [*] = ;                        if (hfod > 24.0) or (hfdd > 24.0) then
+      [*] = ;                        begin
+      [*] = ;                           hfaway := True;
+      [*] = ;                           var hfesc : Integer = _misc_GetOrCreateGroupByName(hcph, 'coss3_sq_escort');
+      [*] = ;                           GroupClearGameObjectsByHandle(hfesc);
+      [*] = ;                           GroupAddGameObjectByHandle(hfesc, hfoff);
+      [*] = ;                           GroupAddGameObjectByHandle(hfesc, hfdrum);
+      [*] = ;                           _group_Initialize(hfesc, nil);
+      [*] = ;                           _player_SetGroupPosition(hcph, hfesc, -1, hfpx, hfpz, hfpx, hfpz, 0, 1, False, False, True, True, gc_obj_order_move_mode_default);
+      [*] = ;                           ParserSetValueByKeyByHandle(hfl, 'why', ParserGetValueByKeyByHandle(hfl, 'why') + ' | ' + 'FORMATION: officer ' + IntToStr(Round(hfod)) +
+      [*] = ;                                ' and drummer ' + IntToStr(Round(hfdd)) + ' units from the point - both sent there, ask again');
+      [*] = ;                           Log('bridge-human: FORMATION - officer ' + FloatToStr(hfod) + ' / drummer ' + FloatToStr(hfdd) + ' from the point ' +
+      [*] = ;                               FloatToStr(hfpx + (GetMapWidth div 2)) + ',' + FloatToStr(hfpz + (GetMapHeight div 2)) + ' - escort sent, squad not built yet');
+      [*] = ;                        end;
+      [*] = ;                     end;
+      [*] = ;                     if (not hfaway) and (hfmax > 0) and (gIntegerList.GetCount > hfmax) then
+      [*] = ;                     begin
+      [*] = ;                        gTmpIntList.Clear;
+      [*] = ;                        while (gTmpIntList.GetCount < hfmax) and (gIntegerList.GetCount > 0) do
+      [*] = ;                        begin
+      [*] = ;                           var hfbi : Integer = 0;
+      [*] = ;                           var hfbd : Float = 1000000.0;
+      [*] = ;                           var hfk2 : Integer;
+      [*] = ;                           for hfk2 := 0 to gIntegerList.GetCount-1 do
+      [*] = ;                           begin
+      [*] = ;                              var hfkd : Float = VectorDistance(GetGameObjectPositionXByHandle(gIntegerList.Get(hfk2)), 0, GetGameObjectPositionZByHandle(gIntegerList.Get(hfk2)), hfpx, 0, hfpz);
+      [*] = ;                              if (hfkd < hfbd) then
+      [*] = ;                              begin
+      [*] = ;                                 hfbd := hfkd;
+      [*] = ;                                 hfbi := hfk2;
+      [*] = ;                              end;
+      [*] = ;                           end;
+      [*] = ;                           gTmpIntList.Add(gIntegerList.Get(hfbi));
+      [*] = ;                           gIntegerList.Delete(hfbi);
+      [*] = ;                        end;
+      [*] = ;                        gIntegerList.Clear;
+      [*] = ;                        for hck := 0 to gTmpIntList.GetCount-1 do
+      [*] = ;                        gIntegerList.Add(gTmpIntList.Get(hck));
+      [*] = ;                     end;
       [*] = ;                     var hfform : Integer = -1;
       [*] = ;                     var hfbest : Integer = -1;
       [*] = ;                     var hfneed : Integer = 1000000;
@@ -1574,10 +1630,18 @@
       [*] = ;                                 hfbest := hfcnt;
       [*] = ;                                 hfform := hffi;
       [*] = ;                              end;
+      [*] = ;                              if (hfsqp = 1) and (hfbon > 0) and (hfcnt <= hfmen) and (hfcnt = hfbest) and (SubStr(hfms, 1, 6) = 'SQUARE') then
+      [*] = ;                              hfform := hffi;
       [*] = ;                           end;
       [*] = ;                        end;
       [*] = ;                        end;   // masks[hcm] of this formation type
       [*] = ;                     end;
+      [*] = ;                     if (hfaway) then hfform := -2;
+      [*] = ;                     if (hfform = -2) then
+      [*] = ;                     begin
+      [*] = ;                        hfheld := 0;
+      [*] = ;                     end
+      [*] = ;                     else
       [*] = ;                     if (hfform < 0) then
       [*] = ;                     begin
       [*] = ;                        // Two different reasons, and they must not be confused:

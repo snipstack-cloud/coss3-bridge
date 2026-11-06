@@ -103,6 +103,7 @@ class Command:
     near: int = 0                 # (255) BUILD: радиус поиска леса и камня для места (ратуша/склад); 0 — как было
     tx: int = -1                  # (255б) BUILD store: цель — центроид рубщиков (кадр obuild/gath_x); -1 — нет цели
     tz: int = -1
+    sq: int = 0                   # (266) FORMATION: 1 — среди равных по числу предпочесть SQUARE (как человек)
 
 
 def ратуша_у_леса(путь_или_флаги: str) -> int:
@@ -230,7 +231,7 @@ def seed(сколько: int = 1) -> Command:
     return Command("SEED", int(max(1, сколько)))
 
 
-def formation(hold: int = 0) -> Command:
+def formation(hold: int = 0, count: int = 0, tx: int = -1, tz: int = -1, sq: int = 0) -> Command:
     """Собрать отряд со строем из свободной пехоты, офицера и барабанщика.
 
     Без доводов: какой строй доступен, решает тип офицера, и выбирает игра —
@@ -240,7 +241,9 @@ def formation(hold: int = 0) -> Command:
     держали строй, отряд получает стойку (`fStandGround`) сразу при сборке; 0 — как
     было (31.10: FORMATION вбирал 100 держащих, и стойка отряда была 0 до следующего FACE).
     """
-    return Command("FORMATION", 1 if hold else 0)
+    # (266) отряд на ходу: `count` — не больше стольких бойцов (ближайших к точке; 0 — все, как было), `tx/tz` — точка (кадр obuild):
+    # офицер и барабанщик должны быть в 24 ед. от неё, иначе блок шлёт их туда и просит повторить; `sq` — SQUARE среди равных
+    return Command("FORMATION", 1 if hold else 0, int(count or 0), tx=int(tx if tx is not None else -1), tz=int(tz if tz is not None else -1), sq=1 if sq else 0)
 
 
 def defend(on: int = 1, atk: int = -1) -> Command:
@@ -687,7 +690,9 @@ class Bridge:
                 values[f"{i}_upg"] = c.upg
             if int(getattr(c, "near", 0) or 0) > 0 and c.cmd == "BUILD":
                 values[f"{i}_near"] = int(c.near)          # (255) место у леса и камня — ратуша (180) и склад
-            if c.cmd in ("BUILD", "BALANCE") and int(getattr(c, "tx", -1)) >= 0 and int(getattr(c, "tz", -1)) >= 0:
+            if c.cmd == "FORMATION" and int(getattr(c, "sq", 0) or 0):
+                values[f"{i}_sq"] = 1                      # (266) SQUARE среди равных
+            if c.cmd in ("BUILD", "BALANCE", "FORMATION") and int(getattr(c, "tx", -1)) >= 0 and int(getattr(c, "tz", -1)) >= 0:
                 values[f"{i}_tgt"] = 1                     # (255б) цель — склад к рубщикам, кольца вокруг цели
                 values[f"{i}_tx"] = int(c.tx)
                 values[f"{i}_tz"] = int(c.tz)
