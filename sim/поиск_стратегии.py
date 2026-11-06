@@ -360,11 +360,15 @@ class Стратегия:
                     из.append({"cmd": "BUILD", "role": "academi", "total": 1})
                 if _акад >= 1 and _ч("squads") < int(п["отрядов"]):
                     _очередь = str(st.get("train_now") or "")
-                    if _ч("my_officers") < 1 and "officer" not in _очередь:
+                    # (266а, слово игрока «когда собирается следующий отряд»): my_officers считает и тех, кто уже в отряде (у каждого
+                    # отряда свой офицер и барабанщик) — свободные = все минус отряды; следующая пара нанимается, пока отрядов < `отрядов`
+                    _своб_оф = _ч("my_officers") - _ч("squads")
+                    _своб_бар = _ч("my_drummers") - _ч("squads")
+                    if _своб_оф < 1 and "officer" not in _очередь:
                         из.append({"cmd": "TRAIN", "role": "officer17", "total": 1})
-                    if _ч("my_drummers") < 1 and "drummer" not in _очередь:
+                    if _своб_бар < 1 and "drummer" not in _очередь:
                         из.append({"cmd": "TRAIN", "role": "drummer17", "total": 1})
-                    if (_ч("my_officers") >= 1 and _ч("my_drummers") >= 1 and t >= _отряд_с
+                    if (_своб_оф >= 1 and _своб_бар >= 1 and t >= _отряд_с
                             and _ч("mil_inf") + _ч("mil_shooters") - _ч("squad_units") >= 15):
                         # пункт 3 списка улучшений блока (1.11): ключ `отряд_стойка` 1 — отряд наследует стойку собранных (0 — как было)
                         из.append({"cmd": "FORMATION", "hold": 1} if int(п.get("отряд_стойка", 0) or 0) else {"cmd": "FORMATION"})

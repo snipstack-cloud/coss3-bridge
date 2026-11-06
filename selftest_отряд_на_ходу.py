@@ -46,7 +46,20 @@ print("  правило:", f, "|", w[:90])
 f5 = [c for c in из5 if c.get("cmd") == "FORMATION"]
 проверить(len(f5) == 1 and "подход" in w5 and f5[0]["tx"] == int(13.5 * 16), f"(4д) подход (261) и дома 25 — отряд у ратуши ({f5})")
 из6, _ = стратегия()._отряд_на_ходу([], dict(st, squads=1))
-проверить(not any(c.get("cmd") == "FORMATION" for c in из6), "(4е) отряд уже есть — молчит")
+проверить(not any(c.get("cmd") == "FORMATION" for c in из6), "(4е) отряд есть, а офицер один (он в отряде) — следующего не собрать, молчит")
+из6б, w6б = стратегия()._отряд_на_ходу([], dict(st, squads=1, my_officers=2, my_drummers=2))
+проверить(any(c.get("cmd") == "FORMATION" for c in из6б), "(4е′) 266а: второй офицер и барабанщик свободны, отрядов 1 < 3 — второй отряд в той же точке контакта")
+из6в, _ = стратегия()._отряд_на_ходу([], dict(st, squads=3, my_officers=4, my_drummers=4))
+проверить(not any(c.get("cmd") == "FORMATION" for c in из6в), "(4е″) отрядов уже 3 (ключ отрядов) — хватит")
+import поиск_стратегии as ПС
+_п6 = json.load(open(os.path.join(К, "sim/поиск/польша_судья_по_врагу.json"), encoding="utf-8"))["итог"]
+_st6 = {"gametime": 700, "ba17": 1, "academies": 1, "squads": 1, "my_officers": 1, "my_drummers": 1, "mil_inf": 80, "mil_shooters": 0, "squad_units": 38,
+        "train_now": "", "враг_слот": 1, "p1_enemy": 1, "p1_army": 60, "food": 3000, "gold": 3000, "wood": 500, "stone": 500, "upg_done": "mil.1", "peasants": 40}
+_с6 = ПС.Стратегия(_п6); _о6 = _с6(dict(_st6)); _к6 = _о6.get("commands", _о6) if isinstance(_о6, dict) else _о6
+_тр = [c.get("role") for c in (_к6 if isinstance(_к6, list) else []) if c.get("cmd") == "TRAIN" and c.get("role") in ("officer17", "drummer17")]
+проверить("officer17" in _тр and "drummer17" in _тр, f"(5) план: отряд 1 собран, офицер и барабанщик в нём — нанимается следующая пара ({_тр})")
+_h2 = open(os.path.join(К, "block_hcmd.inc"), encoding="latin-1").read()
+проверить("if (hfoff = 0) and (TObj(hfp).squad < 0) and" in _h2 and "if (hfdrum = 0) and (TObj(hfp).squad < 0) and" in _h2, "(6) блок: для сборки берутся офицер и барабанщик НЕ из отряда")
 из7, _ = стратегия({"отряд_на_ходу": 0})._отряд_на_ходу([{"cmd": "FORMATION", "hold": 1}], dict(st))
 проверить(len([c for c in из7 if c.get("cmd") == "FORMATION"]) == 1 and "count" not in из7[0], "(4ж) ключ 0 — как было (плановый FORMATION остаётся)")
 print(f"selftest_отряд_на_ходу: {ок} из {ок + len(пало)}")

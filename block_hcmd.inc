@@ -1479,9 +1479,10 @@
       [*] = ;                        hfr50 := hfr50 + 1;
       [*] = ;                        if (hfrole = gc_ai_unit_drummer18) then
       [*] = ;                        hfr51 := hfr51 + 1;
-      [*] = ;                        if (hfoff = 0) and ((hfrole = gc_ai_unit_officer17) or (hfrole = gc_ai_unit_officer18)) then
+      [*] = ;                        // (266a) a second squad needs its OWN officer and drummer: skip those already inside a squad
+      [*] = ;                        if (hfoff = 0) and (TObj(hfp).squad < 0) and ((hfrole = gc_ai_unit_officer17) or (hfrole = gc_ai_unit_officer18)) then
       [*] = ;                        hfoff := hfgo;
-      [*] = ;                        if (hfdrum = 0) and ((hfrole = gc_ai_unit_drummer17) or (hfrole = gc_ai_unit_drummer18)) then
+      [*] = ;                        if (hfdrum = 0) and (TObj(hfp).squad < 0) and ((hfrole = gc_ai_unit_drummer17) or (hfrole = gc_ai_unit_drummer18)) then
       [*] = ;                        hfdrum := hfgo;
       [*] = ;                        if (hfu = gc_obj_usage_lightinfantry) or (hfu = gc_obj_usage_weak) or
       [*] = ;                           (hfu = gc_obj_usage_grenadier) or (hfu = gc_obj_usage_shooter) or

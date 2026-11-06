@@ -4022,7 +4022,8 @@ class ЖиваяСтратегия:
             return из, ""
         из = [c for c in из if not (c.get("cmd") == "FORMATION" and not c.get("count"))]
         ч = lambda k: float(st.get(k) or 0)
-        if ч("my_officers") < 1 or ч("my_drummers") < 1 or ч("squads") >= int(self.п.get("отрядов", 1) or 1):
+        # (266а) свободные офицер и барабанщик = все минус отряды (у каждого отряда своя пара); следующий отряд — пока отрядов < `отрядов`
+        if ч("my_officers") - ч("squads") < 1 or ч("my_drummers") - ч("squads") < 1 or ч("squads") >= int(self.п.get("отрядов", 1) or 1):
             return из, ""
         if any(c.get("cmd") == "FORMATION" for c in из):
             return из, ""
