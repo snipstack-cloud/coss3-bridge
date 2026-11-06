@@ -108,5 +108,18 @@ try:
     проверить(not any(c.get("cmd") in ("ATTACK", "ENGAGE") and not c.get("_оборона") for c in о13["commands"]), f"(12) конвейер в 2:37 без отряда: наружу ни одного ATTACK ({[(c.get('cmd'), c.get('count')) for c in о13['commands']]})")
 except Exception as e:
     проверить(False, f"(12) конвейер упал: {e!r}")
+# (289) следующий отряд — только при укомплектованном прежнем
+С14 = стратегия(dict(кл, отряд_следующий_при_полном=1)); С14._марш = {"с": 1, "цель": (2, 12), "последний": 1, "отряд_gt": 1}; С14._онх_gt = -999
+из14, w14 = С14._отряд_на_ходу([], dict(st, gametime=800, ocells="13,3,10,10,0,0;9,6,76,76,0,0", squads=1, squads_list="9,27,SQUARE36,9,6,0,1,0,91", my_officers=2, my_drummers=2))
+проверить(not any(c.get("cmd") == "FORMATION" for c in из14) and "не укомплектован" in w14, "(13) прежний 27 < 36 — второй не собираем, вслух")
+С14._онх_gt = -999
+из14б, w14б = С14._отряд_на_ходу([], dict(st, gametime=820, ocells="13,3,10,10,0,0;9,6,76,76,0,0", squads=1, squads_list="9,38,SQUARE36,9,6,0,1,0,91", my_officers=2, my_drummers=2))
+проверить(any(c.get("cmd") == "FORMATION" for c in из14б), "(13б) прежний 38 полон — второй собираем")
+import sys as _s; _s.path.insert(0, os.path.join(К, "sim")); import поиск_стратегии as ПС
+п14 = json.load(open(os.path.join(К, "sim/поиск/польша_судья_по_врагу.json"), encoding="utf-8"))["итог"]; п14.update({"отряд_следующий_при_полном": 1, "отрядов": 3, "отряд_с": 100})
+ст14 = ПС.Стратегия(п14); о14 = ст14(dict(st, gametime=800, academies=1, ba17=1, squads=1, squads_list="9,27,SQUARE36,9,6,0,1,0,91", my_officers=1, my_drummers=1, train_now="", mil_inf=76, squad_units=27))
+проверить(not any(c.get("cmd") == "TRAIN" and c.get("role") in ("officer17", "drummer17") for c in о14), f"(13в) план: прежний 27 < 36 — вторую пару не нанимаем ({[(c.get('cmd'), c.get('role')) for c in о14 if c.get('cmd') == 'TRAIN']})")
+ст14б = ПС.Стратегия(п14); о14б = ст14б(dict(st, gametime=800, academies=1, ba17=1, squads=1, squads_list="9,38,SQUARE36,9,6,0,1,0,91", my_officers=1, my_drummers=1, train_now="", mil_inf=76, squad_units=38))
+проверить(any(c.get("cmd") == "TRAIN" and c.get("role") == "officer17" for c in о14б), "(13г) план: прежний 38 полон — вторую пару нанимаем")
 print(f"selftest_марш: {ок} из {ок + len(пало)}")
 if пало: print("  ПАЛО:", пало); sys.exit(1)
