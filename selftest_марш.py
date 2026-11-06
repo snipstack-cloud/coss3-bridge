@@ -87,5 +87,26 @@ st10 = dict(st, gametime=500, squads=0, squads_list="", my_insquad=0, squads_for
 С10г = стратегия(dict(кл, выход_к=100, выход_перевес=0.1, первый_выход_с_отрядом=0, выход_отряд_до=0)); С10г._вк = dict(база=0.0, выходов=0, последний=None)
 из10г, _ = С10г._выход_к([], dict(st10))
 проверить(any(c.get("cmd") == "ATTACK" for c in из10г), "(10г) ключ 0 — ближняя цель без отряда идёт, как было")
+# (288) последний фильтр: волна плана/штурма наружу до первого отряда снимается, оборона и ближний удар — нет
+С12 = стратегия(dict(кл, первый_выход_с_отрядом=1))
+из12, w12 = С12._первая_атака_отрядом([{"cmd": "ATTACK", "count": 5, "target": "peasants"}, {"cmd": "ATTACK", "count": "all", "target": "wave"},
+                                        {"cmd": "ATTACK", "count": 9999, "target": "cell", "cx": 2, "cy": 12}, {"cmd": "ATTACK", "count": 20, "target": "cell", "cx": 11, "cy": 4, "_оборона": True},
+                                        {"cmd": "ATTACK", "count": 10, "target": "cell", "cx": 12, "cy": 5}, {"cmd": "ATTACK", "count": 0, "group": 1, "target": "cell", "cx": 3, "cy": 11},
+                                        {"cmd": "TRAIN", "role": "pikeman"}], dict(st, squads=0, squads_list=""))
+print("  ", w12[:160])
+проверить(len(из12) == 4 and not any(c.get("count") in (5, "all") for c in из12) and not any(c.get("cx") == 2 for c in из12) and "ПЕРВАЯ АТАКА" in w12,
+          "(11) до первого отряда: волна плана (5 → peasants), подмога (all → wave) и удар 9999 на его базу сняты; оборона, ближний удар (2 кл.), приказ группе и найм остались")
+С12._марш = {"с": 1, "цель": (2, 12), "последний": 1, "отряд_gt": 1}
+из12б, w12б = С12._первая_атака_отрядом([{"cmd": "ATTACK", "count": 5, "target": "peasants"}], dict(st))
+проверить(len(из12б) == 1 and not w12б, "(11б) марш был — фильтр молчит")
+С12в = стратегия(dict(кл, первый_выход_с_отрядом=0)); из12в, w12в = С12в._первая_атака_отрядом([{"cmd": "ATTACK", "count": 5, "target": "peasants"}], dict(st, squads=0, squads_list=""))
+проверить(len(из12в) == 1 and not w12в, "(11в) ключ 0 — как было")
+# конвейер целиком в 2:37 из 286: план шлёт ATTACK 5 (T1), отряда нет — наружу ничего
+С13 = стратегия(dict(кл, первый_выход_с_отрядом=1))
+try:
+    о13 = С13.ответ(dict(st, gametime=157, squads=0, squads_list="", my_insquad=0, squads_form=0, mil_inf=5, my_freewar=5, ocells="13,3,5,5,0,0", my_officers=0, my_drummers=0, p1_army=3))
+    проверить(not any(c.get("cmd") in ("ATTACK", "ENGAGE") and not c.get("_оборона") for c in о13["commands"]), f"(12) конвейер в 2:37 без отряда: наружу ни одного ATTACK ({[(c.get('cmd'), c.get('count')) for c in о13['commands']]})")
+except Exception as e:
+    проверить(False, f"(12) конвейер упал: {e!r}")
 print(f"selftest_марш: {ок} из {ок + len(пало)}")
 if пало: print("  ПАЛО:", пало); sys.exit(1)

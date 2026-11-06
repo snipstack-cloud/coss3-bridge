@@ -1517,8 +1517,13 @@
       [*] = ;                        begin
       [*] = ;                           var hfg2 : Integer = GetGameObjectHandleByIndex(hck, hcph);
       [*] = ;                           var hfp2 : Pointer = _unit_GetTObj(hfg2);
+      [*] = ;                           // (287, player's find 'why does the bot think the squad exists when it is not assembled'): six FORMATIONs
+      [*] = ;                           // made four stubs out of one full squad - the rank candidates included men ALREADY in a squad, so each new
+      [*] = ;                           // build stole from the old one (1,38 -> 1,27+2,38 -> 1,11+2,18+3,38 -> 4,18 SQUARE15). Only men outside
+      [*] = ;                           // a squad are candidates now, as the officer and drummer already are (266a).
       [*] = ;                           if (hfp2 <> nil) then
       [*] = ;                           if (not TObj(hfp2).bdead) then
+      [*] = ;                           if (TObj(hfp2).squad < 0) then
       [*] = ;                           begin
       [*] = ;                              var hfs2 : String = gCountry[hccid].members[TObj(hfp2).id];
       [*] = ;                              for hcj := 0 to gc_country_maxformationunitcount-1 do
