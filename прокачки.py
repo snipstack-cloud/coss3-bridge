@@ -181,6 +181,26 @@ def _чужие_со_строем(st):
     return чужие
 
 
+def _свои_со_строем(st):
+    """(280, довод игрока + находка винды: НАШ строй не входил ни в один расчёт силы, ЕГО — входил; бот недооценивал себя при
+    отряде, ворота «ждём перевеса» держали 138 раз). Наши бойцы с поправкой на наш строй: бонус лучшего отряда (`squads_form`,
+    `squads_form_hold`, `squad_dmg/_def/_hdmg/_hdef` — те же поля, что у врага) × ДОЛЯ бойцов в отрядах (`my_insquad` / все):
+    211 пехоты при 38 в SQUARE36 — +2 × 38/211 = +0,36 к атаке и защите. Блок отрядов не отдаёт (`squads_form` None) или
+    отрядов нет — как было."""
+    свои = CM.разобрать(st.get("fighters") or "")
+    if not свои or st.get("squads_form") is None:
+        return свои
+    стр = CM.поправка_на_строй(st.get("squads_form"), st.get("squads_form_hold"), st.get("squad_dmg"),
+                               st.get("squad_def"), st.get("squad_hdmg"), st.get("squad_hdef"))
+    всего = float(st.get("mil_inf") or 0) + float(st.get("mil_shooters") or 0)
+    в_отр = float(st.get("my_insquad") or 0)
+    доля = min(1.0, в_отр / всего) if всего > 0 else 0.0
+    у, щ = round(float(стр["урон"] or 0) * доля, 2), round(float(стр["щит"] or 0) * доля, 2)
+    if у <= 0 and щ <= 0:
+        return свои
+    return {и: CM.со_строем(х, у, щ) for и, х in свои.items()}
+
+
 def оценить(st, еда_после: float = 800.0, золото_после: float = 0.0, свои: dict | None = None,
             чужие: dict | None = None, только: set | None = None) -> dict:
     """Оценка всех следующих ступеней казармы на одном снимке.
