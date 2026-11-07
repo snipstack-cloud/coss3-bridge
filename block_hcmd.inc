@@ -4,7 +4,9 @@
       [*] = ;   // What changes is who executes: instead of dropping an idea into the native AI
       [*] = ;   // queue we call the engine directly, exactly as the game does for a human.
       [*] = ;   if (gPlayer[plind].bexists) and (not gPlayer[plind].bai) and
-      [*] = ;      (not _net_IsClient) and (not _net_IsReplay) and
+      [*] = ;      // (295) A CLIENT EXECUTES ORDERS FOR ITS OWN SLOT ONLY - see block_hstate for why.
+      [*] = ;      // ROLLBACK: put '(not _net_IsClient) and' back.
+      [*] = ;      ((not _net_IsClient) or (plind = GetPlayerIndexInterfaceIO)) and (not _net_IsReplay) and
       [*] = ;      (gMap.gamestage = gc_map_gamestage_started) then
       [*] = ;   begin
       [*] = ;      // The game writes no log at all unless asked: cossacks.ini ships with
