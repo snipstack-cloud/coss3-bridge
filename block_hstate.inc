@@ -5,11 +5,7 @@
       [*] = ;   // all - and no aidata lists either. Everything here is rebuilt from raw object
       [*] = ;   // scans: that is the price of playing the human side, and the point of it.
       [*] = ;   if (gPlayer[plind].bexists) and (not gPlayer[plind].bai) and
-      [*] = ;      // (295) A CLIENT KEEPS ONLY ITS OWN SLOT. Wider is not safe: the test above does NOT limit this
-      [*] = ;      // block to the local player - on the host it runs for EVERY human slot, which is what a human
-      [*] = ;      // against bot match needs. Let a client do the same and it would write state for the host's
-      [*] = ;      // slots as well, the same orders would go out twice and the match would desync.
-      [*] = ;      ((not _net_IsClient) or (plind = GetPlayerIndexInterfaceIO)) and (not _net_IsReplay) and
+      [*] = ;      (not _net_IsClient) and (not _net_IsReplay) and
       [*] = ;      (gMap.gamestage = gc_map_gamestage_started) then
       [*] = ;   begin
       [*] = ;      var hsnow : Float = GetGameTime;

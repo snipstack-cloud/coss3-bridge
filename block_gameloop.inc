@@ -2,13 +2,7 @@
       [*] = ;   // Lives here and not in the interface actor: reading files compiles
       [*] = ;   // only on this side. The interface is reached through GUIExecuteState,
       [*] = ;   // the same way lib/miscext3.script does it.
-      [*] = ;   // (295, player's word 6.11 'I JOIN SOMEONE ELSE'S LOBBY'): the loop now runs on a CLIENT too. It is
-      [*] = ;   // already limited to our own slot by 'plind = GetPlayerIndexInterfaceIO' above, so nothing is done
-      [*] = ;   // for the host's slots. The engine does not forbid a client either: SetSquadFormation,
-      [*] = ;   // SetSquadPosition and OrderUnitsToAttack all take the client branch when blan = False
-      [*] = ;   // (player.script:799, 1003 - '(not blan) and _net_IsClient'). NOT PROVEN IN A LIVE NETWORK GAME.
-      [*] = ;   // ROLLBACK: put 'and (not _net_IsClient)' back.
-      [*] = ;   if (plind = GetPlayerIndexInterfaceIO) and (not _net_IsReplay) then
+      [*] = ;   if (plind = GetPlayerIndexInterfaceIO) and (not _net_IsClient) and (not _net_IsReplay) then
       [*] = ;   begin
       [*] = ;      // NEW MATCH BY THE CLOCK (5.11, mac, item 3 of the block list; live games 2 and 3 of 4.11). A match started from the
       [*] = ;      // game menu sends no NEW, and br_hdef/br_hkite/br_hbal outlived the previous match: the defence reflex read 'on' from
