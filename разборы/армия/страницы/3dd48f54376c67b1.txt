@@ -1,0 +1,41 @@
+https://cossacks.heavengames.com/academy/strategies/quick/
+A Quick Win – Cossacks Heaven
+Menu
+A Quick Win
+By Mark Vermillion
+My observations are based on what I’ve done in the 1.2 version of the demo.
+When your workers first appear, use all but one to construct the town hall near some stone and wood resources. Use the other worker to locate a good spot for a mill/farm and begin to construct one (field size 7×7). Once the town hall is done, send 9 workers to help finish the farm. Queue up 20-25 more workers.
+Send 3 workers to locate and build a mine (1 each) for gold, iron and coal. Put the remaining workers to work harvesting wood and stone. Use and try to maintain about a 3:2 ratio of wood to stone workers (my preference). There may be brief periods where you will want to achieve a 2:1 ration, but not yet.
+If there is any time, quickly look for a good spot for a second mill/farm. Do this often in the early part of the game since food and gold will be your most precious assets (you will use them the most!)
+As luck would have it, you will find your workers are finished with the mill/farm real quick. When they are done, send them to build a cathedral. By this time you should have 1-2 new workers. Send them to construct a blacksmith shop.
+When the mines are finished, put the worker into it to begin mining. Add workers to the gold mine first and take the upgrade as soon as you can. Fill and upgrade the others as soon as your population permits. Try to get a second gold mine going quickly, too. You need gold!
+Once the blacksmith shop is done, you can now build a barracks. Hurry because your opponent certainly is moving to do this. About this time you can also build a stable and a market. Don’t start either, yet. Save the wood for the academy and the diplomatic center. For this strategy to work, you need mercenaries.
+Once the barracks is finished, build 15-20 pikemen. Also the academy is available, so start it. You will probably have run out of wood by this point. Send out more woodcutters! Wood is key for the building the diplomatic center (4900).
+At this time, your grain should be ripe, so send 10 workers to begin harvesting. I usually use between 10 and 12 workers for each full farm. Note that the farm size is dependent on the room available. Some spots will not allow all farmland to be used. Adjust your workforce accordingly.
+Now with the pikemen you want to do several things. Send out 3, one to each remaining corner of the map. These are scouts you are using to locate your opponent. You will likely lose at least one. Remember, your opponent can be located in any of the 3 remaining corners, so don’t take for granted that they will always be in the same place.
+Now take 3-5 more pikemen and post them around the edge of the visible area. This increases your line of sight and you will hopefully spot the early attack that will be launched at you. Keep moving them forward until you maximize your visibility.
+Now organize a platoon of 8-10 pikemen to be ready to deal with your opponent’s attack. If your scouts have located your opponent, figure out what the best attack route they will take and move your platoon accordingly. If you haven’t, place them where they can react quickly to any attack. If you have a larger platoon, split it and spread your coverage. So far, my opponents have attacked consistently with 5-6 pikemen in their initial attack. After you beat this off, you have a fairly long time before the next one.
+If you have any pikemen remaining, post them near outlying farms, mines and buildings. Build more pikemen later, if your play goes longer than planned and station at least 2 by every building or complex. Be sure they are set to stand ground.
+Hopefully, by now you have enough wood to build the diplomatic center. DO SO! Try to do it as soon as you have enough resources. Next build the stable, cannon foundry (available after the stable is complete) and market, in that order.
+This strategy depends on mercenary dragoons and cannon.
+You may build walls to limit your opponent’s ability to directly attack your city. Wood goes up quick, but is not durable. Try to leave a gap that will naturally draw in your opponent since they are looking for an easy attack route. This will be their undoing.
+When you can afford to, build about 30 mercenary dragoons. Station 10 where they can intercept the enemy as they march. Build 1-2 priests and place them in this little formation to heal your injured units.
+Take the other 20 and begin raiding your opponent’s city. Have them ravage the workers as much as possible and capture what buildings they can capture. Be sure to destroy those buildings so they can’t be recaptured.
+But beware! Your opponent will probably have a tower or two built. Each cannon shot can kill up to 3 dragoons (usually one). Try not to lose more than 3-5 units. You can build a few more priests and station them at a safe point for your dragoons to run to so they can heal.
+Meanwhile, build 6-10 cannon. I’ve done both and 10 destroy just about everything in 2-3 volleys. Some buildings go in one. Place the cannon in formation and attack! Place the attack dragoons immediately behind the cannon and use them to eliminate your opponent’s units as they attack.
+Your priorities for destroying your opponent should be 1) towers, 2) unit producing buildings, 3) town centers, 4) everything else. I’ve also just started on one side of a city and just kept attacking everything as I encountered it.
+In just about no time you will receive a victory message.
+Special Note:
+Since I wrote this up, I discovered that if you send your 30 dragoons to your opponents city immediately after they are built, you can wipe your opponent out and achieve victory. So far, I have been able to get into the city just before they complete their first tower. Eliminate the workers and you don’t have to deal with it destroying your force.
+General Tips:
+Keep a constant supply of workers in the queue. They are the foundation of your economy and construction.
+Build a shipyard. Though you really won’t need one using this strategy. If you do run long, you will have an excellent source of food.
+Watch your opponent! Since you won’t be advancing to the 18th century using this strategy, keep sending out scouts to enlarge your area of visibility. The AI has been pretty good at detecting where my defenses and weaknesses are and will adjust accordingly. One of my opponent’s attacked in almost the opposite direction and I nearly missed that attack. It’s useful to have a few regular mounted units to provide a rapid response to a surprise.
+Upgrade as you can; food, wood, mines, unit strength, etc. Again, they may be unnecessary, but should you be drawn into a protracted battle, you will need them. Don’t upgrade when you need to construct building or build units. Massed attacks are what this game is about.
+Plan ahead. If you get caught into responding to your opponent, it will ultimately defeat you, or make you quit and restart out of frustration. There is a pause key that will give you a chance to rest and plan your next steps. Use it!
+Other Information:
+The fastest I’ve played this strategy has been just over an hour. The slowest was about 90 minutes, unless I screwed up and got into a protracted war because guessed wrong about something. For instance:
+I once built an army with 40 or so pikemen early and launched an attack where I thought my opponent was. I was wrong and ended up with a fairly lengthy series of battles because by the time I got this force to my opponent’s city, there were a lot of soldiers and mercenaries waiting for me. They wiped out my attack and I had to start my military over (coupled with having been partially wiped out by my opponent’s early attack, that I was unprepared for).
+"Cossacks: European Wars"™ is a game by CDV Software.
+Copyright © 2001 HeavenGames LLC. All Rights Reserved.
+Please see our Disclaimer & Privacy Statements.

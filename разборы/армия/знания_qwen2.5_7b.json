@@ -1,0 +1,833 @@
+{
+ "дата": "2026-11-02",
+ "модель": "qwen2.5:7b",
+ "источники": [
+  "https://cossacks.heavengames.com/academy/strategies/formationanlys/",
+  "https://cossacks.heavengames.com/academy/strategies/basicstart/",
+  "https://cossacks.heavengames.com/academy/strategies/guerilla/",
+  "https://cossacks.heavengames.com/academy/strategies/quick/",
+  "https://cossacks.heavengames.com/academy/strategies/russianspear/",
+  "https://cossacks.heavengames.com/academy/strategies/mercrush/",
+  "https://www.gamepressure.com/cossacks3/formations/zf91b3",
+  "https://steamcommunity.com/app/333420/discussions/0/350542145705166969/",
+  "https://steamcommunity.com/sharedfiles/filedetails/?id=3059463788",
+  "https://en.wikipedia.org/wiki/Pike_and_shot",
+  "https://en.wikipedia.org/wiki/Lanchester%27s_laws",
+  "https://en.wikipedia.org/wiki/Force_concentration",
+  "https://en.wikipedia.org/wiki/Principles_of_war",
+  "https://en.wikipedia.org/wiki/Infantry_square",
+  "https://en.wikipedia.org/wiki/Volley_fire",
+  "https://en.wikipedia.org/wiki/Micromanagement_(gameplay)",
+  "https://ru.wikipedia.org/wiki/Законы_Ланчестера"
+ ],
+ "принципы": [
+  {
+   "тема": "построение",
+   "принцип": "армия должна быть организована в строения для усиления атаки и защиты",
+   "цитата": "Formations offer new strategic and tactical advantages to Cossacks. They take a large group of men, organize them, and make them act as one. Because these men act as one, they gain significant defense and attack bonuses because of their organization.",
+   "признак_в_партии": "армия стоит в строении, где бойцы выстроены в ряды или квадраты",
+   "источник": 0
+  },
+  {
+   "тема": "атака",
+   "принцип": "атаковать в форме стрелы для быстрого прорыва линии противника",
+   "цитата": "Combining two rank formations of pikemen to form an arrow shape is a highly effective tactic that can destroy enemy lines very easily. When the point of the arrow hits the enemy the enemy will have to form around the rest of the arrow formation allowing the point to push through, and the ends of the arrow to outflank the rest of the enemy.",
+   "признак_в_партии": "атакующая армия стоит в форме стрелы, с двумя рядами пехоты, образующими острие",
+   "источник": 0
+  },
+  {
+   "тема": "оборона",
+   "принцип": "использовать строения для защиты от атаки пехоты и кавалерии",
+   "цитата": "Rank formations are good for defense, they spread out as many men as possible while maintaining a defensive line. It will take a large concentrated enemy force to break this line, as when attacked the line simply stays strong and encloses on the enemy not allowing them to push forward or escape.",
+   "признак_в_партии": "армия стоит в строении, которое не позволяет противнику прорваться через линию",
+   "источник": 0
+  },
+  {
+   "тема": "атака",
+   "принцип": "использовать квадратные строения для насыщения территории и превосходства в численности",
+   "цитата": "Square formations are excellent for area saturation and attack. Square formations are the most efficient for putting as many men as possible in an area. Area saturation is best used when attacking troops without cannon.",
+   "признак_в_партии": "атакующая армия стоит в квадратном строении, плотно занимая территорию",
+   "источник": 0
+  },
+  {
+   "тема": "атака",
+   "принцип": "использовать ящиковые строения для атаки с холодным оружием и пушечным огнем",
+   "цитата": "Box formations are the best type of formation to use when encountering heavy cannon and grapeshot fire. When hit with grapeshot, most of the unit is still alive, along with the officer and drummer. The cannons will have to reload, and even though you have lost men, the rest can still achieve their attack objective of overwhelming and capturing the cannon.",
+   "признак_в_партии": "атакующая армия стоит в ящиковой форме, с холодным оружием впереди и пушечным огнем сзади",
+   "источник": 0
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "создавать и поддерживать сильную армию, особенно пике, для защиты и атаки.",
+   "цитата": "Build and upgrade Pikes continually from your raxxes to protect against a rush.",
+   "признак_в_партии": "в армии есть постоянные строения рэккса для производства пике и они активно используются.",
+   "источник": 1
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "использовать стрелковых бойцов для разведки и поддержки.",
+   "цитата": "Send at least 2 groups of 3 Pikes to scout for the enemy and hopefully covert some workers.",
+   "признак_в_партии": "в армии есть группы стрелковых бойцов, которые регулярно отправляются на разведку.",
+   "источник": 1
+  },
+  {
+   "тема": "оборона",
+   "принцип": "укреплять оборону, особенно на ранних стадиях игры.",
+   "цитата": "Build and upgrade Pikes continually from your raxxes to protect against a rush.",
+   "признак_в_партии": "на границах территории есть постоянные позиции с пике.",
+   "источник": 1
+  },
+  {
+   "тема": "атака",
+   "принцип": "атаковать врага, используя хорошо подготовленную армию.",
+   "цитата": "Send at least 2 groups of 3 Pikes to scout for the enemy and hopefully covert some workers.",
+   "признак_в_партии": "армия регулярно отправляется на разведку и атаки.",
+   "источник": 1
+  },
+  {
+   "тема": "атака",
+   "принцип": "атаковать медленные войска противника, используя быстрых кавалеристов, затем отступать, чтобы измотать противника.",
+   "цитата": "A player simply needs to get a small number of ranged cavalrymen(such as dragoons) and order them to attack the slower troops of the enemy. When the enemy gets too close to the attackers, order them to retreat to a safer distance. This will slowly wear down the enemy, making him/her suceptable to a full scale frontal assault.",
+   "признак_в_партии": "быстрые кавалеристы атакуют медленные войска противника, затем отступают, когда противник приближается.",
+   "источник": 2
+  },
+  {
+   "тема": "прочее",
+   "принцип": "защищать города, размещая дешёвые юниты вокруг или строя каменные стены.",
+   "цитата": "One way to stop city raids from being successful is by 'garrisoning' troops inside your city. This means that you should station many cheap units all around your city, keeping the raiders from capturing your buildings or peasants.",
+   "признак_в_партии": "дешёвые юниты размещены вокруг города или есть каменные стены.",
+   "источник": 2
+  },
+  {
+   "тема": "прочее",
+   "принцип": "убивать барабанщиков и офицеров противника, чтобы сломать его формирование.",
+   "цитата": "Assasinating is essentially using ranged cavalry units(such as dragoons) to pick off and kill the drummers and officers of a formation.",
+   "признак_в_партии": "барабанщики и офицеры противника убиты.",
+   "источник": 2
+  },
+  {
+   "тема": "прочее",
+   "принцип": "разрушать города, проникая через незащищённые участки.",
+   "цитата": "It involves sending a small group of very fast cavalry units(such as Cossacks) into an enemy city, though an unwalled section.",
+   "признак_в_партии": "быстрые кавалеристы проникают в город через незащищённый участок.",
+   "источник": 2
+  },
+  {
+   "тема": "построение",
+   "принцип": "создать сильную пикейную армию",
+   "цитата": "Once the barracks is finished, build 15-20 pikemen.",
+   "признак_в_партии": "в партии должно быть достаточно пикейников для эффективной обороны и атаки",
+   "источник": 3
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "использовать стрелков для обнаружения и поддержки основных сил",
+   "цитата": "Send out 3, one to each remaining corner of the map. These are scouts you are using to locate your opponent.",
+   "признак_в_партии": "в партии должны быть стрелки, которые активно используются для обнаружения противника",
+   "источник": 3
+  },
+  {
+   "тема": "атака",
+   "принцип": "атаковать сильными силами, когда противник ослаблен",
+   "цитата": "Take the other 20 and begin raiding your opponent’s city. Have them ravage the workers as much as possible and capture what buildings they can capture.",
+   "признак_в_партии": "в партии должны быть активные атакующие силы, которые наносят ущерб противнику",
+   "источник": 3
+  },
+  {
+   "тема": "оборона",
+   "принцип": "разместить пикейников для быстрой реакции на атаки",
+   "цитата": "Now organize a platoon of 8-10 pikemen to be ready to deal with your opponent’s attack.",
+   "признак_в_партии": "в партии должны быть пикейники, готовые быстро реагировать на атаки противника",
+   "источник": 3
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "создать сильную и мобильную армию",
+   "цитата": "Build 30 mercenary dragoons. Station 10 where they can intercept the enemy as they march.",
+   "признак_в_партии": "в партии должны быть мобильные и хорошо обученные воины",
+   "источник": 3
+  },
+  {
+   "тема": "движение",
+   "принцип": "Армия должна быть мобильной и гибкой.",
+   "цитата": "Send the first 3 spears from each rax to scout. I’ve won countless games simply by getting 3 spears into their unprotected town as early as possible.",
+   "признак_в_партии": "Бойцы быстро перемещаются и исследуют вражескую территорию.",
+   "источник": 4
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Количество и качество армии важны.",
+   "цитата": "Build 2 barracks and start pumping spearmen.",
+   "признак_в_партии": "Большое количество бойцов в строю и постоянное их увеличение.",
+   "источник": 4
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые единицы могут быть полезны для разведки и поддержки.",
+   "цитата": "If he is a die-hard build a Diplo center and use merc archers to burn down his barracks and other military buildings.",
+   "признак_в_партии": "Использование стрелков для атаки вражеских строений.",
+   "источник": 4
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Оборона важна, но не стоит забывать о наступлении.",
+   "цитата": "After defeating his army, march into his town and take his villies and TCs, which usually ends the game.",
+   "признак_в_партии": "Бойцы быстро переходят к наступлению после победы.",
+   "источник": 4
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать нужно, когда у тебя есть преимущество.",
+   "цитата": "When you get around 60-100 spears send them into your enemy town, you should have the advantage because you can afford more raxxes and spears beat pikes 1v1.",
+   "признак_в_партии": "Атака начинается, когда армия достигает определенного размера.",
+   "источник": 4
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Составить сильную армию, включающую как пехоту, так и стрелков.",
+   "цитата": "Also remember to keep building and upgrading Pikes to keep your army strong. Your Pike force shouldn’t be too much worse than his, and with the addition of 100 infantrymen you should be able to cut through his army and set a strong guard on his barracks, which your archers can then burn.",
+   "признак_в_партии": "Армия состоит из хорошо укрепленной пехоты и стрелков.",
+   "источник": 5
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Использовать стрелков для уничтожения экономических построек противника.",
+   "цитата": "capture (and then delete) his economic buildings. If done right this will give you a huge economic advantage, which you can use to crush him with further merc floods, or with conventional units.",
+   "признак_в_партии": "Стрелки атакуют и уничтожают экономические постройки противника.",
+   "источник": 5
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать врага, когда он слаб или не готов к обороне.",
+   "цитата": "The key here is to get around 100 infantrymen and add them to the Pikes you have been building so far. March these guys towards his town while ordering up ~50 merc archers to destroy his buildings (set the gather point near his town).",
+   "признак_в_партии": "Армия атакует врага, когда он слаб или не готов к обороне.",
+   "источник": 5
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обеспечить защиту своих ключевых построек.",
+   "цитата": "set the gather point near his town)",
+   "признак_в_партии": "Бойцы защищают ключевые постройки, такие как башни.",
+   "источник": 5
+  },
+  {
+   "тема": "построение",
+   "принцип": "Рано построить академию и дипломатический центр для быстрого найма кавалерии.",
+   "цитата": "Build an Academy and Diplomatic Center fairly quickly, after which you can build another rax if you have enough wood.",
+   "признак_в_партии": "Академия и дипломатический центр построены в начале игры.",
+   "источник": 5
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбирать целью постройки и уничтожение экономических объектов противника.",
+   "цитата": "capture (and then delete) his economic buildings.",
+   "признак_в_партии": "Стрелки атакуют и уничтожают экономические постройки противника.",
+   "источник": 5
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Армия должна быть организована в формации для лучшего управления и эффективности.",
+   "цитата": "Units in formations are easier to control. Besides that, formations will make army management easier. One click will select the whole unit - you can still group some of these formations under number keys.",
+   "признак_в_партии": "Все бойцы в одной формации отвечают на один приказ, а не перемешаны с бойцами без формации.",
+   "источник": 6
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Использование различных формаций для различных типов войск.",
+   "цитата": "You can choose one of three formations: Line formation - the unit creates a long and thin formation. Perfect for ranged units. Column formation - the soldiers form an even formation. Easy to move, and good for melee units, especially when fighting against cavalry. Square formation - sued when you don't have many soldiers buy want to take more space in defense. Also perfect for guarding the artilll",
+   "признак_в_партии": "Бойцы одного типа стоят в одной формации, а не смешаны с бойцами других типов.",
+   "источник": 6
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Использование формаций для оптимизации атаки и обороны.",
+   "цитата": "Such units in different formations can be freely combined to use their fullest potential. Place howitzers in the first line - since their range is rather poor - and behind them, infantry. (1) You will thus have an assault group. At the back, or during defense, set the infantry to square formation and place artillery in the middle (2) - preferably long-range cannons. Remember to give ",
+   "признак_в_партии": "Бойцы находятся в определенной формации, соответствующей их типу и роли в бою.",
+   "источник": 6
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Использование формаций для защиты артиллерии.",
+   "цитата": "Square formation - sued when you don't have many soldiers buy want to take more space in defense. Also perfect for guarding the artillery. Set the cannons in the middle and order the soldiers to surround them - there, you don't have to worry about them naymore.",
+   "признак_в_партии": "Артиллерия находится в центре формации с бойцами вокруг.",
+   "источник": 6
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Использование формаций для атаки на коротких расстояниях.",
+   "цитата": "In case of clashes on short distance the cannons ought to be moved behind the infantry, where it can continue to fire.",
+   "признак_в_партии": "Артиллерия находится позади бойцов, готовая к артиллерийскому обстрелу.",
+   "источник": 6
+  },
+  {
+   "тема": "прочее",
+   "принцип": "Использование формаций для защиты от артиллерийского обстрела.",
+   "цитата": "In formation, the cannons will create a long line with big intervals. This formation should be used to attack hostile fortifications and artillery. It's easy to manage such unit in the army since in ",
+   "признак_в_партии": "Бойцы находятся в формации с большими интервалами между ними.",
+   "источник": 6
+  },
+  {
+   "тема": "атака",
+   "принцип": "Создавать массированные атакующие силы с использованием колонн.",
+   "цитата": "Column Formations - Column formations are excellent for saturating an area and for all-round attack.",
+   "признак_в_партии": "Бойцы стоят в плотном ряду, создавая большую массу для атаки.",
+   "источник": 7
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Использовать ряды для защиты от массированного нападения.",
+   "цитата": "Rank Formations (line) - These formations are good for defense, as they spread out as many men as possible while maintaining a defensive line.",
+   "признак_в_партии": "Бойцы стоят в ряду, создавая широкую линию для защиты.",
+   "источник": 7
+  },
+  {
+   "тема": "атака",
+   "принцип": "Использовать квадратные формирования для защиты от кавалерии.",
+   "цитата": "Square Formations - The square formation is a defensive formation with anti-cavalry in mind.",
+   "признак_в_партии": "Бойцы стоят в квадратной форме, создавая большую площадь для защиты от кавалерии.",
+   "источник": 7
+  },
+  {
+   "тема": "атака",
+   "принцип": "Использовать ряды для защиты от артиллерийского огня.",
+   "цитата": "Square Formations - Whilst not as vulnerable as a Column to artillery, owing to the hollow in the centre of the formation, it's still not a good formation to be in with cannons targeting you.",
+   "признак_в_партии": "Бойцы стоят в ряду с открытым центром, чтобы уменьшить уязвимость к артиллерии.",
+   "источник": 7
+  },
+  {
+   "тема": "атака",
+   "принцип": "Использовать колонны для максимального использования огня.",
+   "цитата": "Column Formations - Column formations are excellent for saturating an area and for all-round attack. The downside to this formation is cannons, specifically a close-range grapeshot - this shotgun-like blast will mow everyone down!",
+   "признак_в_партии": "Бойцы стоят в колонне, создавая массированный огонь.",
+   "источник": 7
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Использовать ряды для защиты от артиллерии.",
+   "цитата": "Rank Formations (line) - This is the best formation to be in when face against artillery - as your soldiers are spread over a wide area, cannons will take out fewer men with their fire.",
+   "признак_в_партии": "Бойцы стоят в ряду, распределенные по широкой линии, чтобы уменьшить ущерб от артиллерии.",
+   "источник": 7
+  },
+  {
+   "тема": "атака",
+   "принцип": "Использовать ряды для максимального использования огня.",
+   "цитата": "Melee infantry: +2 Attack +3 Defence. Clicking the 'Stand Ground' icon will make your soldier hold position and give a bigger bonus of +9 Attack and +9 Armour",
+   "признак_в_партии": "Бойцы стоят в ряду, используя 'Stand Ground' для увеличения защиты и атаки.",
+   "источник": 7
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Использовать квадратные формирования для защиты от кавалерии.",
+   "цитата": "Square Formations - The square formation is a defensive formation with anti-cavalry in mind.",
+   "признак_в_партии": "Бойцы стоят в квадратной форме, создавая большую площадь для защиты от кавалерии.",
+   "источник": 7
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть сбалансирована, сильна в начале и сохраняет конкурентоспособность в конце игры.",
+   "цитата": "Both the Coselete and Spanish Musketeer are among the strongest units in their respective categories but are held back by their slow training times. Their presence is enough to make Spain a good pick for anyone who wants to engage in some early aggression while still having a competitive army in the 18th century.",
+   "признак_в_партии": "Армия должна иметь сильных пикеманов и мушкетеров, которые эффективны на протяжении всей игры.",
+   "источник": 8
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые единицы должны быть хорошо защищены и эффективны в бою.",
+   "цитата": "The Coselete, by contrast, has no problem tanking enemy fire thanks to his 100 HP and max bullet armor of 10.",
+   "признак_в_партии": "Стрелковые единицы должны иметь высокую броню и быть эффективны в бою.",
+   "источник": 8
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать следует, когда у противника нет достаточного количества юнитов для защиты.",
+   "цитата": "A small force of Coseletes and mercenaries can seriously threaten most nations in the early game while also saving wood and stone from not needing to build so many houses to accommodate their troops (the upside of a quality over quantity approach).",
+   "признак_в_партии": "Армия должна быть готова к быстрой атаке, когда противник не может эффективно противостоять.",
+   "источник": 8
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обороняться на ключевых точках и использовать юниты с высокой броней.",
+   "цитата": "The Coselete, by contrast, has no problem tanking enemy fire thanks to his 100 HP and max bullet armor of 10.",
+   "признак_в_партии": "Юниты с высокой броней должны быть размещены на ключевых точках обороны.",
+   "источник": 8
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые единицы должны быть эффективны на расстоянии и иметь высокую скорость стрельбы.",
+   "цитата": "Range: 15.94\nRate of fire: 5.94 seconds max: 2.91 seconds min.",
+   "признак_в_партии": "Стрелковые юниты должны иметь высокую дальность и скорость стрельбы.",
+   "источник": 8
+  },
+  {
+   "тема": "построение",
+   "принцип": "Построение армии должно быть сбалансированным, с учетом быстроты и эффективности юнитов.",
+   "цитата": "Both the Coselete and Spanish Musketeer are among the strongest units in their respective categories but are held back by their slow training times.",
+   "признак_в_партии": "Армия должна иметь сбалансированное количество юнитов с разными характеристиками.",
+   "источник": 8
+  },
+  {
+   "тема": "построение",
+   "принцип": "Пике и мушкеты должны быть распределены в строю таким образом, чтобы пике обеспечивали защиту мушкетеров.",
+   "цитата": "They could shoot down their foes, and could then run to the nearby pikemen for shelter if enemy cavalry or pikes drew near.",
+   "признак_в_партии": "Мушкетеры расположены впереди, пике следуют за ними.",
+   "источник": 9
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атака должна начинаться с огня мушкетеров, чтобы ослабить противника перед атакой пике.",
+   "цитата": "This new tactic resulted in triumph for the Spanish and Fernández de Córdoba's colunellas at the Battle of Cerignola, one of the great victories of the Italian Wars, in which the heavily outnumbered Spanish pike-and-shot forces, in a strong defensive position, crushed the attacking gendarmes and Swiss mercenaries of the French army.",
+   "признак_в_партии": "Мушкетеры открывают огонь, затем пике атакуют.",
+   "источник": 9
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Пике должны занимать центральное положение в оборонительной линии, обеспечивая защиту мушкетеров.",
+   "цитата": "The firearms, in conjunction with the pike formations, gave the Imperials a tactical edge over the French.",
+   "признак_в_партии": "Пике занимают центральное положение, мушкетеры расположены по бокам.",
+   "источник": 9
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Сила армии определяется численностью пике и мушкетеров, а также их координацией.",
+   "цитата": "In 1588, the English Trained Bands consisted of 36% arquebusiers, 6% musketeers, 16% bowmen, 26% pikemen, and 16% billmen.",
+   "признак_в_партии": "Армия состоит из достаточного количества пике и мушкетеров, которые действуют в согласованной группе.",
+   "источник": 9
+  },
+  {
+   "тема": "цели",
+   "принцип": "Целью атаки должны быть вражеские пике, чтобы ослабить их перед атакой мушкетеров.",
+   "цитата": "The arquebusiers could shoot down their foes, and could then run to the nearby pikemen for shelter if enemy cavalry or pikes drew near.",
+   "признак_в_партии": "Мушкетеры атакуют вражеских пике, затем атакуют вражеских мушкетеров.",
+   "источник": 9
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые части должны быть размещены так, чтобы они могли эффективно стрелять по врагу.",
+   "цитата": "The firearms, in conjunction with the pike formations, gave the Imperials a tactical edge over the French.",
+   "признак_в_партии": "Мушкетеры и аркебузиры расположены впереди, чтобы эффективно стрелять по врагу.",
+   "источник": 9
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия сильна, если у неё больше людей и они лучше вооружены.",
+   "цитата": "Lanchester determined that the power of such a force is proportional not to the number of units it has, but to the square of the number of units. This is known as Lanchester's square law.",
+   "признак_в_партии": "Большее количество бойцов и более высокая боевая мощь (атакующие и обороняющиеся) ведут к большей силе армии.",
+   "источник": 10
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать нужно, когда у противника меньше людей или боевая мощь меньше.",
+   "цитата": "If A>B and α>β, then Red will win, while if A<B and α<β, Blue will win;",
+   "признак_в_партии": "Атакующая сторона имеет меньшее количество бойцов или боевую мощь, чем обороняющаяся сторона.",
+   "источник": 10
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обороняться нужно, когда у противника больше людей или боевая мощь больше.",
+   "цитата": "If A>B and α>β, then Red will win, while if A<B and α<β, Blue will win;",
+   "признак_в_партии": "Обороняющая сторона имеет большее количество бойцов или боевую мощь, чем атакующая сторона.",
+   "источник": 10
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые единицы эффективны при атаке на большие группы.",
+   "цитата": "With firearms engaging each other directly with aimed shooting from a distance, they can attack multiple targets and can receive fire from multiple directions.",
+   "признак_в_партии": "Стрелковые единицы эффективны при атаке на большие группы бойцов.",
+   "источник": 10
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбор целью атакующей стороны должен быть основан на силе и боевой мощи противника.",
+   "цитата": "If A>B and α>β, then Red will win, while if A<B and α<β, Blue will win;",
+   "признак_в_партии": "Атакующая сторона атакует наиболее уязвимые или наиболее сильные цели в зависимости от силы и боевой мощи противника.",
+   "источник": 10
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть концентрирована в большем количестве, чтобы создать превосходство в численности над противником.",
+   "цитата": "Now if we see double numbers prove such a weight in the scale against the greatest Generals, we may be sure, that in ordinary cases, in small as well as great combats, an important superiority of numbers, but which need not be over two to one, will be sufficient to ensure the victory, however disadvantageous other circumstances may be.",
+   "признак_в_партии": "Армия состоит из большего количества бойцов, чем противник, и действует как единое целое.",
+   "источник": 11
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые части должны использоваться для нанесения точечных ударов и поддержки основных сил.",
+   "цитата": "In this way they can hope to defeat their enemy in detail.",
+   "признак_в_партии": "Стрелковые части наносят удары по отдельным целям, а не атакуют основные силы противника.",
+   "источник": 11
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать следует, когда противник распределен и не может сосредоточиться.",
+   "цитата": "The guerrilla forces may then attempt to use force concentrations of their own; using unpredictable and unexpected concentrations of their forces, to destroy individual patrols, convoys and outposts.",
+   "признак_в_партии": "Армия атакует, когда противник распределен и не может сосредоточиться для защиты.",
+   "источник": 11
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обороняться на ключевых точках и использовать локальное превосходство в численности.",
+   "цитата": "Correctly chosen and exploited, victory in a given engagement or a chain of small engagements is often sufficient to win the battle.",
+   "признак_в_партии": "Армия сосредоточивает свои силы на ключевых точках и использует локальное превосходство в численности для защиты.",
+   "источник": 11
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбирать целью отдельные цели для нанесения ударов, а не атаковать основные силы противника.",
+   "цитата": "In this way they can hope to defeat their enemy in detail.",
+   "признак_в_партии": "Армия атакует отдельные цели, а не основные силы противника.",
+   "источник": 11
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Эффективное использование стрелков",
+   "цитата": "Sun Tzu's The Art of War, written c. 400 BCE, listed five basic factors for a commander to consider: ... Method and discipline, which included logistics and supply",
+   "признак_в_партии": "Казаки должны использовать стрелковую артиллерию для поддержки основных атак и для обстрела укреплений противника.",
+   "источник": 12
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбор целей",
+   "цитата": "To gain public opinion, won through great victories and the occupation of the enemy's capital",
+   "признак_в_партии": "Казаки должны атаковать ключевые позиции противника, такие как его лагеря или укрепления.",
+   "источник": 12
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть хорошо организована и дисциплинирована, чтобы эффективно противостоять атаке.",
+   "цитата": "It was vital for squares to stand firm in the face of a charge, but they were not static formations. In suitable terrain astute commanders could manoeuvre squares to mass fire and even trap cavalry, as the French managed against the Ottomans at the Battle of Mount Tabor (1799).",
+   "признак_в_партии": "Армия должна быть способна быстро реагировать на угрозу и эффективно использовать стратегию обороны.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть хорошо вооружена и обучена для эффективного использования огня.",
+   "цитата": "Once formed in square, the infantry would volley fire at approaching cavalry, either by file or by rank.",
+   "признак_в_партии": "Бойцы должны быть способны эффективно стрелять и использовать огневую мощь.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна быстро переформироваться и адаптироваться к изменяющимся условиям боя.",
+   "цитата": "At the Battle of Waterloo (1815) the four-rank squares of the Allied forces withstood eleven cavalry charges.",
+   "признак_в_партии": "Армия должна быть способна быстро переформироваться и адаптироваться к изменяющимся условиям боя.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна эффективно использовать резервы для поддержки основных сил.",
+   "цитата": "Its colours and commander were positioned in the centre, along with a reserve force to reinforce any side of the square that was weakened by attacks.",
+   "признак_в_партии": "В центре армии должны быть резервные силы, готовые поддержать основные силы.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна эффективно использовать огневую мощь для отражения атаки.",
+   "цитата": "The infantry would volley fire at approaching cavalry, either by file or by rank.",
+   "признак_в_партии": "Бойцы должны быть способны эффективно стрелять и использовать огневую мощь.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна эффективно использовать стратегию обороны.",
+   "цитата": "It was vital for squares to stand firm in the face of a charge, but they were not static formations.",
+   "признак_в_партии": "Армия должна быть способна эффективно использовать стратегию обороны.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна эффективно использовать стратегию атаки.",
+   "цитата": "The square was revived in the 14th century as the schiltron. It later appeared as the pike square or tercio during the Thirty Years War, the Eighty Years War and was widely used as well in the French Revolutionary Wars and the Napoleonic Wars.",
+   "признак_в_партии": "Армия должна быть способна эффективно использовать стратегию атаки.",
+   "источник": 13
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Армия должна быть способна эффективно использовать резервы для поддержки основных сил.",
+   "цитата": "Its colours and commander were positioned in the centre, along with a reserve force to reinforce any side of the square that was weakened by attacks.",
+   "признак_в_партии": "В центре армии должны быть резервные силы, готовые поддержать основные силы.",
+   "источник": 13
+  },
+  {
+   "тема": "построение",
+   "принцип": "армия должна быть построена в строгие линии для одновременного выстрела.",
+   "цитата": "In practice, it often consists of having a line of soldiers all fire their weapons together at the enemy forces on command, known as 'firing a volley', followed by more lines of soldiers repeating the same manoeuvre in turns.",
+   "признак_в_партии": "солдаты стоят в стройных линиях, выстреливают одновременно.",
+   "источник": 14
+  },
+  {
+   "тема": "оборона",
+   "принцип": "армия должна обороняться, не позволяя противнику приблизиться.",
+   "цитата": "The Song volley fire formation was described thus: 'Those in the center of the formation should load while those on the outside of the formation should shoot, and when [the enemy gets] close, then they should shelter themselves with small shields [literally side shields, 旁牌], each taking turns and returning, so that those who are loading are within the formation.'",
+   "признак_в_партии": "солдаты используют щиты для защиты от ближнего боя.",
+   "источник": 14
+  },
+  {
+   "тема": "атака",
+   "принцип": "атака должна быть массированной и непрерывной.",
+   "цитата": "The volley fire, specifically the musketry volley technique (also known as the countermarch), requires lines of soldiers to step to the front, fire on command and then march back into a column to reload, while the next row repeats the same process.",
+   "признак_в_партии": "солдаты следуют поочередно вперед и назад, выстреливая и перезаряжая.",
+   "источник": 14
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "стрелковые единицы должны быть размещены так, чтобы обеспечить непрерывный огонь.",
+   "цитата": "The 759 AD text, Tai bai yin jing (太白陰經) by Tang military official Li Quan (李筌), contains the oldest known depiction and description of the volley fire technique. The illustration shows a rectangular crossbow countermarch formation with each circle representing one man.",
+   "признак_в_партии": "стрелки следуют поочередно, выстреливая и перезаряжая.",
+   "источник": 14
+  },
+  {
+   "тема": "цели",
+   "принцип": "целью атаки должны быть хорошо определенные и важные для противника цели.",
+   "цитата": "In the fall of 1131 the Jin commander Wuzhu (兀朮) invaded the Shaanxi region but was defeated by general Wu Jie (吳玠) and his younger brother Wu Lin (吳璘). The History of Song elaborates on the battle in detail: [Wu] Jie ordered his commanders to select their most vigorous bowmen and strongest crossbowmen and to divide them up for alternate shooting by turns (分番迭射). They were called the 'Standing-Frm",
+   "признак_в_партии": "солдаты сосредоточены на определенных целях, выстреливая по ним.",
+   "источник": 14
+  },
+  {
+   "тема": "сила_армии",
+   "принцип": "Сильная армия состоит из хорошо организованных и обученных бойцов, использующих эффективные тактики.",
+   "цитата": "Detailed management of units in combat aims to maximize damage given to enemy units and minimize damage to the player's units. For standard combat units the most common techniques are: grouping units into formations, for example to keep lightly armored shooters behind and protected by more heavily armored melee units;[1][2] concentrating the fire of all ranged units on one target and then a second",
+   "признак_в_партии": "Бойцы стоят в строю, защищены более тяжелыми бойцами, стреляют по одному или нескольким целям.",
+   "источник": 15
+  },
+  {
+   "тема": "построение",
+   "принцип": "Построение армии должно быть гибким и адаптивным к изменяющейся ситуации на поле боя.",
+   "цитата": "Detailed management of units in combat aims to maximize damage given to enemy units and minimize damage to the player's units. For standard combat units the most common techniques are: grouping units into formations, for example to keep lightly armored shooters behind and protected by more heavily armored melee units;[1][2] concentrating the fire of all ranged units on one target and then a second",
+   "признак_в_партии": "Бойцы быстро реагируют на изменения в ситуации, меняют строение и позиции.",
+   "источник": 15
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атаковать нужно, когда угроза максимальна, и использовать различные тактики для достижения успеха.",
+   "цитата": "Using military tactics such as flanking and counterattacks; exploiting nontransitive (",
+   "признак_в_партии": "Бойцы используют флангирование и контратаки, быстро реагируют на изменения в ситуации.",
+   "источник": 15
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обороняться нужно, создавая препятствия и используя тактики для отвлечения врага.",
+   "цитата": "Using military tactics such as flanking and counterattacks; exploiting nontransitive (",
+   "признак_в_партии": "Бойцы создают препятствия и используют тактики для отвлечения врага.",
+   "источник": 15
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелковые бойцы должны быть использованы для создания огневого острого и отвлечения врага.",
+   "цитата": "using cheap units to draw the enemy's fire away from more expensive units, gameplay especially typical of games of the real-time tactics type.",
+   "признак_в_партии": "Стрелковые бойцы сосредоточены на одной или нескольких целях, создают огневое острое.",
+   "источник": 15
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбор цели должен быть стратегически обоснованным и способствовать достижению главной цели.",
+   "цитата": "In Sid Meier's Civilization series, it may be important for either economic or military reasons to build railroads as fast as possible, and doing this efficiently requires considerable micromanagement of Settler/Engineer units.[3]",
+   "признак_в_партии": "Бойцы атакуют наиболее уязвимые или стратегически важные цели.",
+   "источник": 15
+  }
+ ],
+ "конспект": [
+  {
+   "id": "П1",
+   "тема": "сила_армии",
+   "принцип": "создать и поддерживать сильную армию, особенно пике, для защиты и атаки.",
+   "признак_в_партии": "в армии есть постоянные строения рэккса для производства пике и они активно используются.",
+   "из": [
+    5,
+    13,
+    38,
+    43,
+    52,
+    60,
+    69,
+    70,
+    73,
+    80,
+    81,
+    82
+   ],
+   "источники": [
+    "https://cossacks.heavengames.com/academy/strategies/basicstart/",
+    "https://cossacks.heavengames.com/academy/strategies/quick/",
+    "https://en.wikipedia.org/wiki/Force_concentration",
+    "https://en.wikipedia.org/wiki/Infantry_square",
+    "https://en.wikipedia.org/wiki/Micromanagement_(gameplay)",
+    "https://en.wikipedia.org/wiki/Pike_and_shot",
+    "https://steamcommunity.com/app/333420/discussions/0/350542145705166969/",
+    "https://steamcommunity.com/sharedfiles/filedetails/?id=3059463788"
+   ]
+  },
+  {
+   "id": "П2",
+   "тема": "атака",
+   "принцип": "атаковать в форме стрелы для быстрого прорыва линии противника.",
+   "признак_в_партии": "атакующая армия стоит в форме стрелы, с двумя рядами пехоты, образующими острие.",
+   "из": [
+    1,
+    25,
+    35,
+    57,
+    62,
+    77,
+    82
+   ],
+   "источники": [
+    "https://cossacks.heavengames.com/academy/strategies/formationanlys/",
+    "https://cossacks.heavengames.com/academy/strategies/mercrush/",
+    "https://en.wikipedia.org/wiki/Force_concentration",
+    "https://en.wikipedia.org/wiki/Lanchester%27s_laws",
+    "https://en.wikipedia.org/wiki/Micromanagement_(gameplay)",
+    "https://en.wikipedia.org/wiki/Volley_fire",
+    "https://steamcommunity.com/app/333420/discussions/0/350542145705166969/"
+   ]
+  },
+  {
+   "id": "П3",
+   "тема": "оборона",
+   "принцип": "использовать строения для защиты от атаки пехоты и кавалерии.",
+   "признак_в_партии": "армия стоит в строении, которое не позволяет противнику прорваться через линию.",
+   "из": [
+    2,
+    7,
+    16,
+    26,
+    36,
+    40,
+    44,
+    56,
+    63,
+    71,
+    75,
+    79
+   ],
+   "источники": [
+    "https://cossacks.heavengames.com/academy/strategies/basicstart/",
+    "https://cossacks.heavengames.com/academy/strategies/formationanlys/",
+    "https://cossacks.heavengames.com/academy/strategies/mercrush/",
+    "https://cossacks.heavengames.com/academy/strategies/quick/",
+    "https://en.wikipedia.org/wiki/Force_concentration",
+    "https://en.wikipedia.org/wiki/Infantry_square",
+    "https://en.wikipedia.org/wiki/Lanchester%27s_laws",
+    "https://en.wikipedia.org/wiki/Volley_fire",
+    "https://steamcommunity.com/app/333420/discussions/0/350542145705166969/",
+    "https://steamcommunity.com/sharedfiles/filedetails/?id=3059463788"
+   ]
+  },
+  {
+   "id": "П4",
+   "тема": "стрелки",
+   "принцип": "использовать стрелковых бойцов для разведки и поддержки.",
+   "признак_в_партии": "в армии есть группы стрелковых бойцов, которые регулярно отправляются на разведку.",
+   "из": [
+    6,
+    14,
+    20,
+    24,
+    48,
+    54,
+    61,
+    74,
+    78,
+    83,
+    84,
+    85
+   ],
+   "источники": [
+    "https://cossacks.heavengames.com/academy/strategies/basicstart/",
+    "https://cossacks.heavengames.com/academy/strategies/mercrush/",
+    "https://cossacks.heavengames.com/academy/strategies/quick/",
+    "https://cossacks.heavengames.com/academy/strategies/russianspear/",
+    "https://en.wikipedia.org/wiki/Force_concentration",
+    "https://en.wikipedia.org/wiki/Infantry_square",
+    "https://en.wikipedia.org/wiki/Micromanagement_(gameplay)",
+    "https://en.wikipedia.org/wiki/Pike_and_shot",
+    "https://en.wikipedia.org/wiki/Volley_fire",
+    "https://steamcommunity.com/sharedfiles/filedetails/?id=3059463788"
+   ]
+  },
+  {
+   "id": "П5",
+   "тема": "цели",
+   "принцип": "выбирать целью постройки и уничожение экономических объектов противника.",
+   "признак_в_партии": "атакующая сторона атакует наиболее уязвимые или наиболее сильные цели в зависимости от силы и боевой мощи противника.",
+   "из": [
+    28,
+    58,
+    64,
+    76,
+    85
+   ],
+   "источники": [
+    "https://cossacks.heavengames.com/academy/strategies/mercrush/",
+    "https://en.wikipedia.org/wiki/Force_concentration",
+    "https://en.wikipedia.org/wiki/Lanchester%27s_laws",
+    "https://en.wikipedia.org/wiki/Micromanagement_(gameplay)",
+    "https://en.wikipedia.org/wiki/Volley_fire"
+   ]
+  }
+ ],
+ "отброшено": [
+  {
+   "тема": "движение",
+   "принцип": "Концентрация сил",
+   "цитата": "Концентрация сил включает в себя decisively, synchronized application of superior fighting power (conceptual, physical, and moral) to realize intended effects, when and where required.",
+   "признак_в_партии": "Казаки должны сосредоточиться силы на ключевом участке поля боя перед атакой.",
+   "источник": "https://en.wikipedia.org/wiki/Principles_of_war",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атакующая инициатива",
+   "цитата": "Атакующая инициатива — это практический способ, которым команда стремится к преимуществу, поддержанию маневра и захвату инициативы.",
+   "признак_в_партии": "Казаки должны стремиться к активной атаке, используя маневренность и скорость.",
+   "источник": "https://en.wikipedia.org/wiki/Principles_of_war",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Обеспечение безопасности",
+   "цитата": "Безопасность — это предоставление и поддержание операционной среды, которая обеспечивает необходимую свободу действий, когда и где это требуется, для достижения целей.",
+   "признак_в_партии": "Казаки должны защищать свои позиции и создавать препятствия для противника.",
+   "источник": "https://en.wikipedia.org/wiki/Principles_of_war",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "движение",
+   "принцип": "Армия должна быть мобильной и способной быстро менять позиции.",
+   "цитата": "Армия должна быть способна быстро менять позиции и быстро реагировать на изменения ситуации на поле боя.",
+   "признак_в_партии": "Бойцы быстро перемещаются и меняют позиции в ответ на действия противника.",
+   "источник": "https://ru.wikipedia.org/wiki/Законы_Ланчестера",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "цели",
+   "принцип": "Выбор целей должен быть стратегически обоснованным.",
+   "цитата": "Цель атаки должна быть выбрана так, чтобы максимизировать убытки противника и минимизировать свои потери.",
+   "признак_в_партии": "Бойцы атакуют наиболее уязвимые или важные цели противника.",
+   "источник": "https://ru.wikipedia.org/wiki/Законы_Ланчестера",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "оборона",
+   "принцип": "Оборона должна быть укреплена и организована для эффективной защиты.",
+   "цитата": "Оборонительные позиции должны быть укреплены и организованы для эффективной защиты от атаки.",
+   "признак_в_партии": "Бойцы занимают укрепленные позиции и эффективно отражают атаки противника.",
+   "источник": "https://ru.wikipedia.org/wiki/Законы_Ланчестера",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "атака",
+   "принцип": "Атака должна быть организована и направлена на уязвимые места противника.",
+   "цитата": "Атака должна быть организована и направлена на уязвимые места противника, чтобы максимизировать убытки.",
+   "признак_в_партии": "Бойцы атакуют уязвимые или важные цели противника.",
+   "источник": "https://ru.wikipedia.org/wiki/Законы_Ланчестера",
+   "почему": "цитаты на странице нет"
+  },
+  {
+   "тема": "стрелки",
+   "принцип": "Стрелки должны быть использованы эффективно для поражения целей.",
+   "цитата": "Стрелковые единицы должны быть использованы эффективно для поражения целей.",
+   "признак_в_партии": "Стрелки эффективно поражают цели, используя прицельный огонь.",
+   "источник": "https://ru.wikipedia.org/wiki/Законы_Ланчестера",
+   "почему": "цитаты на странице нет"
+  }
+ ]
+}

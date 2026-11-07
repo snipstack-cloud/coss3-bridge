@@ -1,0 +1,456 @@
+https://en.wikipedia.org/wiki/Force_concentration
+Force concentration - Wikipedia
+Jump to content
+From Wikipedia, the free encyclopedia
+Military strategy
+Force concentration is the practice of concentrating a military force so as to bring to bear such overwhelming force against a portion of an enemy force that the disparity between the two forces alone acts as a force multiplier in favour of the concentrated forces.
+Part of a series on
+War
+Outline
+Index
+History
+Prehistoric
+Ancient
+Post-classical
+Early modern
+Industrial
+Modern
+Military
+Organization
+Command and control
+Defense ministry
+Reserves
+Ranks
+Branches:
+Army
+Navy
+Air force
+Marines
+Coast guard
+Border guard
+Special forces
+Cyber force
+Space force
+Specialties:
+Staff
+Engineers
+Intel
+Recon
+Medical
+Police
+Diving
+Pilot
+Land units:
+Infantry
+Armor
+Cavalry
+Artillery
+Special forces
+Signal corps
+Naval units:
+Warships
+Submarines
+Aircraft carriers
+Landing craft
+Auxiliary ships
+Air units:
+Fighters
+Bombers
+Command
+Close air support
+Electronic-warfare
+Reconnaissance
+Combat systems:
+Fire-control system
+Fire-control radar
+Director (military)
+Combat information center
+Sonar
+Radar
+Historical:
+Ship gun fire-control
+Gun data computer
+Torpedo data computer
+Development:
+Basic training
+Military maneuvers
+Combat training
+Battlespace
+Aerospace
+Aerial
+Airborne
+Space
+Land
+Cold-region
+Desert
+Fortification
+Jungle
+Mountain
+Urban
+Subterranean
+Tunnel
+Sea
+Amphibious
+Blue
+Brown
+Green
+Surface
+Underwater
+Seabed
+Cyber
+Information
+Night
+Technology
+Air defense
+Armor
+Artillery
+Barrage
+Biological
+Camouflage
+Cavalry
+Horses
+Air cavalry
+Chemical
+Combined arms
+Conventional
+Cyber
+Denial
+Disinformation
+Drone / Robot
+Electromagnetic
+Firearms
+Infantry
+Loitering
+Missile
+Music
+Nuclear
+Psychological
+Radiological
+Space
+Submarine
+Unconventional
+Tactics
+List of military tactics
+Aerial
+Airlift
+Air assault
+Airbridge
+Airdrop
+Anti-aircraft
+Anti-sub
+Anti-tank
+Battle
+Cavalry
+Charge
+CQC
+Counterattack
+Counterinsurgency
+Convoy
+Defeat in detail
+Foxhole
+Drone
+Envelopment
+Formation
+Guerrilla
+Naval
+Shock
+Rapid dominance
+Encirclement
+Investment
+Siege
+Swarm
+Screen
+Tactical objective
+Target saturation
+Trench
+Withdrawal
+Operational
+Military operation
+Special
+Operations research
+Blitzkrieg
+Expeditionary
+Deep operation
+Maneuver
+Operational maneuver group
+Raid
+Covert
+Stay-behind
+Strategy
+List of military strategies and concepts
+Military campaign
+Anti-access
+Attrition
+Commerce raiding
+Counter-offensive
+Culminating
+Defense in depth
+Fabian
+Empty fort
+Kinetic
+Mosaic
+Deception
+Defensive
+Depth
+Goal
+Nuclear
+Naval
+Offensive
+Scorched earth
+Grand strategy
+Asymmetric
+Blockade
+Broken-backed
+Class
+Cold war
+Colonial
+Conquest
+Containment
+Divide and conquer
+Economic
+Endemic
+Fleet in being
+Irregular
+Liberation
+Limited
+Network-centric
+New generation
+Perpetual
+Political
+Princely
+Proxy
+Religious
+Resource
+Strategic
+Succession
+Technology
+Theater
+Total war
+World war
+Administrative
+Branch
+Policy
+Staff
+Training
+Service
+Sociology
+Organization
+Area of responsibility
+Chain of command
+Command and control
+Doctrine
+Order of battle
+Principles of war
+Economy of force
+Medicine
+Engineers
+Intelligence
+Ranks
+Personnel
+Recruitment
+Conscription
+Draft evasion
+Mobilization
+Training
+Specialism
+Soldier
+Morale
+Volunteer
+Women
+Children
+Transgender
+Harassment
+Conscientious objector
+Conscription and sexism
+Counter-recruitment
+Logistics
+History
+War economy
+Arms industry
+Materiel
+Train
+Supply-chain management
+Defense industrial base
+Base
+MOB
+FOB
+Outpost
+Science
+Power projection
+Loss-of-strength gradient
+Lanchester's laws
+Force multiplication
+Morale
+Law
+Belligerent
+Occupation
+Armistice
+Ceasefire
+Court-martial
+Desertion
+Geneva Conventions
+Geneva Protocol
+Islamic
+Justice
+Lawful / Unlawful combatant
+Perfidy
+Regular / Irregular
+Jewish
+Right of conquest
+Right of self-defense
+Rules of engagement
+Self-determination
+Martial law
+War crime
+War and genocide
+War treason
+Warlord
+Theory
+Air supremacy
+Appeasement
+Command of the sea
+Deterrence theory
+Full-spectrum dominance
+Overmatch
+Just war theory
+Principles of war
+Philosophy of war
+Security dilemma
+Tripwire force
+Wargaming
+Simulation
+Exercises
+Combat effectiveness
+Center of gravity
+Non-warfare
+Arms control
+Counterinsurgency
+Deterrence
+Disaster response
+Gray-zone
+Gunboat diplomacy
+Humanitarian aid
+Law enforcement
+Low-intensity conflict
+Military engineering
+Peacekeeping
+Peacebuilding
+Peace through strength
+Show of force
+Culture
+Awards and decorations
+Battle cry
+Warrior
+War film
+Military science fiction
+War novel
+Anti-war movement
+Foot drill
+War song
+Psychology
+Uniform
+Wargame
+Militarization / Militarism
+Antimilitarism
+Camp follower
+Related
+Women in war
+War resister
+War studies
+Horses in warfare
+Wartime sexual violence
+Fifth column
+Mercenary
+Pacifism
+Privateer
+Private military company
+Soldiers are murderers
+Category
+Mass of decision[edit]
+Force concentration became integral to the Prussian military operational doctrine of the mass of decision, which aimed to cause disproportionate losses on the enemy and therefore destroy the enemy's ability to fight.
+From an empirical examination of past battles, the Prussian military theorist Carl von Clausewitz (1780–1831) concluded:
+[...] we may infer, that it is very difficult in the present state of Europe, for the most talented General to gain a victory over an enemy double his strength. Now if we see double numbers prove such a weight in the scale against the greatest Generals, we may be sure, that in ordinary cases, in small as well as great combats, an important superiority of numbers, but which need not be over two to one, will be sufficient to ensure the victory, however disadvantageous other circumstances may be.[1]
+Lanchester's laws[edit]
+During the First World War Frederick W. Lanchester formulated Lanchester's laws that calculated that the combat power of a military force is the square of the number of members of that unit so that the advantage a larger force has is the difference of the squares of the two forces,[2][3] i.e.
+If force A has say 2 units and force B has 3 units, then the advantage force B has is 3²−2² or 5.
+If force A still has 2 units and force B has 4 units then the advantage force B has is 4²−2² or 12.
+If force A still has 2 units and force B has 5 units then the advantage force B has is 5²−2² or 21.
+So a two to one advantage in units will quadruple the firepower and inflict four times the punishment, three times as many units will have nine times the combat ability and so on. Basically the greater the numerical superiority that one side has, the greater the damage he can inflict on the other side and the smaller the cost to himself.
+Mathematical model[edit]
+Idealized simulation of two forces damaging each other, neglecting all other circumstances than the 1) size of army 2) rate of damaging (killing). The plots illustrate the principle of Lanchester's laws.
+There is no battlefield where battle tactics can be reduced to a pure race of delivering damage while ignoring all other circumstances. However, in some types of warfare, such as a battle for air superiority, confrontation of armoured forces in World War II or battleship-based naval battles, the ratio of armed forces could become the dominant factor. In that case, equations stated in Lanchester's laws model the potential outcome of the conflict fairly well. Balance between the two opponent forces incline to the side of superior force by the factor of
+{\displaystyle \left({\frac {Power_{2}}{Power_{1}}}\right)^{2}}
+. For example, two tanks against one tank are superior by a factor of four.
+This result could be understood if the rate of damage (considered as the only relevant factor in the model) is solved as a system of differential equations. The rate in which each army delivers damage to the opponent is proportional to the number of units – in the model each unit shoots at a given rate – and to the ability or effectiveness of each surviving unit to kill the enemy. The sizes of both armies decrease at different rates depending on the size of the other, and casualties of the superior army approach zero as the size of the inferior army approaches zero. This can be written in equations:
+{\displaystyle {\frac {d}{dt}}N_{1}=-c_{2}N_{2}}
+{\displaystyle {\frac {d}{dt}}N_{2}=-c_{1}N_{1}}
+{\displaystyle N_{1}}
+is the number of units in the first army
+{\displaystyle {\frac {d}{dt}}N_{2}}
+is the rate in which army 1 damages army 2 (affected by unit quality or other advantage)
+{\displaystyle c_{1}}
+is a coefficient which describes army 1's ability to inflict damage per unit per time.
+The above equations result in the following homogeneous second-order linear ordinary differential equations:
+{\displaystyle {\frac {d^{2}}{dt^{2}}}N_{1}=c_{2}c_{1}N_{1}}
+{\displaystyle {\frac {d^{2}}{dt^{2}}}N_{2}=c_{2}c_{1}N_{2}}
+To determine the time evolution of
+{\displaystyle N_{1}}
+and
+{\displaystyle N_{2}}
+, these equations need to be solved using the known initial conditions (the initial size of the two armies prior to combat).
+This model clearly demonstrates (see picture) that an inferior force can suffer devastating losses even when the superior force is only slightly larger, in case of equal per-unit qualitative capabilities: in the first example (see picture, top plot) the superior force starts only 40% larger, yet it brings about the total annihilation of the inferior force while suffering only 40% losses. Quality of the force may outweigh the quantitative inferiority of the force (middle plot) when it comes to battle outcomes.
+Business strategy[edit]
+In the 1960s, Lanchester's laws were popularised by the business consultant Nobuo Taoka and found favour with a segment of the Japanese business community.[4] The laws were used to formulate plans and strategies to attack market share. The "Canon–Xerox copier battle" in the UK, for example, reads like a classic people's war campaign. In this case, the laws supported Canon's establishment of a "revolutionary base area" by concentrating resources on a single geographical area until dominance could be achieved, in this case in Scotland. After this, they carefully defined regions to be individually attacked again with a more focused allocation of resources. The sales and distribution forces built up to support these regions in turn were used in the final "determined push in London with a numerically larger salesforce".
+History[edit]
+Force concentration has been a part of the military commander's repertoire since the dawn of warfare, though maybe not by that name. Commanders have always tried to have the advantage of numbers. The declined flank for example, was one way of achieving a force concentration during a battle.
+Disposition of Roman Legions[edit]
+At the beginning of the Roman Empire, in the first years of the first millennium, Rome's Legions were grouped into battle groups of three or four Legions, on the Rhine, on the Danube and in the Levant. By the third century A.D. these Legions had been dispersed along the frontiers in frontier fortifications, and within the Empire as internal security troops. In the first case Rome's military might was disposed in a manner in which it had a concentration of force capable of offensive action; in the second case it could defend effectively but could only attack and counterattack with difficulty.
+Guerrilla warfare[edit]
+As they are usually the smaller in number an appreciation of force concentration is especially important to guerrilla forces, who find it prudent initially to avoid confrontations with any large concentrations of government/occupying forces. However, through the use of small attacks, shows of strength, atrocities etc. in out of the way areas, they may be able to lure their opponents into spreading themselves out into isolated outposts, linked by convoys and patrols, in order to control territory. The guerrilla forces may then attempt to use force concentrations of their own; using unpredictable and unexpected concentrations of their forces, to destroy individual patrols, convoys and outposts. In this way they can hope to defeat their enemy in detail.
+Regular forces, in turn, may act in order to invite such attacks by concentrations of enemy guerrillas, in order to bring an otherwise elusive enemy to battle, relying on its own superior training and firepower to win such battles. This was successfully practiced by the French during the First Indochina War at the Battle of Nà Sản, but a subsequent attempt to replicate this at Dien Bien Phu led to decisive defeat.
+Aerial warfare[edit]
+During World War I the Central Powers became increasingly unable to meet the Allied Powers in terms of outright number of fighter aircraft. To overcome this shortcoming rather than deploying their fighters uniformly along the fronts, the Germans concentrated their fighters into large mobile Jagdgeschwader formations, the most famous of which was Manfred von Richthofen's Flying Circus, that could be moved rapidly and unexpectedly to different points along the front. This allowed them to create a local superiority in numbers, that could achieve air supremacy in a local area in support of ground operations or just to destroy Allied fighters in the overall strategy of attrition.
+Similarly the Second World War Big Wing was one tactic that was evolved to cause maximum damage to the enemy with the minimum of casualties.
+Blitzkrieg[edit]
+Main article: Blitzkrieg
+Modern armour warfare doctrine was developed and established during the run up to World War II. A fundamental key to conventional Warfare is the concentration of force at a particular point (the [der] Schwerpunkt). Concentration of force increases the chance of victory in a particular engagement. Correctly chosen and exploited, victory in a given engagement or a chain of small engagements is often sufficient to win the battle.
+Defence of France 1944[edit]
+The Nazi defence of France in 1944 could have followed one of the two models offered in the hypothetical example. The first was to distribute the available forces along the Atlantic Wall and throw the invading Allies back into the sea where and when they landed. The second was to keep the German Panzers concentrated and well away from the beaches. Territory could then be conceded to draw the invasion force away from their lodgement areas from which it would be nipped off by the cutting of their supply lines and then defeated in detail. The superiority of concentrated forces using maneuver warfare in the hypothetical example carried the proviso of "all other things being equal"; by 1944 things were far from being equal.
+With Allied air superiority not only were major force concentrations vulnerable to tactical and heavy bombers themselves, but so were the vital assets—bridges, marshalling yards, fuel depots, etc.—needed to give them mobility. As it was in this case, the blitzkrieg solution was the worst of both worlds, neither being far enough forward to maximise the use of their defensive fortifications, nor far enough away and concentrated to give it room to manoeuvre.
+Similarly, for the Japanese in the final stages of the Island hopping campaign of the Pacific War, with Allied naval and air superiority and non-existent room to manoeuvre, neither a water's edge defensive strategy nor a holding back and counterattacking strategy could succeed.
+Cold War and beyond[edit]
+Burnt out vehicles on the Highway of Death from the 1990 Gulf war, confirming the fate of massed tanks operating without aircover.
+For much of the Cold War, to combat the overwhelming Soviet supremacy in armour and men, NATO planned to use much of West German territory as a flood plain in a defence in depth to absorb and disperse the momentum of a massed Soviet attack. Mobile anti-tank teams and counterattacking NATO armies would seek to cut off the leading Soviet echelons from their supporting echelons and then reduce the isolated elements with superior air power and conventional munitions, and if this failed, with nuclear munitions.
+In an effort to avoid the use of nuclear munitions in an otherwise conventional war, the US invested heavily in a family of technologies it called "Assault Breaker", the two parts of these programmes were an enhanced realtime intelligence, surveillance, target acquisition, and reconnaissance capability, and the second part a series of stand off precision guided air-launched and artillery weapon systems, such as the MLRS, ICMs, M712 Copperhead, and the BLU-108 submunition. Against such weapons massed concentrations of armour and troops would no longer be a virtue but a liability. From the mid eighties and onward a much greater level of force dispersal became desirable rather than concentration.
+See also[edit]
+Blitzkrieg
+Blotto games
+Economy of force
+Force dispersal
+Human wave attack
+List of military tactics
+Saturation patrol
+Schlieffen Plan
+Shock and awe
+References[edit]
+von Clausewitz, Karl (1909). "Book 3 (Of strategy in general): Superiority_of_numbers". Vom Kriege [On War]. London. Retrieved 2016-04-27.{{cite book}}: CS1 maint: location missing publisher (link)
+↑ "Article at Lanchester Press". Archived from the original on 2007-06-29. Retrieved 2007-05-06.
+↑ Lanchester, F.W., "Mathematics in Warfare" in The World of Mathematics, Vol. 4 (1956) Ed. Newman, J.R., Simon and Schuster, 2138–2157
+↑ "A British Military Theory Finds Favour Among Japan's Businesses". Archived from the original on 2007-04-18. Retrieved 2007-05-11.
+Sources[edit]
+Carl von Clausewitz, On War, online version available, especially Book 3, Chapter VIII ("Superiority of Numbers"), and Chapter XI ("Assembly of Forces in Space").
+Dunnigan, James F. How To Make War, 2003, HarperCollins Publishers, New York.
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Force_concentration&oldid=1310379398"
+Categories:
+Military doctrines
+Military tactics
+Hidden categories:
+Articles with short description
+Short description matches Wikidata
+Use British English from August 2015
+All Wikipedia articles written in British English
+CS1 maint: location missing publisher
+Search
+Force concentration
+2 languages
+Add topic

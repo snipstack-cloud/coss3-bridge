@@ -1,0 +1,583 @@
+https://en.wikipedia.org/wiki/Lanchester%27s_laws
+Lanchester's laws - Wikipedia
+Jump to content
+From Wikipedia, the free encyclopedia
+Formulae for relative strengths of military forces
+Part of a series on
+War
+Outline
+Index
+History
+Prehistoric
+Ancient
+Post-classical
+Early modern
+Industrial
+Modern
+Military
+Organization
+Command and control
+Defense ministry
+Reserves
+Ranks
+Branches:
+Army
+Navy
+Air force
+Marines
+Coast guard
+Border guard
+Special forces
+Cyber force
+Space force
+Specialties:
+Staff
+Engineers
+Intel
+Recon
+Medical
+Police
+Diving
+Pilot
+Land units:
+Infantry
+Armor
+Cavalry
+Artillery
+Special forces
+Signal corps
+Naval units:
+Warships
+Submarines
+Aircraft carriers
+Landing craft
+Auxiliary ships
+Air units:
+Fighters
+Bombers
+Command
+Close air support
+Electronic-warfare
+Reconnaissance
+Combat systems:
+Fire-control system
+Fire-control radar
+Director (military)
+Combat information center
+Sonar
+Radar
+Historical:
+Ship gun fire-control
+Gun data computer
+Torpedo data computer
+Development:
+Basic training
+Military maneuvers
+Combat training
+Battlespace
+Aerospace
+Aerial
+Airborne
+Space
+Land
+Cold-region
+Desert
+Fortification
+Jungle
+Mountain
+Urban
+Subterranean
+Tunnel
+Sea
+Amphibious
+Blue
+Brown
+Green
+Surface
+Underwater
+Seabed
+Cyber
+Information
+Night
+Technology
+Air defense
+Armor
+Artillery
+Barrage
+Biological
+Camouflage
+Cavalry
+Horses
+Air cavalry
+Chemical
+Combined arms
+Conventional
+Cyber
+Denial
+Disinformation
+Drone / Robot
+Electromagnetic
+Firearms
+Infantry
+Loitering
+Missile
+Music
+Nuclear
+Psychological
+Radiological
+Space
+Submarine
+Unconventional
+Tactics
+List of military tactics
+Aerial
+Airlift
+Air assault
+Airbridge
+Airdrop
+Anti-aircraft
+Anti-sub
+Anti-tank
+Battle
+Cavalry
+Charge
+CQC
+Counterattack
+Counterinsurgency
+Convoy
+Defeat in detail
+Foxhole
+Drone
+Envelopment
+Formation
+Guerrilla
+Naval
+Shock
+Rapid dominance
+Encirclement
+Investment
+Siege
+Swarm
+Screen
+Tactical objective
+Target saturation
+Trench
+Withdrawal
+Operational
+Military operation
+Special
+Operations research
+Blitzkrieg
+Expeditionary
+Deep operation
+Maneuver
+Operational maneuver group
+Raid
+Covert
+Stay-behind
+Strategy
+List of military strategies and concepts
+Military campaign
+Anti-access
+Attrition
+Commerce raiding
+Counter-offensive
+Culminating
+Defense in depth
+Fabian
+Empty fort
+Kinetic
+Mosaic
+Deception
+Defensive
+Depth
+Goal
+Nuclear
+Naval
+Offensive
+Scorched earth
+Grand strategy
+Asymmetric
+Blockade
+Broken-backed
+Class
+Cold war
+Colonial
+Conquest
+Containment
+Divide and conquer
+Economic
+Endemic
+Fleet in being
+Irregular
+Liberation
+Limited
+Network-centric
+New generation
+Perpetual
+Political
+Princely
+Proxy
+Religious
+Resource
+Strategic
+Succession
+Technology
+Theater
+Total war
+World war
+Administrative
+Branch
+Policy
+Staff
+Training
+Service
+Sociology
+Organization
+Area of responsibility
+Chain of command
+Command and control
+Doctrine
+Order of battle
+Principles of war
+Economy of force
+Medicine
+Engineers
+Intelligence
+Ranks
+Personnel
+Recruitment
+Conscription
+Draft evasion
+Mobilization
+Training
+Specialism
+Soldier
+Morale
+Volunteer
+Women
+Children
+Transgender
+Harassment
+Conscientious objector
+Conscription and sexism
+Counter-recruitment
+Logistics
+History
+War economy
+Arms industry
+Materiel
+Train
+Supply-chain management
+Defense industrial base
+Base
+MOB
+FOB
+Outpost
+Science
+Power projection
+Loss-of-strength gradient
+Lanchester's laws
+Force multiplication
+Morale
+Law
+Belligerent
+Occupation
+Armistice
+Ceasefire
+Court-martial
+Desertion
+Geneva Conventions
+Geneva Protocol
+Islamic
+Justice
+Lawful / Unlawful combatant
+Perfidy
+Regular / Irregular
+Jewish
+Right of conquest
+Right of self-defense
+Rules of engagement
+Self-determination
+Martial law
+War crime
+War and genocide
+War treason
+Warlord
+Theory
+Air supremacy
+Appeasement
+Command of the sea
+Deterrence theory
+Full-spectrum dominance
+Overmatch
+Just war theory
+Principles of war
+Philosophy of war
+Security dilemma
+Tripwire force
+Wargaming
+Simulation
+Exercises
+Combat effectiveness
+Center of gravity
+Non-warfare
+Arms control
+Counterinsurgency
+Deterrence
+Disaster response
+Gray-zone
+Gunboat diplomacy
+Humanitarian aid
+Law enforcement
+Low-intensity conflict
+Military engineering
+Peacekeeping
+Peacebuilding
+Peace through strength
+Show of force
+Culture
+Awards and decorations
+Battle cry
+Warrior
+War film
+Military science fiction
+War novel
+Anti-war movement
+Foot drill
+War song
+Psychology
+Uniform
+Wargame
+Militarization / Militarism
+Antimilitarism
+Camp follower
+Related
+Women in war
+War resister
+War studies
+Horses in warfare
+Wartime sexual violence
+Fifth column
+Mercenary
+Pacifism
+Privateer
+Private military company
+Soldiers are murderers
+Category
+Lanchester's laws are mathematical formulas for calculating the relative strengths of military forces. The Lanchester equations are differential equations describing the time dependence of two armies' strengths A and B as a function of time, with the function depending only on A and B.[1][2]
+In 1915 and 1916 during World War I, M. Osipov[3]: vii–viii  and Frederick Lanchester independently devised a series of differential equations to demonstrate the power relationships between opposing forces.[4] Among these are what is known as Lanchester's linear law (for ancient combat) and Lanchester's square law (for modern combat with long-range weapons such as firearms).
+As of 2017 modified variations of the Lanchester equations continue to form the basis of analysis in many of the US Army's combat simulations,[5] and in 2016 a RAND Corporation report examined by these laws the probable outcome in the event of a Russian invasion into the Baltic nations of Estonia, Latvia, and Lithuania.[6]
+Lanchester's linear law[edit]
+For ancient combat, between phalanxes of soldiers with spears for example, one soldier could only ever fight exactly one other soldier at a time. If each soldier kills, and is killed by, exactly one other, then the number of soldiers remaining at the end of the battle is simply the difference between the larger army and the smaller, assuming identical weapons.
+The linear law also applies to unaimed fire into an enemy-occupied area. The rate of attrition depends on the density of the available targets in the target area as well as the number of weapons shooting. If two forces, occupying the same land area and using the same weapons, shoot randomly into the same target area, they will both suffer the same rate and number of casualties, until the smaller force is eventually eliminated: the greater probability of any one shot hitting the larger force is balanced by the greater number of shots directed at the smaller force.
+Lanchester's square law[edit]
+Lanchester's square law is also known as the N-square law.
+Description[edit]
+Idealized simulation of two forces damaging each other neglecting all other circumstances than the 1) Size of army 2) Rate of damaging. The picture illustrates the principle of Lanchester's square law.
+With firearms engaging each other directly with aimed shooting from a distance, they can attack multiple targets and can receive fire from multiple directions. The rate of attrition now depends only on the number of weapons shooting. Lanchester determined that the power of such a force is proportional not to the number of units it has, but to the square of the number of units. This is known as Lanchester's square law.
+More precisely, the law specifies the casualties a shooting force will inflict over a period of time, relative to those inflicted by the opposing force. In its basic form, the law is only useful to predict outcomes and casualties by attrition. It does not apply to whole armies, where tactical deployment means not all troops will be engaged all the time. It only works where each unit (soldier, ship, etc.) can kill only one equivalent unit at a time. For this reason, the law does not apply to machine guns, artillery with unguided munitions, or nuclear weapons. The law requires an assumption that casualties accumulate over time: it does not work in situations in which opposing troops kill each other instantly, either by shooting simultaneously or by one side getting off the first shot and inflicting multiple casualties.
+Note that Lanchester's square law does not apply to technological force, only numerical force; so it requires an N-squared-fold increase in quality to compensate for an N-fold decrease in quantity.
+Example equations[edit]
+Suppose that two armies, Red and Blue, are engaging each other in combat. Red is shooting a continuous stream of bullets at Blue. Meanwhile, Blue is shooting a continuous stream of bullets at Red.
+Let symbol A represent the number of soldiers in the Red force. Each one has offensive firepower α, which is the number of enemy soldiers it can incapacitate (e.g., kill or injure) per unit time. Likewise, Blue has B soldiers, each with offensive firepower β.
+Lanchester's square law calculates the number of soldiers lost on each side using the following pair of equations.[7] Here, dA/dt represents the rate at which the number of Red soldiers is changing at a particular instant. A negative value indicates the loss of soldiers. Similarly, dB/dt represents the rate of change of the number of Blue soldiers.
+{\displaystyle {\frac {\mathrm {d} A}{\mathrm {d} t}}=-\beta B}
+{\displaystyle {\frac {\mathrm {d} B}{\mathrm {d} t}}=-\alpha A}
+The solution to these equations shows that:
+If α=β, i.e. the two sides have equal firepower, the side with more soldiers at the beginning of the battle will win;
+If A=B, i.e. the two sides have equal numbers of soldiers, the side with greater firepower will win;
+If A>B and α>β, then Red will win, while if A<B and α<β, Blue will win;
+If A>B but α<β, or A<B but α>β, the winning side will depend on whether the ratio of β/α is greater or less than the square of the ratio of A/B. Thus, if numbers and firepower are unequal in opposite directions, a superiority in firepower equal to the square of the inferiority in numbers is required for victory; or, to put it another way, the effectiveness of the army rises proportionate to the square of the number of people in it, but only linearly with their fighting ability.
+The first three of these conclusions are obvious. The final one is the origin of the name "square law".
+Relation to the salvo combat model[edit]
+Lanchester's equations are related to the more recent salvo combat model equations, with two main differences.
+First, Lanchester's original equations form a continuous time model, whereas the basic salvo equations form a discrete time model. In a gun battle, bullets or shells are typically fired in large quantities. Each round has a relatively low chance of hitting its target, and does a relatively small amount of damage. Therefore, Lanchester's equations model gunfire as a stream of firepower that continuously weakens the enemy force over time.
+By comparison, cruise missiles typically are fired in relatively small quantities. Each one has a high probability of hitting its target, and carries a relatively powerful warhead. Therefore, it makes more sense to model them as a discrete pulse (or salvo) of firepower in a discrete time model.
+Second, Lanchester's equations include only offensive firepower, whereas the salvo equations also include defensive firepower. Given their small size and large number, it is not practical to intercept bullets and shells in a gun battle. By comparison, cruise missiles can be intercepted (shot down) by surface-to-air missiles and anti-aircraft guns. Therefore, missile combat models include those active defenses.
+Lanchester's law in use[edit]
+Lanchester's laws have been used to model historical battles for research purposes. Examples include Pickett's Charge of Confederate infantry against Union infantry during the 1863 Battle of Gettysburg,[8] the 1940 Battle of Britain between the British and German air forces,[9] and the Battle of Kursk.[10]
+In modern warfare, to take into account that to some extent both linear and the square apply often, an exponent of 1.5 is used.[11][12][3]: 7-5–7-8  Lanchester's laws have also been used to model guerrilla warfare.[13] The laws have also been applied to repeat battles with a range of inter-battle reinforcement strategies.[14]
+Attempts have been made to apply Lanchester's laws to conflicts between animal groups.[15] Examples include tests with chimpanzees[16] and ants. The chimpanzee application was relatively successful. A study of Australian meat ants and Argentine ants confirmed the square law,[17] but a study of fire ants did not confirm the square law.[18]
+Helmbold Parameters[edit]
+The Helmbold Parameters offer precise numerical indices, grounded in historical data, for quickly and accurately comparing battles in terms of bitterness and the degree of advantage held by each side. While their definition is modeled after a solution of the Lanchester Square Law's differential equations, their numerical values are based entirely on the initial and final strengths of the opponents and in no way depend upon the validity of Lanchester's Square Law as a model of attrition during the course of a battle.
+The solution of Lanchester's Square Law used here can be written as:
+cosh
+sinh
+cosh
+sinh
+{\displaystyle {\begin{aligned}a(t)&=\cosh(\lambda t)-\mu \sinh(\lambda t)\\d(t)&=\cosh(\lambda t)-\mu ^{-1}\sinh(\lambda t)\\\varepsilon &=\lambda T\end{aligned}}}
+Where:
+{\displaystyle t}
+is the time since the battle began
+{\displaystyle a(t)}
+and
+{\displaystyle d(t)}
+are the surviving fractions of the attacker's and defender's forces at time
+{\displaystyle t}
+{\displaystyle \lambda }
+is the Helmbold intensity parameter
+{\displaystyle \mu }
+is the Helmbold defender's advantage parameter
+{\displaystyle T}
+is the duration of the battle
+{\displaystyle \varepsilon }
+is the Helmbold bitterness parameter.
+If the initial and final strengths of the two sides are known it is possible to solve for the parameters
+{\displaystyle a(T)}
+{\displaystyle d(T)}
+{\displaystyle \mu }
+, and
+{\displaystyle \varepsilon }
+. If the battle duration
+{\displaystyle T}
+is also known, then it is possible to solve for
+{\displaystyle \lambda }
+.[19][20][21]
+If, as is normally the case,
+{\displaystyle \varepsilon }
+is small enough that the hyperbolic functions can, without any significant error, be replaced by their series expansion up to terms in the first power of
+{\displaystyle \varepsilon }
+, and if abbreviations adopted for the casualty fractions are
+{\displaystyle F_{A}=1-a(T)}
+and
+{\displaystyle F_{D}=1-d(T)}
+, then the approximate relations that hold include
+{\displaystyle \varepsilon ={\sqrt {F_{A}F_{D}}}}
+and
+{\displaystyle \mu ={\sqrt {F_{A}/F_{D}}}}
+.[22] That
+{\displaystyle \varepsilon }
+is a kind of "average" (specifically, the geometric mean) of the casualty fractions justifies using it as an index of the bitterness of the battle.
+For an example use of these parameters, consider the hypothetical battles, Major and Minor, with the following hypothetical data. In the Major battle, side X with 220,000 men attacked side Y with 195,000 men, and their losses were 3,025 and 2,650, respectively. In the Minor battle, side X with 12,000 men attacked side Y with 15,000, and their losses were 525 and 360, respectively. The problem is to compare these two battles. To do that we compute their Helmbold Parameters and find that for the Major battle
+{\displaystyle \varepsilon }
+= 0.01367 and the advantage of side Y was 1.0059, while for the Minor battle
+{\displaystyle \varepsilon }
+= 0.0240 and the advantage of side Y was 1.3502. We conclude that the Major battle was much less bitter than the Minor battle, that the Major battle was very nearly a tie, and that the Minor battle was a clear victory for side Y.
+Statistical work prefers natural logarithms of the Helmbold Parameters. They are denoted
+log
+{\displaystyle \log \mu }
+log
+{\displaystyle \log \varepsilon }
+, and
+log
+{\displaystyle \log \lambda }
+Major findings[edit]
+See Helmbold (2021):
+The Helmbold parameters
+log
+{\displaystyle \log \varepsilon }
+and
+log
+{\displaystyle \log \mu }
+are statistically independent, i.e., they measure distinct features of a battle.[23]
+The probability that the defender wins,
+{\displaystyle P(D_{wins})}
+, is related to the defender's advantage parameter via the logistic function,
+exp
+{\displaystyle P(D_{wins})=(1+\exp(-z))^{-1}}
+, with
+0.1794
+5.8694
+log
+{\displaystyle z=-0.1794+5.8694*\log \mu }
+.[24] This logistic function is almost exactly skew-symmetric about
+log
+{\displaystyle \log \mu =0}
+, rising from
+0.1
+{\displaystyle P(D_{wins})=0.1}
+log
+0.4
+{\displaystyle \log \mu =-0.4}
+, through
+0.5
+{\displaystyle P(D_{wins})=0.5}
+log
+{\displaystyle \log \mu =0}
+, to
+0.9
+{\displaystyle P(D_{wins})=0.9}
+log
+0.4
+{\displaystyle \log \mu =+0.4}
+. Because the probability of victory depends on the Helmbold advantage parameter rather than the force ratio, it is clear that force ratio is an inferior and untrustworthy predictor of victory in battle.
+While the defender's advantage varies widely from one battle to the next, on average it has been practically constant since 1600 CE.[25]
+Most of the other battle parameters (specifically the initial force strengths, initial force ratios, casualty numbers, casualty exchange ratios, battle durations, and distances advanced by the attacker) have changed so slowly since 1600 CE that only the most acute observers would be likely to notice any change over their nominal 50-year military career.[26]
+Bitterness (
+log
+{\displaystyle \log \varepsilon }
+), casualty fractions (
+{\displaystyle F_{A}}
+and
+{\displaystyle F_{D}}
+in the above notation), and intensity (
+log
+{\displaystyle \log \lambda }
+) also changed slowly before 1939 CE. But since then they have followed a startlingly steeper declining curve.[27]
+Some observers have noticed a similar post-WWII decline in casualties at the level of wars instead of battles.[28][29][30][31]
+See also[edit]
+Attrition warfare
+Lotka–Volterra equations similar mathematical model for predator-prey dynamics
+Maneuver warfare
+Petrie multiplier similar mathematical model for sexism
+Lewis Fry Richardson
+Salvo combat model
+References[edit]
+↑ Lanchester F.W., Mathematics in Warfare in The World of Mathematics, Vol. 4 (1956) Ed. Newman, J.R., Simon and Schuster, 2138–2157; anthologised from Aircraft in Warfare (1916)
+↑ Davis, Paul K. (1995). "Lanchester Equations and Scoring Systems". Aggregation, Disaggregation, and the 3:1 Rules in Ground Combat. Rand Corporation. doi:10.7249/MR638.
+1 2 Osipov, M. (1991) [1915]. "The Influence of the Numerical Strength of Engaged Forces on Their Casualties" Влияние Численности Сражающихся Сторонъ На Ихъ Потери (PDF). Tsarist Russian Journal Military Collection Военный Сборник. Translated by Helmbold, Robert; Rehm, Allan. US Army Concepts Analysis Agency. Archived (PDF) from the original on 4 November 2021. Retrieved 23 January 2022.
+↑ Wrigge, Staffan; Fransen, Ame; Wigg, Lars (September 1995). "The Lanchester Theory of Combat and Some Related Subjects" (PDF). FORSVARETS FORSKNINGSANSTALT.
+↑ Christian, MAJ Joshua T. (23 May 2019). An Examination of Force Ratios (PDF). Fort Leavenworth, KS: US Army Command and General Staff College. This article incorporates public domain material from websites or documents of the United States Army.
+↑ David A. Shlapak, and Michael W. Johnson, Reinforcing Deterrence on NATO's Eastern Flank (Santa Monica, CA: RAND Corporation, 2016)
+↑ Taylor JG. 1983. Lanchester Models of Warfare, volumes I & II. Operations Research Society of America.
+↑ Armstrong MJ, Sodergren SE, 2015, Refighting Pickett's Charge: mathematical modeling of the Civil War battlefield, Social Science Quarterly.
+↑ MacKay N, Price C, 2011, Safety in Numbers: Ideas of concentration in Royal Air Force fighter defence from Lanchester to the Battle of Britain, History 96, 304–325.
+↑ Lucas, Thomas W.; Turkes, Turker (2004). "Fitting Lanchester equations to the battles of Kursk and Ardennes: Lanchester Equations for the Battles of Kursk and Ardennes". Naval Research Logistics. 51 (1): 95–116. doi:10.1002/nav.10101. hdl:10945/44169. S2CID 4809135.
+↑ Race to the Swift: Thoughts on Twenty-First Century Warfare by Richard E. Simpkin
+↑ FOWLER, CHARLES A. "BERT" (1 March 2006). "Asymmetric Warfare: A Primer".
+↑ Deitchman, S. J. (1962). "A Lanchester Model of Guerrilla Warfare". Operations Research. 10 (6): 818–827. doi:10.1287/opre.10.6.818. ISSN 0030-364X. JSTOR 168104.
+↑ McCartney, M (2022). "The solution of Lanchester's equations with inter-battle reinforcement strategies". Physica A. 586 (1) 126477: 1–9. Bibcode:2022PhyA..58626477M. doi:10.1016/j.physa.2021.126477. ISSN 0378-4371.
+↑ Clifton, E. (2020). A Brief Review on the Application of Lanchester's Models of Combat in Nonhuman Animals. Ecological Psychology, 32, 181–191. doi:10.1080/10407413.2020.1846456
+↑ Wilson, M. L., Britton, N. F., & Franks, N. R. (2002). Chimpanzees and the mathematics of battle. Proceedings of the Royal Society B: Biological Sciences, 269, 1107–1112. doi:10.1098/rspb.2001.1926
+↑ Lymbery, Samuel J. (2023). "Complex battlefields favor strong soldiers over large armies in social animal warfare". PNAS. 120 (37) e2217973120. Bibcode:2023PNAS..12017973L. doi:10.1073/pnas.2217973120. PMC 10500280. PMID 37639613.
+↑ Plowes, N. J. R., & Adams, E. S. (2005). An empirical test of Lanchester's square law: mortality during battles of the fire ant Solenopsis invicta. Proceedings of the Royal Society B: Biological Sciences, 272, 1809–1814. doi:10.1098/rspb.2005.3162
+↑ Helmbold 1961a.
+↑ Helmbold 1961b.
+↑ Helmbold 2021, pp. app A.
+↑ Helmbold 2021, pp. 14–16, app A.
+↑ Helmbold 2021, pp. 18–19.
+↑ Helmbold 2021, pp. 17–18.
+↑ Helmbold 2021, pp. 20, 68–69.
+↑ Helmbold 2021, pp. 20, app C.
+↑ Helmbold 2021, pp. 21, app C part 4.
+↑ Lacina, Bethany & Nils Petter Gleditsch (2005) "Monitoring Trends in Flobal Combat: A New Dataset of Battle Deaths", Journal of Population (2005) 21:145-166
+↑ Lacina, Bethany, Nils Petter Gleditsch, & Bruce Russett (2006) "The Declining Risk of Death in Battle", International Studies Quyarterly 50(3), 673-680
+↑ Lacina, Bethany & Nils Petter Gleditsch, (2012) Journal of Conflict Resolution 57(6) 1109-1127
+↑ Lacina, Bethany & Nils Petter Gleditsch, (2012) "The Waning of War Is Real: A Response to Gohdes and Price", Journal of Conflict Resolution
+Bibliography[edit]
+Czarnecki, Joseph. N-Squared Law: An Examination of one of the Mathematical Theories behind the Dreadnought Battleship Naval Weapons of the World
+Dupuy, Col T N (1979). Numbers, Predictions and War. Macdonald and Jane's.
+Helmbold, Robert L. (14 February 1961a). Lanchester Parameters for Some Battles of the Last Two Hundred Years. CORG Staff Paper CORG-SP-122.
+Helmbold, Robert L. (1961b). "Lanchester's Equations, Historical Battles, and War Games". Proceedings of the Eighth Military Operations Research Society Symposium, 18–20 October 1961.
+Helmbold, Robert L. (12 May 2021). The Key to Victory: Machine Learning the Lessons of History. ISBN 978-1-6685-2528-9.
+Lanchester, Frederick W. (1916). Aircraft in Warfare.
+Niall J. MacKay Lanchester combat models, Mathematics Today, 2006, Vol 42/5, pages 170–173.
+External links[edit]
+"Kicking Butt By the Numbers: Lanchester's Laws", a Designer's Notebook column by Ernest Adams in the Game Developer website
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Lanchester%27s_laws&oldid=1364304895"
+Categories:
+Differential equations
+Predation
+Combat modeling
+Hidden categories:
+Articles with short description
+Short description is different from Wikidata
+Use dmy dates from July 2026
+CS1 uses Russian-language script (ru)
+Wikipedia articles incorporating text from the United States Army
+Wikipedia articles incorporating text from public domain works of the United States Government
+Search
+Lanchester's laws
+14 languages
+Add topic

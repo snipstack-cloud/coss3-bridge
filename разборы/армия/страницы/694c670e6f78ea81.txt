@@ -1,0 +1,250 @@
+https://en.wikipedia.org/wiki/Micromanagement_(gameplay)
+Micromanagement (gameplay) - Wikipedia
+Jump to content
+From Wikipedia, the free encyclopedia
+Video game term
+This article needs more citations. Please help improve this article by adding citations to reliable sources. Unsourced material may be challenged and removed.
+Find sources: "Micromanagement" gameplay – news · newspapers · books · scholar · JSTOR (September 2026) (Learn how and when to remove this message)
+A menu for the next action of a spy unit in FreeCiv (Catalan language).
+Micromanagement in gaming is the handling of detailed gameplay elements by the player. It appears in a wide range of games and genres, including strategy video games, construction and management simulations, and pet-raising simulations. Micromanagement has been perceived in different ways by game designers and players for a number of years: some perceive it as a useful addition to games that adds options and technique to the gameplay, something that is necessary if the game is to support top-level competitions; some enjoy opportunities to use tactical skill in strategic games; others regard it as an unwelcome distraction from higher levels of strategic thinking and dislike having to do a lot of detailed work. Some developers attempt to minimize micromanagement in a game's interface for this reason.[citation needed]
+Combat[edit]
+Detailed management of units in combat aims to maximize damage given to enemy units and minimize damage to the player's units. For standard combat units the most common techniques are: grouping units into formations, for example to keep lightly armored shooters behind and protected by more heavily armored melee units;[1][2] concentrating the fire of all ranged units on one target and then a second, etc., to destroy threats as fast as possible; withdrawing seriously damaged units from combat, if repairing / healing them is cheaper than replacing them; "dancing" units that have taken some damage out of enemy weapons range and then back into combat once the enemy have locked on to another target; using military tactics such as flanking and counterattacks; exploiting nontransitive ("circle of death" or "rock-paper-scissors") power relationships between units; using cheap units to draw the enemy's fire away from more expensive units, gameplay especially typical of games of the real-time tactics type. Micromanagement is even more necessary for units with special abilities, that can only be used infrequently. "Micromanagement" in this sense is often abbreviated to "micro", which can be used as a noun or a verb.
+Versus macromanagement[edit]
+Main article: Macromanagement (gameplay)
+There is sometimes confusion regarding the difference between micromanagement and macromanagement, normally abbreviated as 'micro' and 'macro' respectively. Macro generally refers to managing large quantities of tasks at the same time. For example, building units from various structures throughout the game while also building more structures, scouting, creating new bases, etc. This is different from micro, which is generally controlling small numbers of units and giving them specific orders.
+Economic[edit]
+The range of possible economic micromanagement techniques is much wider than for combat, because strategy games' economies work in a number of different ways. If the game uses "worker" units to gather resources and / or build things (a common technique in real-time strategy games), one must make sure none are idle and that they are doing the right things, and must avoid letting enemy raiders destroy them. In some turn-based games one tells colonies what percentages of their efforts to put into various activities such as industrial growth, research, and building defenses or combat units; as colonies grow or the strategic situation changes, one has to check and adjust these ratios. In Sid Meier's Civilization series, it may be important for either economic or military reasons to build railroads as fast as possible, and doing this efficiently requires considerable micromanagement of Settler/Engineer units.[3]
+Twitch vs trick[edit]
+This section does not cite any sources. Please help improve this section by adding citations to reliable sources. Unsourced material may be challenged and removed. (December 2014) (Learn how and when to remove this message)
+Some forms of micromanagement involve continuous input of a large number of commands over a short period of time. This is known as twitch micromanagement. For example, a micromanagement technique known as kiting requires continuous input from the player in order to keep their character at an optimum distance from a target.[citation needed] Another example of twitch micromanagement can be found in racing games whereby a player is required to keep making split second adjustments to the position of their vehicle.
+In contrast to twitch micromanagement, some game elements need only occasional input from the player in order to exploit tricks in their behavior.[vague] In these situations, quick thinking is rewarded over continuous, quick reaction. This is known as trick micromanagement.
+Other types of games are based entirely on micromanagement, such as pet-raising simulations and games like Cake Mania, where the player's ability to micromanage is often the only skill being tested by the game.
+Policy-based[edit]
+Some games are designed in such a way that players must constantly set or check strategic parameters to ensure that operations are proceeding smoothly and efficiently. A typical city-building game or 4X game, for example, requires the player to regulate taxation and production levels in order to keep their industries and commerce flowing. The amount of detail that goes into a simulation like this may necessitate spending a disproportionate amount of time in adjusting relatively minor parameters in order to achieve maximum efficiency.
+Controversy[edit]
+Micromanagement can divert the player's attention from grand strategy by overloading the player with repetitive and mechanical work. Some commentators think that "Strategy is irrelevant in today's real-time strategy games when you're playing against a fourteen-year-old who can click twice as fast as you."[3] Games in which constant micromanagement is needed are often described as "micromanagement hell".[4][5][6]
+In turn-based games the need for economic micromanagement is generally regarded as a defect in the design,[3] and more recent TBS games have tried to minimize it.[4][7][8] But hands-on tactical combat is a feature of multiple turn-based games (e.g. Master of Orion II, Space Empires III, Heroes of Might and Magic III), and reviewers complained about the difficulty of controlling combat in Master of Orion 3.[9]
+There is controversy between fans[who?] of different RTS games about whether micromanagement is: (a) a skill which involves making decisions quickly while under pressure; or (b) a chore which degenerates into a "clickfest" where a player who is faster with the mouse usually beats a player who is better at grand strategy.[10][11] As a result, real time strategy games vary widely from e.g. Total Annihilation, which eliminates most economic micromanagement and reduces tactical micromanagement, to StarCraft, in which both economic and tactical micromanagement are considered important skills. Software has been developed to analyze players' actions per minute (commonly known as APM).[12][13] Other games aim for differing levels of micromanagement of different types: for instance, the Relic Entertainment title Dawn of War 2 minimises economic micromanagement as much as possible, such that there is no base construction, all units are produced from a single source, and resources are accumulated automatically over time by controlling strategic battlefield locations, while on the other hand the game emphasises tactical micromanagement as its primary skill, with combat taking place principally between relatively small squads of highly effective and highly vulnerable units, with victory a function of the rapid deployment of special weapons and tactics in order to counter enemy manoeuvres and inflict maximum damage quickly while avoiding sustaining damage.
+A Gamasutra article pointed out that micromanagement in Civilization III resulted in the game becoming "a chore more than a game," explaining: "Computers can now animate more units than any player could reasonably want to control, and the number will continue to increase exponentially."[3]
+Many role-playing video games and first-person shooters are developing more advanced hotkey layouts, allowing these genres to develop their own micromanagement skills.
+In popular culture[edit]
+The popular Internet-distributed mockumentary series Pure Pwnage coined the term "über-micro", a term describing unusually superior levels of micromanagement. In one episode, it was claimed that micromanagement was discovered in "The Battle of 1974".[14]
+In South Korea, the real-time strategy game StarCraft is highly popular as a professional sport.[15] The need to micromanage efficiently and multitask under pressure are regarded as features that make it suitable for top-level competitions.[16] The game is broadcast on Korean national television, showing professional players' micromanagement skills.[17]
+See also[edit]
+Actions per minute
+Macromanagement
+Micromanagement, in business
+Real-time strategy
+Real-time tactics
+Turn-based strategy
+References[edit]
+↑ "Kohan II: Kings of War (review)". Archived from the original on 2011-02-14.
+↑ "Battle for Middle-Earth II (review)".
+1 2 3 4 "Too Many Clicks! Unit-Based Interfaces Considered Harmful". Gamasutra. August 23, 2006. Archived from the original on March 14, 2010.
+1 2 The Geryk Analysis - Master of Orion 3 rebuttal at quartertothree.com (2001)
+↑ D-Day (PC) review Archived 2009-03-21 at the Wayback Machine at gamespot.com (2004)
+↑ Emergency 3 review Archived 2007-09-13 at the Wayback Machine at armchairempire.com (2006)
+↑ Galactic Civilizations reviews at metacritic.com
+↑ Master of Orion 3 reviews at metacritic.com
+↑ Master of Orion 3 review at quartertothree.com (2003)
+↑ "Theatre of War by 1C and Battlefront - Interview". Armchair General Magazine. Retrieved 2007-06-02.
+↑ "Point - CounterPoint: Turn Based vs. Real Time Strategy". Strategy Planet. June 27, 2001. Archived from the original on February 26, 2007. Retrieved 2007-04-05.
+↑ Total Annihilation review Archived 2007-10-28 at the Wayback Machine at gamespot.com (1997)
+↑ BWChart FAQ Archived 2007-09-19 at the Wayback Machine
+↑ Pure Pwnage - Episode 203 Archived 2009-07-20 at the Wayback Machine
+↑ Hua, Vanessa (December 18, 2006). "Video game players score big money in South Korea". San Francisco Chronicle. Archived from the original on December 31, 2007.
+↑ "Opinion: The Evolution of the Modern RTS".
+↑ World Cyber Games - National Geographic Channel documentary (90 second clip on YouTube)
+Game design elements
+Subjects relating to game design, video game design, game studies, gameplay and game mechanics
+Concepts
+Balance
+Game theory
+Interactivity
+Lusory attitude
+Magic circle
+Meaningful play
+Replay value
+Rules
+Action point
+Continue
+Difficulty level
+Experience point
+Game over
+Health
+Life
+Kingmaker scenario
+Magic
+Permadeath
+Point of no return
+Probability of kill
+Score
+Six degrees of freedom
+Technology tree
+Unwinnable
+Modes
+Attract mode
+Bonus stage
+CPU vs. CPU
+Capture the flag
+Advance and secure
+Co-op
+board
+video
+Deathmatch
+Gun Game
+Last man standing
+Debug
+Demo
+King of the hill
+Multiplayer
+Hotseat
+New Game Plus
+Nonlinear gameplay
+PvE
+PvP
+Single-player
+Sudden death
+Survival
+Time trial
+Time attack
+Timekeeping
+Real-time
+Turn-based
+Systems
+Achievement
+Character class
+Healer
+Tank
+Character creation
+Cover system
+Dialogue tree
+Dynamic difficulty
+Hitscan
+Instance dungeon
+Monster infighting
+Minigame
+Puzzle
+Quick time event
+Random dungeon
+Random encounter
+Respecing
+Saved game
+Quicksaving
+Spawning
+Spawn point
+Stats
+Tank controls
+Virtual economy
+Gold sink
+Warp
+Fast travel
+Activities
+Actions per minute
+Combo
+Double jump
+Finishing move
+Frag
+Grinding
+Looting
+Macromanagement
+Micromanagement
+Quest
+Raid
+Special attack
+Tap
+Time sink
+Twitch gameplay
+Wall jump
+Behavior
+Button mashing
+Camping
+Challenge run
+Cheating
+Wallhacking
+Circle strafing
+Griefer
+Kill stealing
+Kiting
+Crowd control
+Maphack
+Min-maxing
+Online creation
+Powergaming
+Rocket jumping
+Rush
+Sequence breaking
+Spam
+Speedrunning
+Power spike
+Spray and pray
+Strafing
+bunny hop
+jump
+run
+Team killing
+Tool-assisted speedrun
+Trickjump
+Turtling
+Twinking
+Items
+1-up
+Power-up
+Effects
+Buff
+Cooldown
+Critical hit
+Damage over time
+Damage per second
+Splash damage
+Status effect
+Feedback
+Adaptive music
+Cutscene
+Fog of war
+Ghost
+Gib
+HUD
+Mini-map
+Automap
+Overworld
+Yellow paint
+Characters
+Avatar
+Bot
+Clan
+Non-player character
+Artificial Intelligence
+Boss
+Mob
+Paper doll
+Party
+Player character
+Environment
+Collision detection
+Destructible environment
+Invisible wall
+Level
+Line of sight
+Open world
+Persistent world
+Retrieved from "https://en.wikipedia.org/w/index.php?title=Micromanagement_(gameplay)&oldid=1374788129"
+Category:
+Video game terminology
+Hidden categories:
+Articles with short description
+Short description matches Wikidata
+Articles needing additional references from September 2026
+All articles needing additional references
+All articles with unsourced statements
+Articles with unsourced statements from November 2014
+Articles needing additional references from December 2014
+All Wikipedia articles needing clarification
+Wikipedia articles needing clarification from November 2014
+Webarchive template wayback links
+All articles with specifically marked weasel-worded phrases
+Articles with specifically marked weasel-worded phrases from April 2011
+Search
+Micromanagement (gameplay)
+8 languages
+Add topic

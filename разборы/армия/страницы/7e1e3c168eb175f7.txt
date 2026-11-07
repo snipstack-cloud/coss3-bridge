@@ -1,0 +1,209 @@
+https://steamcommunity.com/app/333420/discussions/0/350542145705166969/
+[Guide] How to make formations :: Cossacks 3 General Discussions
+Sign in
+Store
+Home
+Discovery Queue
+Wishlist
+Points Shop
+News
+Charts
+Community
+Home
+Discussions
+Workshop
+Market
+Broadcasts
+About
+Support
+Change language
+Get the Steam Mobile App
+View desktop website
+© Valve Corporation. All rights reserved. All trademarks are property of their respective owners in the US and other countries.
+Privacy Policy
+| Legal
+| Accessibility
+| Steam Subscriber Agreement
+| Refunds
+| Cookies
+STORE
+Home
+Discovery Queue
+Wishlist
+Points Shop
+News
+Charts
+COMMUNITY
+Home
+Discussions
+Workshop
+Market
+Broadcasts
+About
+SUPPORT
+Install Steam
+sign in
+language
+简体中文 (Simplified Chinese)
+繁體中文 (Traditional Chinese)
+日本語 (Japanese)
+한국어 (Korean)
+ไทย (Thai)
+Bahasa Indonesia (Indonesian)
+Bahasa Melayu (Malay) BETA
+Български (Bulgarian)
+Čeština (Czech)
+Dansk (Danish)
+Deutsch (German)
+Español - España (Spanish - Spain)
+Español - Latinoamérica (Spanish - Latin America)
+Ελληνικά (Greek)
+Français (French)
+Italiano (Italian)
+Magyar (Hungarian)
+Nederlands (Dutch)
+Norsk (Norwegian)
+Polski (Polish)
+Português (Portuguese - Portugal)
+Português - Brasil (Portuguese - Brazil)
+Română (Romanian)
+Русский (Russian)
+Suomi (Finnish)
+Svenska (Swedish)
+Türkçe (Turkish)
+Tiếng Việt (Vietnamese)
+Українська (Ukrainian)
+Report a translation problem
+Store Page
+Cossacks 3
+All
+Discussions
+Screenshots
+Artwork
+Broadcasts
+Videos
+Workshop
+News
+Guides
+Reviews
+All
+Discussions
+Screenshots
+Artwork
+Broadcasts
+Videos
+Workshop
+News
+Guides
+Reviews
+Cossacks 3
+Store Page
+View Stats:
+Global Achievements
+Cossacks 3 >
+General Discussions >
+Topic Details
+Toastytoast
+View Profile
+View Posts
+19 Sep, 2016 @ 5:28am
+Report this post
+[Guide] How to make formations
+This is for those that have really played Cossacks: European Wars, with Cossacks 3 being their first introduction to the game.
+In Cossacks 3 placing your soldiers into formations will make them a more formidable opponent by increasing attack and defense. A solid line of Pikemen will have a much better chance of survival against a large horde of cavalry!
+Types of formation
+Rank Formations (line) - These formations are good for defense, as they spread out as many men as possible while maintaining a defensive line. It covers a wide area so you can create effective 'walls' of formations with them. This is the best formation to be in when face against artillery - as your soldiers are spread over a wide area, cannons will take out fewer men with their fire. Of course it's best to rid enemy of their cannon rather than sit around in any formation!
+Column Formations - Column formations are excellent for saturating an area and for all-round attack. Unlike the Rank formation, this is an offensive formation able to send a lot of men into battle within a concentrated, solid column, providing a mass of firepower from all sides. The downside to this formation is cannons, specifically a close-range grapeshot - this shotgun-like blast will mow everyone down!
+Square Formations - The square formation is a defensive formation with anti-cavalry in mind. Your 17th/18th C Pikemen and 18th C Musketeers/Grenadiers make a good surface area of bristling pikes/bayonets! (please don't use 17th C Muskets - they don't have melee!). Whilst not as vulnerable as a Column to artillery, owing to the hollow in the centre of the formation, it's still not a good formation to be in with cannons targeting you.
+How make place your infantry into a formation:
+1. Train a lot of the same type of soldiers. Formation sizes are 15, 36, 72, 120, 196, to 400 (new addition to Cossacks 3), so if you have a mob of 78 Pikemen, you'll only be able to create a formation of 72 (with the other six as normal, separate units).
+2. Train 1 Officer and 1 Drummer. You will need to have built an Academy in addition to your 17th/18th century barracks. The Officer and Drummer, on their own won't do much - the Officer is powerful but very expensive so don't expect to make an army of them! - and the Drummer, well he has a good Line of Sight (often used to scout the map!) but no weapons and is rather weak all round. Within a formation though....that's a different story! They allow you to create formation in the first place and imbue it with attack/defense bonuses!
+3. Move your Officer and Drummer close to your mob of Pikemen. Now click on the officer. If you have enough people, in this case 72 Pikemen, a Pikemen icon (with the number of soldiers) will be visible. Click this and voila, you have a formation of Pikemen and an Officer & Drummer, acting as one unit! If you don't have enough people for a bigger formation those icons will be greyed out until you bring more of the same type closer to the officer.
+Formation bonuses:
+Melee infantry: +2 Attack +3 Defence.
+Clicking the 'Stand Ground' icon will make your soldier hold position and give a bigger bonus of +9 Attack and +9 Armour
+Ranged infantry ('Shooters'): +2 Firepower +3 Defence
+Clicking the 'Stand Ground' icon will make your soldier hold position and give a bigger defence bonus of +2 Firepower and +9 Defence
+Replenishing:
+If your formation has sustained losses, you can bring in new soldiers by moving the same type of units nearby, clicking the officer and simply click on the replenish icon. This will absorb the loose units into the damaged formation, bringing it up full strength.
+Other formations:
+Cavalry can be grouped into formations of 40, 90 or 160, into Rank, Wedge or Column formation. Unlike the infantry formations, cavalry do not get much in the way of bonus stats. The main use of these is geometric - i.e. a Wedge of horsemen would be able to provide less surface area for Musketeers in Rank formation to shot at.
+Artillery, can form formations (Batteries), however this is purely to organise them and give them a slight defense against enemy artillery by creating space between them in their Battery.
+Last edited by Toastytoast;
+19 Sep, 2016 @ 8:25am
+Showing 1-9 of 9 comments
+Keviin Sorbo
+View Profile
+View Posts
+19 Sep, 2016 @ 6:18am
+Report this post
+Originally posted by Radiant:Sorry for being maybe ignorant,but how do you know this?The game is not released yet?
+game play is the same as the original..so people who have played it will be very familiar with cossacks 3
+Toastytoast
+View Profile
+View Posts
+19 Sep, 2016 @ 6:23am
+Report this post
+Originally posted by Raymond Reddington:
+Originally posted by Radiant:Sorry for being maybe ignorant,but how do you know this?The game is not released yet?
+game play is the same as the original..so people who have played it will be very familiar with cossacks 3
+Plus Alexey GSC has said on these forums about the formation stats and new additional formation size (400).
+I thought I'd just consolidate that information with the original Cossacks information regarding formations as there are not going to be any gameplay changes apart from modification of some stats.
+Last edited by Toastytoast;
+19 Sep, 2016 @ 6:24am
+Cabalius
+View Profile
+View Posts
+19 Sep, 2016 @ 6:43am
+Report this post
+Well it's good that they still have the formations involved. I still remember like it was yesterday when I played Cossacks Art of War, hammering out a bunch of Musketeers and form them in a line to mow down some of those turkish swordsman.
+Toastytoast
+View Profile
+View Posts
+19 Sep, 2016 @ 7:39am
+Report this post
+Originally posted by (ILRPG)ToXiCPain:Well it's good that they still have the formations involved. I still remember like it was yesterday when I played Cossacks Art of War, hammering out a bunch of Musketeers and form them in a line to mow down some of those turkish swordsman.
+Yes, it's very satisfying when you repel the enemy like that - even more so when they outnumber you! I like to put my muskets into line formation, hold up on a hill, and stick my pikemen in a line defending the path up :D
+Matto von Bran
+View Profile
+View Posts
+19 Sep, 2016 @ 7:49am
+Report this post
+Thanks for some info ... but I'm little bit surprised, that square formation is ideal against artillery ... omg, I hope no. Is best defend cavalry attack ... but then it means great target for artillery.
+Toastytoast
+View Profile
+View Posts
+19 Sep, 2016 @ 8:27am
+Report this post
+Originally posted by Matto von Bran:Thanks for some info ... but I'm little bit surprised, that square formation is ideal against artillery ... omg, I hope no. Is best defend cavalry attack ... but then it means great target for artillery.
+My bad, for some reason I was thinking of Rank when writing that up. Changed it now :) Still, it's less of a death sentence than a column!
+Matto von Bran
+View Profile
+View Posts
+19 Sep, 2016 @ 9:34am
+Report this post
+Sounds better, thanks :o) I hope it was only text mistake and not programmed rule ...
+SK-Division
+View Profile
+View Posts
+19 Sep, 2016 @ 12:10pm
+Report this post
+srsly who need formations?? In multiplayer u will fail with that tactic.
+Edztえどぜて
+View Profile
+View Posts
+22 Jun, 2023 @ 11:08am
+Report this post
+it is me who plei Portos campaign against Spenis Cosoletes, no new form, let my intitial formed troops be destroyed, just pure human wave tektiks and it works, I mean when economy goes BRRRRR nobody can stop it even the enemy constantly sending proper 72/72 inf 40/40 cav formation over n over, and swarm of countless arties(I also cap or create some) still win
+Impossibruh difficulty (✓)
+Showing 1-9 of 9 comments
+Per page: 1530 50
+Cossacks 3 >
+General Discussions >
+Topic Details
+Date Posted: 19 Sep, 2016 @ 5:28am
+Posts: 9
+Discussions Rules and Guidelines
+Report this post
+REASON
+Note: This is ONLY to be used to report spam, advertising, and problematic (harassment, fighting, or rude) posts.

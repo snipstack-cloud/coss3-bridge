@@ -1,0 +1,25 @@
+https://cossacks.heavengames.com/academy/strategies/russianspear/
+Russian Spearman Rush – Cossacks Heaven
+Menu
+Russian Spearman Rush
+By Pertard Rusher
+This is my favorite strat in multiplayer Cossacks right now. The key point is to use Russia’s better spears and more barracks to get a rather large force of spears around 15 minutes into the game and use them to beat up on your enemy.
+Build order (note: this is for high resources). Start off by having 12 serf build a TC and 6 build a mill, then move your TC guys to a second TC and your mill guys to a blacksmith. Immediately research the mill tech and the first blacksmith tech. At this time both of your raxes should be set to wood. When the blacksmith is done build 2 barracks and start pumping spearmen.
+This next part is key: Send the first 3 spears from each rax to scout. I’ve won countless games simply by getting 3 spears into their unprotected town as early as possible. Even if you only capture one villie then the raid is a huge success as you can use that villie (even from their town), to quickly lay down 2 of his TCs, which your serfs can then finish, or if you can get a few of his vils away then you can build a large forward base right outside his town. Quickly build a 3rd barracks (and even a fourth around 20 minutes) and an academy and build spears, with maybe an officer/drummer. While you are doing this you should of course be building up your econ, focusing mainly on food and wood.
+When you get around 60-100 spears send them into your enemy town, you should have the advantage because you can afford more raxxes and spears beat pikes 1v1. Also, it’s key to get the first 3 attack and defense upgrades, which will make you rule his less upgraded units. After defeating his army, march into his town and take his villies and TCs, which usually ends the game. If he is a die-hard build a Diplo center and use merc archers to burn down his barracks and other military buildings.
+Pike Stats
+Building Time: 150
+Life: 95
+Cost: 25 food 20 iron
+Attack: 8 (pike)
+Defence: 2(pike) 2(sword) 1(arrow) 5(shot) 7(cannonball) 255(canister)
+Spear Stats
+Building Time: 180
+Life: 100
+Cost: 55 food, 15 Iron
+Attack: 9
+Defence: 2(pike) 1(sword) 1(arrow) 4(shot) 4(cannonball) 150(canister)
+Using this strat I have yet to lose a game (about 10-0), simply because no other civ can match the speed and power of Russia this early (except a very early archer or infantryman rush).
+"Cossacks: European Wars"™ is a game by CDV Software.
+Copyright © 2001 HeavenGames LLC. All Rights Reserved.
+Please see our Disclaimer & Privacy Statements.
